@@ -1,0 +1,30 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>API_KEY</key>
+	<string>AIzaSyAHmnjgZ1XJOHo-rEU6pSQQqRSU7d3c1bU</string>
+	<key>GCM_SENDER_ID</key>
+	<string>999467716325</string>
+	<key>PLIST_VERSION</key>
+	<string>1</string>
+	<key>BUNDLE_ID</key>
+	<string>com.paylisher.PaylisherExample</string>
+	<key>PROJECT_ID</key>
+	<string>paylisher-sample</string>
+	<key>STORAGE_BUCKET</key>
+	<string>paylisher-sample.firebasestorage.app</string>
+	<key>IS_ADS_ENABLED</key>
+	<false></false>
+	<key>IS_ANALYTICS_ENABLED</key>
+	<false></false>
+	<key>IS_APPINVITE_ENABLED</key>
+	<true></true>
+	<key>IS_GCM_ENABLED</key>
+	<true></true>
+	<key>IS_SIGNIN_ENABLED</key>
+	<true></true>
+	<key>GOOGLE_APP_ID</key>
+	<string>1:999467716325:ios:3ef6f69bab387c03f14e0c</string>
+</dict>
+</plist>
