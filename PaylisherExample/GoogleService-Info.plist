@@ -9,7 +9,7 @@
 	<key>PLIST_VERSION</key>
 	<string>1</string>
 	<key>BUNDLE_ID</key>
-	<string>com.paylisher.PaylisherExample</string>
+	<string>com.paylisher.PaylisherExamplee</string>
 	<key>PROJECT_ID</key>
 	<string>paylisher-sample</string>
 	<key>STORAGE_BUCKET</key>
@@ -25,6 +25,6 @@
 	<key>IS_SIGNIN_ENABLED</key>
 	<true></true>
 	<key>GOOGLE_APP_ID</key>
-	<string>1:999467716325:ios:3ef6f69bab387c03f14e0c</string>
+	<string>1:999467716325:ios:bc9b1a2f3aab07d2f14e0c</string>
 </dict>
 </plist>
