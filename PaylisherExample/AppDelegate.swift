@@ -8,12 +8,15 @@
 import Foundation
 import Paylisher
 import UIKit
+import FirebaseCore
+import FirebaseMessaging
+import UserNotifications
 
-class AppDelegate: NSObject, UIApplicationDelegate {
-    func application(_: UIApplication, didFinishLaunchingWithOptions _: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool {
+class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
+    func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
 
-        let PAYLISHER_API_KEY = "phc_test"
-        let PAYLISHER_HOST = "https://test.paylisher.com"
+        let PAYLISHER_API_KEY = "<phc_test>"
+        let PAYLISHER_HOST = "<https://test.paylisher.com>"
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
@@ -29,6 +32,23 @@ class AppDelegate: NSObject, UIApplicationDelegate {
         config.sessionReplayConfig.screenshotMode = true
         config.sessionReplayConfig.maskAllTextInputs = true
         config.sessionReplayConfig.maskAllImages = true
+        
+        FirebaseApp.configure()
+               
+               if #available(iOS 10.0, *){
+                   
+                   UNUserNotificationCenter.current().requestAuthorization(options: [.alert, .sound, .badge]) { granted, error in
+                       guard granted else {
+                           return
+                       }
+                       print("Granted in APNS registry")
+                   }
+                   UNUserNotificationCenter.current().delegate = self
+                   Messaging.messaging().delegate = self
+                   
+               }
+               application.registerForRemoteNotifications()
+                   
        
         
         PaylisherSDK.shared.setup(config)
@@ -68,4 +88,34 @@ class AppDelegate: NSObject, UIApplicationDelegate {
     @objc func receiveFeatureFlags() {
         print("user receiveFeatureFlags callback")
     }
+    
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+           
+           Messaging.messaging().apnsToken = deviceToken
+           
+       }
+       
+       func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+           
+           completionHandler([[.banner, .list, .sound]])
+       }
+       
+       func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
+           
+           let userInfo = response.notification.request.content.userInfo
+           
+           NotificationCenter.default.post(name: Notification.Name("didReceiveRemoteNotification"), object: nil, userInfo: userInfo)
+           completionHandler()
+           
+       }
+       
+       @objc func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
+           
+           messaging.token{ token, _ in
+               guard let token = token else{
+                   return
+               }
+               print("token: \(token)")
+           }
+       }
 }
