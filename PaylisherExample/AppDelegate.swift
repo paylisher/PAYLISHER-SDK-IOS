@@ -11,12 +11,14 @@ import UIKit
 import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
+import Combine
+import CoreData
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
 
-        let PAYLISHER_API_KEY = "<phc_test>"
-        let PAYLISHER_HOST = "<https://test.paylisher.com>"
+        let PAYLISHER_API_KEY = "phc_vFmOmzIfHMJtUvcTI8qCQu7VDPdKtO8Mz3kic7AIIvj" // "<phc_test>"
+        let PAYLISHER_HOST = "https://datastudio.paylisher.com"  //"<https://test.paylisher.com>"
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
@@ -48,8 +50,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                    
                }
                application.registerForRemoteNotifications()
-                   
-       
+        
+        let type = Paylisher.NotificationTypee.push
+        
+        
+        
         
         PaylisherSDK.shared.setup(config)
         
@@ -57,19 +62,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 //        PaylisherSDK.shared.debug()
         PaylisherSDK.shared.capture("App started!")
 //        PaylisherSDK.shared.reset()
-
-
-        PaylisherSDK.shared.capture(
-           "Person",
-           userProperties : ["Email": "ios@test.com", "Username": "iOS"]
-        )
-
-        //        PaylisherSDK.shared.identify("TEST-iOS")
-                 
-        PaylisherSDK.shared.identify( "Test-iOS",
-            userProperties :["name": "Paylisher iOS", "email": "ios@test.com"],
-            userPropertiesSetOnce : ["date_of_first_log_in": "2024-03-01"]
-        )
+        
+        PaylisherSDK.shared.capture("Logged in",
+                                    userProperties: ["Email": "kayarasimburak@gmail.com", "Name": "Rasim Burak", "Surname:": "Kaya", "Gender": "Male"],
+                                    userPropertiesSetOnce: ["date_of_first_log_in": "2025-23-01"])
 
         PaylisherSDK.shared.screen("App screen", properties: ["fromIcon": "bottom"])
 
@@ -95,18 +91,62 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
            
        }
        
-       func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
+      func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
            
-           completionHandler([[.banner, .list, .sound]])
+          print("test -> willPresents")
+          
+         /* let userInfo = notification.request.content.userInfo
+          
+          let identifier = notification.request.identifier
+          
+          print("User Info: \(userInfo)")
+          
+          let title = userInfo["title"] as? String ?? "title"
+          
+          let message = userInfo["message"] as? String ?? "message"
+          
+          let type = userInfo["type"] as? String ?? "Unknown"
+          
+          print("Title: \(title)")
+          
+          print("Message: \(message)")
+          
+          CoreDataManager.shared.insertNotification(type: type, receivedDate: Date(), expirationDate: Date().addingTimeInterval(120), payload: userInfo.description, status: "UNREAD", identifier: identifier)
+          
+          let allNotifications = CoreDataManager.shared.fetchAllNotifications()
+          print("allNotifications count: \(allNotifications.count)")
+                for notification in allNotifications {
+                    print("""
+                    ID: \(notification.id)
+                    Tür: \(notification.type)
+                    Alınma Tarihi: \(notification.receivedDate ?? Date())
+                    Durum: \(notification.status)
+                    İçerik: \(notification.payload ?? "Boş")
+                    Identifier: \(notification.notificationIdentifier)
+                    """)
+                }*/
+
+          completionHandler([.sound, .list, .banner, .badge ])
        }
        
        func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
            
            let userInfo = response.notification.request.content.userInfo
            
-           NotificationCenter.default.post(name: Notification.Name("didReceiveRemoteNotification"), object: nil, userInfo: userInfo)
-           completionHandler()
+           let identifier = response.notification.request.identifier
            
+           CoreDataManager.shared.updateNotificationStatus(byIdentifier: identifier, newStatus: "READ")
+         
+           if let actionURLString = userInfo["action"] as? String,
+              let actionURL = URL(string: actionURLString) {
+               print("Bildirime tıklandı, açılan URL: \(actionURL)")
+               UIApplication.shared.open(actionURL, options: [:], completionHandler: nil)
+           } else {
+               print("Action URL bulunamadı!")
+           }
+           
+           completionHandler()
+  
        }
        
        @objc func messaging(_ messaging: Messaging, didReceiveRegistrationToken fcmToken: String?) {
@@ -116,6 +156,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                    return
                }
                print("token: \(token)")
+               
+               PaylisherSDK.shared.identify( "Test-iOS_",
+                                             userProperties :[
+                                                "name": "Paylisher iOS",
+                                                "email": "ios_soi@test.com",
+                                                "token": token
+                                             ],
+               userPropertiesSetOnce : ["birthday": "2024-03-01"])
            }
        }
 }

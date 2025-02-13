@@ -61,13 +61,33 @@ class FeatureFlagsModel: ObservableObject {
     }
 }
 
+struct YeniSayfaView: View {
+    var body: some View {
+        VStack {
+            Text("Bu yeni bir sayfa!")
+                .font(.largeTitle)
+                .padding()
+
+            NavigationLink(destination: ContentView()) {
+                Text("Ana Sayfaya Dön")
+                    .font(.headline)
+                    .foregroundColor(.white)
+                    .padding()
+                    .background(Color.blue)
+                    .cornerRadius(10)
+            }
+        }
+        .navigationTitle("Yeni Sayfa")
+    }
+}
+
 struct ContentView: View {
     @State var counter: Int = 0
     @State private var name: String = "Max"
     @State private var showingSheet = false
     @State private var showingRedactedSheet = false
     @StateObject var api = Api()
-
+    @State private var deepLinkDestination: String?
     @StateObject var signInViewModel = SignInViewModel()
     @StateObject var featureFlagsModel = FeatureFlagsModel()
 
@@ -79,9 +99,12 @@ struct ContentView: View {
         PaylisherSDK.shared.identify(name, userProperties: [
             "name": name,
         ])
+        
+        PaylisherSDK.shared.screen("İkinci Ekran")
     }
 
     func triggerAuthentication() {
+        PaylisherSDK.shared.screen("Test Ekranı")
         signInViewModel.triggerAuthentication()
     }
 
@@ -102,12 +125,15 @@ struct ContentView: View {
 
                     Button("Test Error") {
 //                        throw NSError(domain: "com.example.test", code: 1, userInfo: [NSLocalizedDescriptionKey: "This is a test error event!"])
-                        let array = [1, 2, 3]
-                        let outOfBoundsValue = array[5]
+                       // let array = [1, 2, 3]
+                        //let outOfBoundsValue = array[5]
+                        
+                        testErrorLogging()
                     }
                     
                     Button("Show Sheet") {
                         showingSheet.toggle()
+                        PaylisherSDK.shared.screen("Splash")
                     }
                     .sheet(isPresented: $showingSheet) {
                         ContentView()
@@ -115,6 +141,7 @@ struct ContentView: View {
                     }
                     Button("Show redacted view") {
                         showingRedactedSheet.toggle()
+                        PaylisherSDK.shared.screen("İlk Ekran")
                     }
                     .sheet(isPresented: $showingRedactedSheet) {
                         RepresentedExampleUIView()
@@ -136,6 +163,18 @@ struct ContentView: View {
                         Text("Trigger identify!")
                     }.paylisherViewSeen("Trigger identify")
                 }
+                
+                Section("Navigasyon") {
+                  
+                    NavigationLink(destination: YeniSayfaView(), tag: "YeniSayfaView", selection: $deepLinkDestination) {
+                                        Text("Yeni Sayfaya Git")
+                                            .font(.headline)
+                                            .foregroundColor(.white)
+                                            .padding()
+                                            .background(Color.green)
+                                            .cornerRadius(10)
+                                    }
+                                }
 
                 Section("Feature flags") {
                     HStack {
@@ -193,7 +232,51 @@ struct ContentView: View {
                 api.beers = beers
             })
         }
+        
+        .onOpenURL { url in
+                   handleDeepLink(url: url)
+               }
     }
+    
+    func handleDeepLink(url: URL) {
+           print("Açılan Deep Link: \(url)")
+           if url.scheme == "myapp", url.host == "yeniSayfa" {
+               deepLinkDestination = "YeniSayfaView"
+           }
+       }
+    
+    // Define custom errors
+    enum CustomError: Error {
+        case invalidOperation
+        case valueOutOfRange
+    }
+
+    // Function that throws errors
+    func performOperation(shouldThrow: Bool) throws {
+        if shouldThrow {
+            throw CustomError.invalidOperation
+        }
+        print("Operation performed successfully.")
+    }
+    
+    // Testing function
+    func testErrorLogging() {
+        do {
+            // Intentionally triggering an error
+            try performOperation(shouldThrow: true)
+        } catch {
+            // Create error properties
+            let properties: [String: Any] = [
+                "message": error.localizedDescription,
+                "cause": (error as NSError).userInfo["NSUnderlyingError"] ?? "None",
+                "stackTrace": Thread.callStackSymbols.joined(separator: "\n")
+            ]
+            print("testErrorLogging catch")
+            // Log the error
+            PaylisherSDK.shared.capture("Error", properties: properties)
+        }
+    }
+    
 }
 
 struct ContentView_Previews: PreviewProvider {
