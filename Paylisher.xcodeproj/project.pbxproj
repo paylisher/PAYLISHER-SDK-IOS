@@ -152,6 +152,7 @@
 		FA342FFB2D42367500A8DA67 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA342FFA2D42367500A8DA67 /* FirebaseCore */; };
 		FA342FFD2D42367500A8DA67 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FA342FFC2D42367500A8DA67 /* FirebaseMessaging */; };
 		FA3430042D4238B900A8DA67 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FA3430032D4238B900A8DA67 /* GoogleService-Info.plist */; };
+		FA54EF1D2D64C9C4008A04DC /* CustomInAppPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */; };
 		FA58D30C2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */; };
 		FA58D30E2D5B454C009A34DB /* NotificationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30D2D5B454C009A34DB /* NotificationEntity.swift */; };
 		FA58D3102D5B4613009A34DB /* NotificationStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30F2D5B4613009A34DB /* NotificationStatus.swift */; };
@@ -167,11 +168,28 @@
 		FA58D3362D5B5318009A34DB /* NotificationStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30F2D5B4613009A34DB /* NotificationStatus.swift */; };
 		FA58D3372D5B5320009A34DB /* NotificationType.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3112D5B4672009A34DB /* NotificationType.swift */; };
 		FA58D3382D5B5327009A34DB /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */; };
+		FA5C7F5A2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */; };
+		FA5C7F5B2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */; };
+		FA5C7F5C2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */; };
+		FA5C7F5E2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */; };
+		FA5C7F5F2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */; };
+		FA5C7F602D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */; };
+		FA89FDD32D65D65000CE5030 /* CustomInAppPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */; };
+		FA89FDD42D65D65000CE5030 /* CustomInAppPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */; };
 		FAC22F8B2D5CDE67001353B7 /* PaylisherActionBaseNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC22F8A2D5CDE67001353B7 /* PaylisherActionBaseNotification.swift */; };
 		FAC22F8D2D5CE114001353B7 /* PaylisherGeofenceNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC22F8C2D5CE114001353B7 /* PaylisherGeofenceNotification.swift */; };
 		FAC22F8F2D5CE61D001353B7 /* PaylisherPushNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC22F8E2D5CE61D001353B7 /* PaylisherPushNotification.swift */; };
 		FAC22F912D5CED17001353B7 /* PaylisherSilentPushNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC22F902D5CED17001353B7 /* PaylisherSilentPushNotification.swift */; };
+		FAD90ED02D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */; };
+		FAD90ED12D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */; };
+		FAD90ED22D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */; };
 		FAE7697E2D5B9819002AD00A /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */; };
+		FAE918C82D672FB000105499 /* StyleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918C72D672FB000105499 /* StyleViewController.swift */; };
+		FAE918C92D672FB000105499 /* StyleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918C72D672FB000105499 /* StyleViewController.swift */; };
+		FAE918CA2D672FB000105499 /* StyleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918C72D672FB000105499 /* StyleViewController.swift */; };
+		FAE918CC2D6746EB00105499 /* UIColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918CB2D6746EB00105499 /* UIColorHex.swift */; };
+		FAE918CD2D6746EB00105499 /* UIColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918CB2D6746EB00105499 /* UIColorHex.swift */; };
+		FAE918CE2D6746EB00105499 /* UIColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918CB2D6746EB00105499 /* UIColorHex.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -257,7 +275,7 @@
 /* Begin PBXCopyFilesBuildPhase section */
 		031FD2F32D5A2E1F0056B666 /* Embed Frameworks */ = {
 			isa = PBXCopyFilesBuildPhase;
-			buildActionMask = 2147483647;
+			buildActionMask = 12;
 			dstPath = "";
 			dstSubfolderSpec = 10;
 			files = (
@@ -442,16 +460,22 @@
 		DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherMaskViewModifier.swift; sourceTree = "<group>"; };
 		FA342FFE2D42368A00A8DA67 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FA3430032D4238B900A8DA67 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
+		FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomInAppPayload.swift; sourceTree = "<group>"; };
 		FA58D30B2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodel */ = {isa = PBXFileReference; lastKnownFileType = wrapper.xcdatamodel; path = PaylisherDatabase.xcdatamodel; sourceTree = "<group>"; };
 		FA58D30D2D5B454C009A34DB /* NotificationEntity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationEntity.swift; sourceTree = "<group>"; };
 		FA58D30F2D5B4613009A34DB /* NotificationStatus.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationStatus.swift; sourceTree = "<group>"; };
 		FA58D3112D5B4672009A34DB /* NotificationType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationType.swift; sourceTree = "<group>"; };
 		FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
 		FA58D3272D5B5205009A34DB /* PaylisherNotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PaylisherNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherInAppModalViewController.swift; sourceTree = "<group>"; };
+		FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherNativeInAppNotificationManager.swift; sourceTree = "<group>"; };
 		FAC22F8A2D5CDE67001353B7 /* PaylisherActionBaseNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherActionBaseNotification.swift; sourceTree = "<group>"; };
 		FAC22F8C2D5CE114001353B7 /* PaylisherGeofenceNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherGeofenceNotification.swift; sourceTree = "<group>"; };
 		FAC22F8E2D5CE61D001353B7 /* PaylisherPushNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherPushNotification.swift; sourceTree = "<group>"; };
 		FAC22F902D5CED17001353B7 /* PaylisherSilentPushNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherSilentPushNotification.swift; sourceTree = "<group>"; };
+		FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherCustomInAppNotificationManager.swift; sourceTree = "<group>"; };
+		FAE918C72D672FB000105499 /* StyleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleViewController.swift; sourceTree = "<group>"; };
+		FAE918CB2D6746EB00105499 /* UIColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorHex.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
@@ -642,6 +666,7 @@
 				690FF0AE2AEB9C1400A0B06B /* DateUtils.swift */,
 				699C5FE52C20178E007DB818 /* UUIDUtils.swift */,
 				690B2DF22C205B5600AE3B45 /* TimeBasedEpochGenerator.swift */,
+				FAE918CB2D6746EB00105499 /* UIColorHex.swift */,
 			);
 			path = Utils;
 			sourceTree = "<group>";
@@ -688,28 +713,9 @@
 				69BA38E62B893F2200AA69D6 /* Resources */,
 				69779BED2AE6B29E00D7A48E /* Models */,
 				3AC745B8296D6FE60025C109 /* Paylisher.h */,
+				FA27FC542D5DE31D0006B059 /* Paylisher */,
 				3AA4C09B2988315D006C4731 /* Utils */,
-				3AE3FB36299162EA00AFFC18 /* PaylisherApi.swift */,
-				3AE3FB322991388500AFFC18 /* PaylisherQueue.swift */,
-				3AE3FB3C29924E8200AFFC18 /* PaylisherSDK.swift */,
-				3AE3FB3E29924F4F00AFFC18 /* PaylisherConfig.swift */,
-				3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */,
-				3AE3FB48299391DF00AFFC18 /* PaylisherStorage.swift */,
-				69261D122AD5685B00232EC7 /* PaylisherFeatureFlags.swift */,
-				69261D182AD9673500232EC7 /* PaylisherBatchUploadInfo.swift */,
-				69261D1C2AD967CD00232EC7 /* PaylisherFileBackedQueue.swift */,
-				69261D1E2AD9681300232EC7 /* PaylisherConsumerPayload.swift */,
-				69261D222AD9784200232EC7 /* PaylisherVersion.swift */,
-				69261D242AD9787A00232EC7 /* PaylisherExtensions.swift */,
-				6926DA8D2ADD2876005760D2 /* PaylisherContext.swift */,
-				69779BEB2AE68E6900D7A48E /* UIViewController.swift */,
-				690FF0C42AEFAE8200A0B06B /* PaylisherLegacyQueue.swift */,
-				69F518372BB2BA0100F52C14 /* PaylisherSwizzler.swift */,
-				693E977A2C625208004B1030 /* PaylisherPropertiesSanitizer.swift */,
-				69ED1A5B2C7F15F300FE7A91 /* PaylisherSessionManager.swift */,
-				DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */,
-				69ED1A872C89B73100FE7A91 /* PaylisherSwiftUIViewModifiers.swift */,
-				69ED1A9E2C8F451B00FE7A91 /* PaylisherPersonProfiles.swift */,
+				FAE918C62D672D7F00105499 /* New Group */,
 			);
 			path = Paylisher;
 			sourceTree = "<group>";
@@ -862,6 +868,39 @@
 			name = Frameworks;
 			sourceTree = "<group>";
 		};
+		FA27FC542D5DE31D0006B059 /* Paylisher */ = {
+			isa = PBXGroup;
+			children = (
+				3AE3FB36299162EA00AFFC18 /* PaylisherApi.swift */,
+				3AE3FB322991388500AFFC18 /* PaylisherQueue.swift */,
+				3AE3FB3C29924E8200AFFC18 /* PaylisherSDK.swift */,
+				3AE3FB3E29924F4F00AFFC18 /* PaylisherConfig.swift */,
+				3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */,
+				3AE3FB48299391DF00AFFC18 /* PaylisherStorage.swift */,
+				69261D122AD5685B00232EC7 /* PaylisherFeatureFlags.swift */,
+				69261D182AD9673500232EC7 /* PaylisherBatchUploadInfo.swift */,
+				69261D1C2AD967CD00232EC7 /* PaylisherFileBackedQueue.swift */,
+				69261D1E2AD9681300232EC7 /* PaylisherConsumerPayload.swift */,
+				69261D222AD9784200232EC7 /* PaylisherVersion.swift */,
+				69261D242AD9787A00232EC7 /* PaylisherExtensions.swift */,
+				6926DA8D2ADD2876005760D2 /* PaylisherContext.swift */,
+				69779BEB2AE68E6900D7A48E /* UIViewController.swift */,
+				690FF0C42AEFAE8200A0B06B /* PaylisherLegacyQueue.swift */,
+				69F518372BB2BA0100F52C14 /* PaylisherSwizzler.swift */,
+				693E977A2C625208004B1030 /* PaylisherPropertiesSanitizer.swift */,
+				69ED1A5B2C7F15F300FE7A91 /* PaylisherSessionManager.swift */,
+				DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */,
+				69ED1A872C89B73100FE7A91 /* PaylisherSwiftUIViewModifiers.swift */,
+				69ED1A9E2C8F451B00FE7A91 /* PaylisherPersonProfiles.swift */,
+				FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */,
+				FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */,
+				FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */,
+				FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */,
+				FAE918C72D672FB000105499 /* StyleViewController.swift */,
+			);
+			path = Paylisher;
+			sourceTree = "<group>";
+		};
 		FA58D3152D5B46F0009A34DB /* PaylisherDatabase */ = {
 			isa = PBXGroup;
 			children = (
@@ -872,6 +911,13 @@
 				FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */,
 			);
 			path = PaylisherDatabase;
+			sourceTree = "<group>";
+		};
+		FAE918C62D672D7F00105499 /* New Group */ = {
+			isa = PBXGroup;
+			children = (
+			);
+			path = "New Group";
 			sourceTree = "<group>";
 		};
 /* End PBXGroup section */
@@ -1240,10 +1286,16 @@
 				3AA34CFC296D951A003398F4 /* ContentView.swift in Sources */,
 				FA58D3192D5B4CC2009A34DB /* NotificationType.swift in Sources */,
 				3AE3FB2C2991320300AFFC18 /* Api.swift in Sources */,
+				FA89FDD32D65D65000CE5030 /* CustomInAppPayload.swift in Sources */,
+				FAD90ED12D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */,
 				3A0F108329C47940002C0084 /* UIViewExample.swift in Sources */,
 				FA58D3182D5B4CBA009A34DB /* NotificationStatus.swift in Sources */,
+				FA5C7F5F2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */,
 				FAE7697E2D5B9819002AD00A /* CoreDataManager.swift in Sources */,
+				FAE918C92D672FB000105499 /* StyleViewController.swift in Sources */,
+				FAE918CD2D6746EB00105499 /* UIColorHex.swift in Sources */,
 				3AA34CFA296D951A003398F4 /* PaylisherExampleApp.swift in Sources */,
+				FA5C7F5B2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1282,7 +1334,9 @@
 				69ED1A882C89B73100FE7A91 /* PaylisherSwiftUIViewModifiers.swift in Sources */,
 				69F5181A2BAC81FC00F52C14 /* UITextInputTraits+Util.swift in Sources */,
 				69F517E82BAC675800F52C14 /* RRWireframe.swift in Sources */,
+				FAE918CC2D6746EB00105499 /* UIColorHex.swift in Sources */,
 				3A0F108529C9ABB6002C0084 /* ReadWriteLock.swift in Sources */,
+				FAD90ED02D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */,
 				693E977B2C625208004B1030 /* PaylisherPropertiesSanitizer.swift in Sources */,
 				3AE3FB3D29924E8200AFFC18 /* PaylisherSDK.swift in Sources */,
 				69F517F32BAC734300F52C14 /* UIColor+Util.swift in Sources */,
@@ -1296,6 +1350,8 @@
 				3AE3FB332991388500AFFC18 /* PaylisherQueue.swift in Sources */,
 				690FF0B52AEBBD3C00A0B06B /* DictUtils.swift in Sources */,
 				69F23A7A2BB309F3001194F6 /* MethodSwizzler.swift in Sources */,
+				FAE918C82D672FB000105499 /* StyleViewController.swift in Sources */,
+				FA5C7F5E2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */,
 				69261D1B2AD9678C00232EC7 /* PaylisherEvent.swift in Sources */,
 				69EE82BC2BA9C53000EB9542 /* PaylisherSessionReplayConfig.swift in Sources */,
 				FA58D3122D5B4672009A34DB /* NotificationType.swift in Sources */,
@@ -1304,6 +1360,8 @@
 				69ED1A9F2C8F451B00FE7A91 /* PaylisherPersonProfiles.swift in Sources */,
 				69EE82BA2BA9C50400EB9542 /* PaylisherReplayIntegration.swift in Sources */,
 				3AE3FB472992AB0000AFFC18 /* Hedgelog.swift in Sources */,
+				FA54EF1D2D64C9C4008A04DC /* CustomInAppPayload.swift in Sources */,
+				FA5C7F5A2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */,
 				69261D132AD5685B00232EC7 /* PaylisherFeatureFlags.swift in Sources */,
 				699C5FE62C20178E007DB818 /* UUIDUtils.swift in Sources */,
 				FAC22F8D2D5CE114001353B7 /* PaylisherGeofenceNotification.swift in Sources */,
@@ -1382,10 +1440,16 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				FA89FDD42D65D65000CE5030 /* CustomInAppPayload.swift in Sources */,
+				FA5C7F602D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */,
 				FA58D3382D5B5327009A34DB /* CoreDataManager.swift in Sources */,
+				FA5C7F5C2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */,
 				FA58D3342D5B5300009A34DB /* PaylisherDatabase.xcdatamodeld in Sources */,
 				FA58D3362D5B5318009A34DB /* NotificationStatus.swift in Sources */,
 				FA58D3352D5B5311009A34DB /* NotificationEntity.swift in Sources */,
+				FAD90ED22D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */,
+				FAE918CE2D6746EB00105499 /* UIColorHex.swift in Sources */,
+				FAE918CA2D672FB000105499 /* StyleViewController.swift in Sources */,
 				FA58D3372D5B5320009A34DB /* NotificationType.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -1495,6 +1559,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 2.0;
+				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_BUNDLE_IDENTIFIER = com.paylisher.PaylisherExamplee;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";
@@ -1532,6 +1597,7 @@
 				LD_RUNPATH_SEARCH_PATHS = "$(inherited)";
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 2.0;
+				ONLY_ACTIVE_ARCH = NO;
 				PRODUCT_BUNDLE_IDENTIFIER = com.paylisher.PaylisherExamplee;
 				PRODUCT_NAME = "$(TARGET_NAME)";
 				PROVISIONING_PROFILE_SPECIFIER = "";

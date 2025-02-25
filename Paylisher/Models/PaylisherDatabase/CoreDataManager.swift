@@ -49,7 +49,7 @@ class CoreDataManager {
         }
     }
 
-    // Auto-Increment ID Oluşturma
+    
     func generateNewID() -> Int64 {
         //let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest()
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
@@ -65,7 +65,7 @@ class CoreDataManager {
         }
     }
 
-    //Bildirim Ekleme
+    
     public func insertNotification(type: String, receivedDate: Date, expirationDate: Date, payload: String, status: String, identifier: String) {
         let context = persistentContainer.viewContext
         let notification = NotificationEntity(context: context)
@@ -80,7 +80,7 @@ class CoreDataManager {
         saveContext()
     }
 
-    //Tüm Bildirimleri Getirme
+    
     func fetchAllNotifications() -> [NotificationEntity] {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
         do {
@@ -90,7 +90,7 @@ class CoreDataManager {
         }
     }
 
-    //Bildirim Güncelleme
+    
     func updateNotificationStatus(byIdentifier identifier: String, newStatus: String) {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
         fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
@@ -121,7 +121,7 @@ class CoreDataManager {
 
 
 
-    //Tüm Bildirimleri Silme
+    
     func deleteAllNotifications() {
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NotificationEntity.fetchRequest()
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)

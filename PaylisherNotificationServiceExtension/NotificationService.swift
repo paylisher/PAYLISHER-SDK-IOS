@@ -8,6 +8,7 @@
 import MobileCoreServices
 import UserNotifications
 import Paylisher
+import UIKit
 
 class NotificationService: UNNotificationServiceExtension {
     
@@ -20,7 +21,7 @@ class NotificationService: UNNotificationServiceExtension {
         withContentHandler contentHandler: @escaping (UNNotificationContent) ->
             Void
     ) {
-
+        
         self.contentHandler = contentHandler
 
         guard
@@ -32,72 +33,75 @@ class NotificationService: UNNotificationServiceExtension {
         }
 
         self.bestAttemptContent = bestAttemptContent
-
+        
         let userInfo = bestAttemptContent.userInfo
         
-        //print("userInfo: \(userInfo)")
+      /*  if let nativeString = userInfo["native"] as? String,
+            
+              !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+             
+              let data = nativeString.data(using: .utf8),
+                      
+              let nativeDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+              
+            !nativeDict.isEmpty{
+            
+            let defaultLang = userInfo["defaultLang"] as? String ?? "en"
+            
+            let title = parseJSONString(
+                userInfo["title"] as? String, language: defaultLang)
+            
+            let message = parseJSONString(
+                userInfo["message"] as? String, language: defaultLang)
+            
+            let imageUrl  = nativeDict["imageUrl"] as? String
+            
+            let actionUrl = nativeDict["actionUrl"] as? String
+            
+            let actionText = nativeDict["actionText"] as? String ?? ""
+         
+            let type = userInfo["type"] as? String ?? "APP_IN"
+            
+        }*/
 
+        
         let type = userInfo["type"] as? String
+        
         let defaultLang = userInfo["defaultLang"] as? String ?? "en"
         
         let action = userInfo["action"] as? String ?? ""
 
-        
         let title = parseJSONString(
             userInfo["title"] as? String, language: defaultLang)
+        
         let message = parseJSONString(
             userInfo["message"] as? String, language: defaultLang)
+        
 
         let silent = userInfo["silent"] as? String
-        let imageUrl = userInfo["imageUrl"] as? String ?? ""
-
-        print("Notification Type: \(type)")
-        print("Title: \(title)")
-        print("Message: \(message)")
-        print("Image URL: \(imageUrl) \n\n\n\n")
-        
-        bestAttemptContent.title = title
-        bestAttemptContent.body = message
-
+       
         if silent == "true" {
             bestAttemptContent.sound = nil
         } else {
             bestAttemptContent.sound = UNNotificationSound.default
         }
         
+        bestAttemptContent.title = title
+        
+        bestAttemptContent.body = message
+        
         if let imageUrlString = userInfo["imageUrl"] as? String,
-           let imageUrl = URL(string: imageUrlString) {
-
-            URLSession.shared.downloadTask(with: imageUrl) { localURL, response, error in
-                print("Görsel İndirme Tamamlandı. localURL: \(String(describing: localURL)), error: \(String(describing: error))")
-
-                if let localURL = localURL {
-                    do {
-                        let tempDirectory = FileManager.default.temporaryDirectory
-                        let tempFileURL = tempDirectory.appendingPathComponent(UUID().uuidString).appendingPathExtension("jpg")
-
-                        try FileManager.default.moveItem(at: localURL, to: tempFileURL)
-
-                        let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
-                        let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
-
-                        bestAttemptContent.attachments = [attachment]
-
-                    } catch {
-                        print("Görsel ekleme hatası: \(error)")
-                    }
-                } else {
-                    print("Görsel indirilemedi")
-                }
-
-                contentHandler(bestAttemptContent)
-            }.resume()
-
-        } else {
-            print("Bildirim görselsiz gönderiliyor")
-            contentHandler(bestAttemptContent)
-        }
+                  let imageUrl = URL(string: imageUrlString) {
+                   addImageAttachment(from: imageUrl, to: bestAttemptContent) { updatedContent in
+                       contentHandler(updatedContent)
+                   }
+               } else {
+                   print("Bildirim görselsiz gönderiliyor")
+                   contentHandler(bestAttemptContent)
+               }
+        
         let identifier = request.identifier
+        
         CoreDataManager.shared.insertNotification(
             type: type ?? "UNKNOWN",
             receivedDate: Date(),
@@ -123,6 +127,33 @@ class NotificationService: UNNotificationServiceExtension {
             """)
         }
 
+    }
+    
+    func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
+        URLSession.shared.downloadTask(with: imageUrl) { localURL, response, error in
+            print("Görsel İndirme Tamamlandı. localURL: \(String(describing: localURL)), error: \(String(describing: error))")
+
+            if let localURL = localURL {
+                do {
+                    let tempDirectory = FileManager.default.temporaryDirectory
+                    let tempFileURL = tempDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension("jpg")
+                    
+                    try FileManager.default.moveItem(at: localURL, to: tempFileURL)
+                    
+                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
+                    let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
+                    
+                    content.attachments = [attachment]
+                } catch {
+                    print("Görsel ekleme hatası: \(error)")
+                }
+            } else {
+                print("Görsel indirilemedi")
+            }
+            completion(content)
+        }.resume()
     }
   
     func parseJSONString(_ jsonString: String?, language: String?) -> String {
