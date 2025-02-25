@@ -83,6 +83,10 @@ let maxRetryDelay = 30.0
         toggleHedgeLog(enabled)
     }
 
+    @objc public func setup_test(_ config: PaylisherConfig) {
+        
+    }
+    
     @objc public func setup(_ config: PaylisherConfig) {
         setupLock.withLock {
             toggleHedgeLog(config.debug)
