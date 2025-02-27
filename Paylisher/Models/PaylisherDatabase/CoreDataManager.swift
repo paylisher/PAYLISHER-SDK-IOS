@@ -16,7 +16,7 @@ class CoreDataManager {
     public init() {
         
         guard let appGroupURL = FileManager.default
-                   .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.PaylisherExamplee")
+                   .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
                else {
                    fatalError("App Group URL bulunamadı.")
                }
