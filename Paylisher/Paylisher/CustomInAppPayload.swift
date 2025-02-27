@@ -8,7 +8,7 @@
 import Foundation
 
 
-struct CustomInAppPayload: Codable {
+public struct CustomInAppPayload: Codable {
    
     let defaultLang: String?
    
