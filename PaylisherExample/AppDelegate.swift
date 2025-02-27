@@ -36,7 +36,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         PaylisherSDK.shared.setup(config)
         
-        
+    
         
         
         FirebaseApp.configure()
@@ -108,8 +108,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
           
           
           let userInfo = notification.request.content.userInfo
-          
-        
+              
+              
           
           let notificationID = notification.request.identifier
 
@@ -118,6 +118,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
               print("Tekrarlanan bildirim algılandı, işlenmiyor.")
               return
           }
+          
+          
           
           PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo)
           

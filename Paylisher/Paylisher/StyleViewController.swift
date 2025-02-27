@@ -14,8 +14,12 @@ class StyleViewController: UIViewController {
     private let close: CustomInAppPayload.Layout.Close
     
     private let extra: CustomInAppPayload.Layout.Extra
+    
+    private let blocks: CustomInAppPayload.Layout.Blocks
 
     private let containerView = UIView()
+    
+    private var containerHeightConstraint: NSLayoutConstraint?
     
     private let overlayView = UIView()
     
@@ -29,10 +33,12 @@ class StyleViewController: UIViewController {
     init(style: CustomInAppPayload.Layout.Style,
          close: CustomInAppPayload.Layout.Close,
          extra: CustomInAppPayload.Layout.Extra,
+         blocks: CustomInAppPayload.Layout.Blocks,
          defaultLang: String) {
         self.style = style
         self.close = close
         self.extra = extra
+        self.blocks = blocks
         self.defaultLang = defaultLang
         super.init(nibName: nil, bundle: nil)
     }
@@ -79,17 +85,18 @@ class StyleViewController: UIViewController {
         
         closeButton.translatesAutoresizingMaskIntoConstraints = false
         closeButton.isHidden = true
+        view.addSubview(closeButton)
         
         containerView.addSubview(arrowImageView)
-        containerView.addSubview(closeButton)
+        
         
         
         
         NSLayoutConstraint.activate([
             containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             centerYConstraint,
-            containerView.widthAnchor.constraint(equalToConstant: 300),
-            containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 250),
+            containerView.widthAnchor.constraint(equalToConstant: 350),
+            containerView.heightAnchor.constraint(equalToConstant: 250),
             arrowImageView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             arrowImageView.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8),
             arrowImageView.widthAnchor.constraint(equalToConstant: 32),
@@ -97,8 +104,6 @@ class StyleViewController: UIViewController {
             closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             //closeButton.rightAnchor.constraint(equalTo: containerView.rightAnchor, constant: -8)
         ])
-        
-        
         
         applyStyle(centerYConstraint: centerYConstraint)
         applyClose()
@@ -119,30 +124,21 @@ class StyleViewController: UIViewController {
             
         }
         
-        if let bgImageColorHex = style.bgImageColor {
+       if let bgColorHex = style.bgColor {
             
-            containerView.backgroundColor = UIColor(hex: bgImageColorHex)
+            containerView.backgroundColor = UIColor(hex: bgColorHex)
  
-        } else {
-            
-            containerView.backgroundColor = .white
-            
         }
+       
+       
         
-        if style.bgImageMask ?? true{
-            
-            let radius = style.radius
-            
-            let radiusValue = CGFloat(radius!)
-            
-            containerView.layer.cornerRadius = radiusValue
-            
-            containerView.clipsToBounds = true
-            
-        } else{
-            
-            containerView.layer.cornerRadius = 0
-        }
+       let radius = style.radius
+       
+       let radiusValue = CGFloat(radius!)
+       
+       containerView.layer.cornerRadius = radiusValue
+       
+       containerView.clipsToBounds = true
         
         if let bgImageStr = style.bgImage, !bgImageStr.isEmpty {
             addBackgroundImage(urlString: bgImageStr)
@@ -173,16 +169,43 @@ class StyleViewController: UIViewController {
         }
         
         if let position = close.position {
-            if position == "left" {
-                       
-                       NSLayoutConstraint.activate([
-                           closeButton.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8)
+            
+            switch position {
+                
+            case "left":
+                
+                NSLayoutConstraint.activate([
+                            closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                            closeButton.leftAnchor.constraint(equalTo: containerView.leftAnchor, constant: 8)
+                        ])
+            case "right":
+                
+                NSLayoutConstraint.activate([
+                           closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
+                           closeButton.rightAnchor.constraint(equalTo: containerView.rightAnchor, constant: -8)
                        ])
-                   } else {
-                       
-                       NSLayoutConstraint.activate([closeButton.rightAnchor.constraint(equalTo: containerView.rightAnchor, constant: -8)])
-                       
-                   }
+                
+            case "outside-left":
+                
+                NSLayoutConstraint.activate([
+                           closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: -28),
+                           // containerView’dan soldan -8 px (ya da -16) offset
+                           closeButton.rightAnchor.constraint(equalTo: containerView.leftAnchor, constant: 12)
+                       ])
+                
+            case "outside-right":
+                
+                NSLayoutConstraint.activate([
+                         closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: -28),
+                         // containerView’dan sağdan +8 px offset
+                         closeButton.leftAnchor.constraint(equalTo: containerView.rightAnchor, constant: -12)
+                     ])
+                     
+                 default:
+                     break
+                
+            }
+            
                }
         
         if let type = close.type {
@@ -259,13 +282,15 @@ class StyleViewController: UIViewController {
         bgImageView.clipsToBounds = true
         
         
+        
+        
         containerView.insertSubview(bgImageView, at: 0)
         
         NSLayoutConstraint.activate([
             bgImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             bgImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             bgImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            bgImageView.heightAnchor.constraint(equalToConstant: 125)
+            bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
             
         ])
         
@@ -274,10 +299,31 @@ class StyleViewController: UIViewController {
                 if let data = data, let image = UIImage(data: data) {
                     DispatchQueue.main.async {
                         bgImageView.image = image
+                        
                     }
                 }
             }.resume()
         }
+        
+        if style.bgImageMask == true, let maskColorHex = style.bgImageColor {
+            
+              let overlayView = UIView()
+              overlayView.translatesAutoresizingMaskIntoConstraints = false
+              
+             
+              overlayView.backgroundColor = UIColor(hex: maskColorHex)?.withAlphaComponent(0.5)
+             
+        
+              bgImageView.addSubview(overlayView)
+              
+              NSLayoutConstraint.activate([
+                  overlayView.topAnchor.constraint(equalTo: bgImageView.topAnchor),
+                  overlayView.leftAnchor.constraint(equalTo: bgImageView.leftAnchor),
+                  overlayView.rightAnchor.constraint(equalTo: bgImageView.rightAnchor),
+                  overlayView.bottomAnchor.constraint(equalTo: bgImageView.bottomAnchor)
+              ])
+          }
+        
     }
     
     private func applyOverlay() {
@@ -334,6 +380,34 @@ class StyleViewController: UIViewController {
             
         }
     }
+    
+   /* private func applyBlocks() {
+    
+        guard let orderArray = blocks.order else { return }
+        
+        for block in orderArray {
+            switch block {
+            case .spacer(let spacerBlock):
+                applySpacerBlock(spacerBlock)
+            default:
+                break
+            }
+        }
+    }*/
+    
+    /*private func applySpacerBlock(_ spacer: CustomInAppPayload.Layout.Blocks.SpacerBlock) {
+        let fill = spacer.fillAvailableSpacing ?? false
+        let spacing = spacer.verticalSpacing ?? 0
+        
+        if fill {
+            
+            if let ch = containerHeightConstraint {
+                ch.constant += CGFloat(spacing)
+            }
+        } else {
+            
+        }
+    }*/
 
     
     @objc private func didTapClose() {
