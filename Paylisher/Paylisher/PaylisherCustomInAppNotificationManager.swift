@@ -20,7 +20,7 @@ public class PaylisherCustomInAppNotificationManager {
         
     }
     
-    func parseInAppPayload(from userInfo: [AnyHashable: Any]) -> CustomInAppPayload? {
+   public func parseInAppPayload(from userInfo: [AnyHashable: Any]) -> CustomInAppPayload? {
        
         guard let stringKeyedInfo = userInfo as? [String: Any] else {
             print("userInfo'yu [String:Any] olarak cast edemedim.")
@@ -100,7 +100,7 @@ public class PaylisherCustomInAppNotificationManager {
             
             print("--------------Style---------------")
             
-            if let style = firstLayout.style, let close = firstLayout.close, let extra = firstLayout.extra {
+            if let style = firstLayout.style, let close = firstLayout.close, let extra = firstLayout.extra, let blocks = firstLayout.blocks {
                 print("navigationalArrows: ", style.navigationalArrows ?? "")
                 print("radius: ", style.radius ?? "")
                 print("bgColor: ", style.bgColor ?? "")
@@ -111,7 +111,7 @@ public class PaylisherCustomInAppNotificationManager {
                 print("horizontalPosition: ", style.horizontalPosition ?? "boş")
                 print("active: ", close.active ?? "")
                 
-                let styleVC = StyleViewController(style: style, close: close, extra: extra, defaultLang: lang)
+                let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
                 styleVC.modalPresentationStyle = .overFullScreen
                         
                         if let rootVC = UIApplication.shared.windows.first?.rootViewController {

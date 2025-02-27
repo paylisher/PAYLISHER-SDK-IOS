@@ -35,36 +35,7 @@ class NotificationService: UNNotificationServiceExtension {
         self.bestAttemptContent = bestAttemptContent
         
         let userInfo = bestAttemptContent.userInfo
-        
-      /*  if let nativeString = userInfo["native"] as? String,
-            
-              !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-             
-              let data = nativeString.data(using: .utf8),
-                      
-              let nativeDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-              
-            !nativeDict.isEmpty{
-            
-            let defaultLang = userInfo["defaultLang"] as? String ?? "en"
-            
-            let title = parseJSONString(
-                userInfo["title"] as? String, language: defaultLang)
-            
-            let message = parseJSONString(
-                userInfo["message"] as? String, language: defaultLang)
-            
-            let imageUrl  = nativeDict["imageUrl"] as? String
-            
-            let actionUrl = nativeDict["actionUrl"] as? String
-            
-            let actionText = nativeDict["actionText"] as? String ?? ""
-         
-            let type = userInfo["type"] as? String ?? "APP_IN"
-            
-        }*/
-
-        
+    
         let type = userInfo["type"] as? String
         
         let defaultLang = userInfo["defaultLang"] as? String ?? "en"
@@ -190,4 +161,5 @@ class NotificationService: UNNotificationServiceExtension {
             contentHandler(bestAttemptContent)
         }
     }
-}
+ }
+
