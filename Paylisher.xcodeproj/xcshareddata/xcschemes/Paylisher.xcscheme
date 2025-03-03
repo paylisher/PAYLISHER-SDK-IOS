@@ -38,6 +38,17 @@
                ReferencedContainer = "container:Paylisher.xcodeproj">
             </BuildableReference>
          </TestableReference>
+         <TestableReference
+            skipped = "NO"
+            parallelizable = "YES">
+            <BuildableReference
+               BuildableIdentifier = "primary"
+               BlueprintIdentifier = "FA2F82622D75DAB700D4DEC0"
+               BuildableName = "NotificationManagerFrameworkTests.xctest"
+               BlueprintName = "NotificationManagerFrameworkTests"
+               ReferencedContainer = "container:Paylisher.xcodeproj">
+            </BuildableReference>
+         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction
@@ -71,15 +82,6 @@
       savedToolIdentifier = ""
       useCustomWorkingDirectory = "NO"
       debugDocumentVersioning = "YES">
-      <MacroExpansion>
-         <BuildableReference
-            BuildableIdentifier = "primary"
-            BlueprintIdentifier = "3AC745B4296D6FE60025C109"
-            BuildableName = "Paylisher.framework"
-            BlueprintName = "Paylisher"
-            ReferencedContainer = "container:Paylisher.xcodeproj">
-         </BuildableReference>
-      </MacroExpansion>
    </ProfileAction>
    <AnalyzeAction
       buildConfiguration = "Debug">

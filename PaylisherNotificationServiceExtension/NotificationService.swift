@@ -11,6 +11,7 @@ import Paylisher
 import UIKit
 import CoreData
 
+
 class NotificationService: UNNotificationServiceExtension {
     
 
@@ -51,7 +52,9 @@ class NotificationService: UNNotificationServiceExtension {
             // 4. Once your custom method finishes (even if asynchronously),
             //    call the contentHandler with the final content.
             contentHandler(updatedContent)
-        } 
+        }
+        
+    
 
     }
 
