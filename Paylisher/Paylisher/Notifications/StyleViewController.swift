@@ -281,9 +281,6 @@ class StyleViewController: UIViewController {
         bgImageView.contentMode = .scaleAspectFill
         bgImageView.clipsToBounds = true
         
-        
-        
-        
         containerView.insertSubview(bgImageView, at: 0)
         
         NSLayoutConstraint.activate([
@@ -313,7 +310,6 @@ class StyleViewController: UIViewController {
              
               overlayView.backgroundColor = UIColor(hex: maskColorHex)?.withAlphaComponent(0.5)
              
-        
               bgImageView.addSubview(overlayView)
               
               NSLayoutConstraint.activate([
