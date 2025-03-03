@@ -8,17 +8,64 @@
 import Foundation
 import UIKit
 
+public protocol InAppNotificationDelegate: AnyObject {
+    func presentInAppNotification(with data: InAppNotificationData)
+}
+
+public struct InAppNotificationData {
+    public let title: String
+    public let body: String
+    public let imageUrl: String
+    public let actionUrl: String
+    public let actionText: String
+    public let identifier: String
+    public let type: String
+    public let defaultLang: String
+    public let userInfo: [AnyHashable: Any]
+
+    public init(title: String,
+                body: String,
+                imageUrl: String,
+                actionUrl: String,
+                actionText: String,
+                identifier: String,
+                type: String,
+                defaultLang: String,
+                userInfo: [AnyHashable: Any]) {
+        self.title = title
+        self.body = body
+        self.imageUrl = imageUrl
+        self.actionUrl = actionUrl
+        self.actionText = actionText
+        self.identifier = identifier
+        self.type = type
+        self.defaultLang = defaultLang
+        self.userInfo = userInfo
+    }
+}
 
 @available(iOSApplicationExtension, unavailable)
 public class PaylisherNativeInAppNotificationManager {
+ 
+    var defaultLang: String = ""
+    var title: String = ""
+    var body: String = ""
+    var imageUrl: String = ""
+    var actionUrl: String = ""
+    var type: String = ""
+    var actionText: String = ""
+    var identifier: String = ""
+    var userInfo: [AnyHashable: Any] = [:]
+ 
+   public init() {
+    }
     
     public static let shared = PaylisherNativeInAppNotificationManager()
-
-    private init() {
-        
-    }
+    
+    public weak var delegate: InAppNotificationDelegate?
 
     public func nativeInAppNotification(userInfo: [AnyHashable: Any]) {
+        
         
         guard let nativeString = userInfo["native"] as? String,
               !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
@@ -28,28 +75,45 @@ public class PaylisherNativeInAppNotificationManager {
             return
         }
         
-        let defaultLang = userInfo["defaultLang"] as? String ?? "en"
+        self.userInfo = userInfo
+        
+        self.defaultLang = userInfo["defaultLang"] as! String
         
         let titleDict = nativeDict["title"] as? [String: String] ?? [:]
         
         let bodyDict  = nativeDict["body"]  as? [String: String] ?? [:]
         
-        let imageUrl  = nativeDict["imageUrl"] as? String
+        self.imageUrl = nativeDict["imageUrl"] as? String ?? ""
         
-        let actionUrl = nativeDict["actionUrl"] as? String
+        self.actionUrl = nativeDict["actionUrl"] as? String ?? ""
         
-        let type = userInfo["type"] as? String
+        self.type = userInfo["type"] as? String ?? "Native IN-APP"
         
-        let actionText = nativeDict["actionText"] as? String ?? ""
+        self.actionText = nativeDict["actionText"] as? String ?? ""
         
-        let localizedTitle = titleDict[defaultLang] ?? titleDict.values.first ?? "No Title"
+        self.title = titleDict[defaultLang] ?? titleDict.values.first ?? "No Title"
         
-        let localizedBody  = bodyDict[defaultLang]  ?? bodyDict.values.first ?? "No Body"
+        self.body = bodyDict[defaultLang]  ?? bodyDict.values.first ?? "No Body"
         
-        let identifier = UUID().uuidString
+        self.identifier = UUID().uuidString
         
+        let notificationData = InAppNotificationData(
+                    title: self.title,
+                    body: self.body,
+                    imageUrl: self.imageUrl,
+                    actionUrl: self.actionUrl,
+                    actionText: self.actionText,
+                    identifier: self.identifier,
+                    type: self.type,
+                    defaultLang: self.defaultLang,
+                    userInfo: self.userInfo
+                )
+        
+        DispatchQueue.main.async { [weak self] in
+                    self?.delegate?.presentInAppNotification(with: notificationData)
+                }
        
-        let inAppVC = PaylisherInAppModalViewController(
+       /* let inAppVC = PaylisherInAppModalViewController(
             title: localizedTitle,
             body: localizedBody,
             imageUrl: imageUrl,
@@ -57,6 +121,8 @@ public class PaylisherNativeInAppNotificationManager {
             actionText: actionText,
             identifier: identifier
         )
+        
+        
  
         if CoreDataManager.shared.notificationExists(withIdentifier: identifier) {
             print("Bildirim zaten kaydedilmiş, tekrar eklenmiyor.")
@@ -92,8 +158,11 @@ public class PaylisherNativeInAppNotificationManager {
             Identifier: \(notification.notificationIdentifier)
             
             """)
-        }
+        }*/
     }
+    
+    
+
     
 }
 

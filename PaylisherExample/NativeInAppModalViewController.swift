@@ -1,14 +1,16 @@
 //
-//  PaylisherInAppModalViewController.swift
-//  Paylisher
+//  NativeInAppModalViewController.swift
+//  PaylisherExample
 //
-//  Created by Rasim Burak Kaya on 14.02.2025.
+//  Created by Rasim Burak Kaya on 3.03.2025.
 //
-/*
-import UIKit
 
-@available(iOSApplicationExtension, unavailable)
-class PaylisherInAppModalViewController: UIViewController {
+
+import UIKit
+import Paylisher
+
+//@available(iOSApplicationExtension, unavailable)
+class InAppModalViewController: UIViewController {
 
     private let titleText: String
     private let bodyText: String
@@ -16,13 +18,19 @@ class PaylisherInAppModalViewController: UIViewController {
     private let actionUrlString: String?
     private let actionText: String
     private let identifier: String
+    private let type: String
+    private let defaultLang: String
+    private let userInfo: [AnyHashable: Any]
     
     init(title: String,
          body: String,
          imageUrl: String?,
          actionUrl: String?,
          actionText: String,
-         identifier: String)
+         identifier: String,
+         type: String,
+         defaultLang: String,
+         userInfo: [AnyHashable: Any])
     {
         
         self.titleText = title
@@ -31,6 +39,9 @@ class PaylisherInAppModalViewController: UIViewController {
         self.actionUrlString = actionUrl
         self.actionText = actionText
         self.identifier = identifier
+        self.type = type
+        self.defaultLang = defaultLang
+        self.userInfo = userInfo
         super.init(nibName: nil, bundle: nil)
         
         modalPresentationStyle = .overFullScreen
@@ -123,7 +134,40 @@ class PaylisherInAppModalViewController: UIViewController {
                 }
             }.resume()
         }
+        
+        if CoreDataManager.shared.notificationExists(withIdentifier: identifier) {
+            print("Bildirim zaten kaydedilmiş, tekrar eklenmiyor.")
+        } else {
+            
+            CoreDataManager.shared.insertNotification(
+                type: type ?? "UNKNOWN",
+                receivedDate: Date(),
+                expirationDate: Date().addingTimeInterval(120),
+                payload: userInfo.description,
+                status: "UNREAD",
+                identifier: identifier
+            )
+            print("Bildirim Core Data'ya kaydedildi!")
+        }
+        
+        let notifications = CoreDataManager.shared.fetchAllNotifications()
+        print("Core Data'daki Bildirimler (\(notifications.count) kayıt var):")
+
+        for notification in notifications {
+            print("""
+            ID: \(notification.id)
+            Tür: \(notification.type)
+            Alınma Tarihi: \(notification.receivedDate ?? Date())
+            Durum: \(notification.status)
+            İçerik: \(notification.payload ?? "Boş")
+            Identifier: \(notification.notificationIdentifier)
+            
+            """)
+        }
+        
     }
+    
+    
     
     override func viewDidAppear(_ animated: Bool) {
           super.viewDidAppear(animated)
@@ -133,15 +177,15 @@ class PaylisherInAppModalViewController: UIViewController {
       }
     
     @objc func didTapActionButton() {
-        
-       
+     
               dismiss(animated: true) {
                 
                   if let actionUrl = self.actionUrlString, let url = URL(string: actionUrl) {
                       UIApplication.shared.open(url, options: [:], completionHandler: nil)
                   }
-              } 
+              }
 
     }
 
-}*/
+}
+

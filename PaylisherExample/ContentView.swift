@@ -11,7 +11,7 @@ import SwiftUI
 
 class SignInViewModel: NSObject, ObservableObject, ASWebAuthenticationPresentationContextProviding {
     // MARK: - ASWebAuthenticationPresentationContextProviding
-
+/*
     func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
         ASPresentationAnchor()
     }
@@ -33,7 +33,37 @@ class SignInViewModel: NSObject, ObservableObject, ASWebAuthenticationPresentati
         session.prefersEphemeralWebBrowserSession = true
 
         session.start()
-    }
+    }*/
+    
+    private var authSession: ASWebAuthenticationSession? // Bellek sızıntısını önlemek için saklanan değişken
+
+        func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
+            return UIApplication.shared.windows.first! // Doğru bir ASPresentationAnchor döndür
+        }
+
+        func triggerAuthentication() {
+            guard let authURL = URL(string: "https://example.com/auth") else { return }
+            let scheme = "exampleauth"
+
+            // Session'ı instance property olarak sakla
+            authSession = ASWebAuthenticationSession(url: authURL, callbackURLScheme: scheme) { [weak self] callbackURL, error in defer { self?.authSession = nil }
+                if let callbackURL = callbackURL {
+                    print("URL", callbackURL.absoluteString)
+                }
+                if let error = error {
+                    print("Error", error.localizedDescription)
+                }
+
+                // İşlem tamamlandığında session'ı temizle
+                self?.authSession = nil
+            }
+
+            authSession?.presentationContextProvider = self
+            authSession?.prefersEphemeralWebBrowserSession = true
+
+            authSession?.start()
+        }
+    
 }
 
 class FeatureFlagsModel: ObservableObject {

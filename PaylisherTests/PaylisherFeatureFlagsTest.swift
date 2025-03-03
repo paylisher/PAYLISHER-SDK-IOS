@@ -39,7 +39,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group.leave()
             })
 
-            group.wait()
+            //group.wait()
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.isFeatureEnabled("bool-value")) == true
         }
@@ -53,7 +58,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group.leave()
             })
 
-            group.wait()
+            //group.wait()
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.isFeatureEnabled("string-value")) == true
         }
@@ -67,7 +77,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group.leave()
             })
 
-            group.wait()
+            //group.wait()
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.isFeatureEnabled("disabled-flag")) == false
         }
@@ -81,7 +96,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group.leave()
             })
 
-            group.wait()
+            //group.wait()
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.getFeatureFlag("string-value") as? String) == "test"
         }
@@ -95,7 +115,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group.leave()
             })
 
-            group.wait()
+            //group.wait()
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.getFeatureFlagPayload("number-value") as? Int) == 2
         }
@@ -108,6 +133,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
             sut.loadFeatureFlags(distinctId: "distinctId", anonymousId: "anonymousId", groups: ["group": "value"], callback: {
                 group.leave()
             })
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.getFeatureFlagPayload("payload-json") as? [String: String]) == ["foo": "bar"]
         }
@@ -121,7 +151,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group.leave()
             })
 
-            group.wait()
+            //group.wait()
+            
+            group.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             server.errorsWhileComputingFlags = true
 
@@ -132,7 +167,12 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                 group2.leave()
             })
 
-            group2.wait()
+            //group2.wait()
+            
+            group2.notify(queue: .main) {
+                print("Tüm işlemler tamamlandı!")
+            }
+
 
             expect(sut.isFeatureEnabled("new-flag")) == true
             expect(sut.isFeatureEnabled("bool-value")) == true
@@ -175,7 +215,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                     group.leave()
                 })
 
-                group.wait()
+                //group.wait()
+                
+                group.notify(queue: .main) {
+                    print("Tüm işlemler tamamlandı!")
+                }
 
                 expect(storage.getDictionary(forKey: .sessionReplay)) == nil
                 expect(sut.isSessionReplayFlagActive()) == false
@@ -199,7 +243,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                     group.leave()
                 })
 
-                group.wait()
+                //group.wait()
+                
+                group.notify(queue: .main) {
+                    print("Tüm işlemler tamamlandı!")
+                }
 
                 expect(storage.getDictionary(forKey: .sessionReplay)) != nil
                 expect(self.config.snapshotEndpoint) == "/newS/"
@@ -225,7 +273,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                     group.leave()
                 })
 
-                group.wait()
+                //group.wait()
+                
+                group.notify(queue: .main) {
+                    print("Tüm işlemler tamamlandı!")
+                }
 
                 expect(storage.getDictionary(forKey: .sessionReplay)) != nil
                 expect(self.config.snapshotEndpoint) == "/newS/"
@@ -252,7 +304,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                     group.leave()
                 })
 
-                group.wait()
+                //group.wait()
+                
+                group.notify(queue: .main) {
+                    print("Tüm işlemler tamamlandı!")
+                }
 
                 expect(storage.getDictionary(forKey: .sessionReplay)) != nil
                 expect(self.config.snapshotEndpoint) == "/newS/"
@@ -281,7 +337,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                     group.leave()
                 })
 
-                group.wait()
+                //group.wait()
+                
+                group.notify(queue: .main) {
+                    print("Tüm işlemler tamamlandı!")
+                }
 
                 expect(storage.getDictionary(forKey: .sessionReplay)) != nil
                 expect(self.config.snapshotEndpoint) == "/newS/"
@@ -310,7 +370,11 @@ class PaylisherFeatureFlagsTest: QuickSpec {
                     group.leave()
                 })
 
-                group.wait()
+                //group.wait()
+                
+                group.notify(queue: .main) {
+                    print("Tüm işlemler tamamlandı!")
+                }
 
                 expect(storage.getDictionary(forKey: .sessionReplay)) != nil
                 expect(self.config.snapshotEndpoint) == "/newS/"

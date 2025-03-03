@@ -9,6 +9,7 @@ import MobileCoreServices
 import UserNotifications
 import Paylisher
 import UIKit
+import CoreData
 
 class NotificationService: UNNotificationServiceExtension {
     

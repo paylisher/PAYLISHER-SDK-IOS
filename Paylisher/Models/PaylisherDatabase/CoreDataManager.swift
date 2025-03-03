@@ -24,6 +24,8 @@ class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
+        
+        
         persistentContainer = NSPersistentContainer(name: "PaylisherDatabase")
         persistentContainer.persistentStoreDescriptions = [storeDescription]
         

@@ -127,7 +127,8 @@ class PaylisherQueue {
         if !disableReachabilityForTesting {
             // Setup the monitoring of network status for the queue
             #if !os(watchOS)
-                reachability?.whenReachable = { reachability in
+                reachability?.whenReachable = { [weak self] reachability in
+                    guard let self = self else { return }
                     self.pausedLock.withLock {
                         if self.config.dataMode == .wifi, reachability.connection != .wifi {
                             hedgeLog("Queue is paused because its not in WiFi mode")
@@ -145,7 +146,8 @@ class PaylisherQueue {
                     }
                 }
 
-                reachability?.whenUnreachable = { _ in
+                reachability?.whenUnreachable = { [weak self] _ in
+                    guard let self = self else { return }
                     self.pausedLock.withLock {
                         hedgeLog("Queue is paused because network is unreachable")
                         self.paused = true
@@ -162,8 +164,10 @@ class PaylisherQueue {
 
         if !disableQueueTimerForTesting {
             timerLock.withLock {
-                DispatchQueue.main.async {
-                    self.timer = Timer.scheduledTimer(withTimeInterval: self.config.flushIntervalSeconds, repeats: true, block: { _ in
+                DispatchQueue.main.async { [weak self] in
+                    guard let self = self else { return }
+                    self.timer = Timer.scheduledTimer(withTimeInterval: self.config.flushIntervalSeconds, repeats: true, block: { [weak self] _ in
+                        guard let self = self else { return }
                         if !self.isFlushing {
                             self.flush()
                         }

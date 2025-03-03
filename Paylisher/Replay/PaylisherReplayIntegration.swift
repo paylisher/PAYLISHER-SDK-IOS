@@ -32,6 +32,8 @@
 
         static let dispatchQueue = DispatchQueue(label: "com.paylisher.PaylisherReplayIntegration",
                                                  target: .global(qos: .utility))
+        
+        
 
         init(_ config: PaylisherConfig) {
             self.config = config
@@ -45,9 +47,11 @@
 
         func start() {
             stopTimer()
-            DispatchQueue.main.async {
-                self.timer = Timer.scheduledTimer(withTimeInterval: self.config.sessionReplayConfig.debouncerDelay, repeats: true, block: { _ in
-                    self.snapshot()
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                
+                self.timer = Timer.scheduledTimer(withTimeInterval: self.config.sessionReplayConfig.debouncerDelay, repeats: true, block: { [weak self] _ in
+                    self?.snapshot()
                 })
             }
             ViewLayoutTracker.swizzleLayoutSubviews()
