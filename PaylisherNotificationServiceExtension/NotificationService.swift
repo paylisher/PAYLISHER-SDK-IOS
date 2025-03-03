@@ -7,7 +7,7 @@
 
 import MobileCoreServices
 import UserNotifications
-import Paylisher
+import Paylisher 
 import UIKit
 import CoreData
 
@@ -37,14 +37,21 @@ class NotificationService: UNNotificationServiceExtension {
         self.bestAttemptContent = bestAttemptContent
         
         // 3. Call your custom method, passing in all necessary data
-        notificationManager(
+     /*   NotificationManager.showNotification(
             with: bestAttemptContent,
             for: request
         ) { updatedContent in
             // 4. Once your custom method finishes (even if asynchronously),
             //    call the contentHandler with the final content.
             contentHandler(updatedContent)
-        }
+        } */
+        
+        NotificationManager.shared.showNotification(with: bestAttemptContent,
+                                                    for: request) { updatedContent in
+            // 4. Once your custom method finishes (even if asynchronously),
+            //    call the contentHandler with the final content.
+            contentHandler(updatedContent)
+        } 
 
     }
 
