@@ -46,21 +46,21 @@ public class NotificationManager {
         {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
                 // Once the image is fetched/attached, update Core Data
-               // self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
                 // Then call the completion with updated content
                 completion(updatedContent)
             }
         } else {
             print("No image found; continuing without an image.")
             // Update Core Data before returning
-           // saveToCoreData(type: type, request: request, userInfo: userInfo)
+            saveToCoreData(type: type, request: request, userInfo: userInfo)
             completion(content)
         }
     }
     
     // MARK: - Core Data Saving Logic
     
- /*   private func saveToCoreData(
+    private func saveToCoreData(
         type: String,
         request: UNNotificationRequest,
         userInfo: [AnyHashable : Any]
@@ -91,7 +91,7 @@ public class NotificationManager {
         Identifier: \(notification.notificationIdentifier)
         """)
         }
-    }*/
+    }
     
     
     func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
