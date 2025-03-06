@@ -791,6 +791,7 @@
 			isa = PBXGroup;
 			children = (
 				69BA38D62B888E8500AA69D6 /* PrivacyInfo.xcprivacy */,
+				FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -874,7 +875,6 @@
 		FA58D3152D5B46F0009A34DB /* PaylisherDatabase */ = {
 			isa = PBXGroup;
 			children = (
-				FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */,
 				FA58D30D2D5B454C009A34DB /* NotificationEntity.swift */,
 				FA58D30F2D5B4613009A34DB /* NotificationStatus.swift */,
 				FA58D3112D5B4672009A34DB /* NotificationType.swift */,
