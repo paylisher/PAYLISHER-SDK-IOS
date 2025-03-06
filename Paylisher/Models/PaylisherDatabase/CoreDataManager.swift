@@ -16,6 +16,8 @@ public class CoreDataManager {
 
     public init() {
         
+        let bundle = Bundle(for: NotificationEntity.self)
+        
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
                else {
@@ -25,9 +27,12 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
+        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+              let model = NSManagedObjectModel(contentsOf: modelURL) else {
+            fatalError("Core Data modeli yüklenemedi.")
+        }
         
-        
-        persistentContainer = NSPersistentContainer(name: "PaylisherDatabase")
+        persistentContainer = NSPersistentContainer(name: "PaylisherDatabase", managedObjectModel: model)
         persistentContainer.persistentStoreDescriptions = [storeDescription]
         
         persistentContainer.loadPersistentStores { _, error in
