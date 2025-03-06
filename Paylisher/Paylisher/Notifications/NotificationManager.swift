@@ -57,7 +57,7 @@ public class NotificationManager {
         //saveToCoreData(type: type, request: request, userInfo: userInfo)
     }
    
-    private func saveToCoreData(
+    public func saveToCoreData(
         type: String,
         request: UNNotificationRequest,
         userInfo: [AnyHashable : Any]
@@ -91,7 +91,7 @@ public class NotificationManager {
     }
     
     
-    func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
+  public func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
         URLSession.shared.downloadTask(with: imageUrl) { localURL, response, error in
             print("Görsel İndirme Tamamlandı. localURL: \(String(describing: localURL)), error: \(String(describing: error))")
             
@@ -118,7 +118,7 @@ public class NotificationManager {
         }.resume()
     }
     
-    func parseJSONString(_ jsonString: String?, language: String?) -> String {
+   public func parseJSONString(_ jsonString: String?, language: String?) -> String {
         guard let jsonString = jsonString,
               let jsonData = jsonString.data(using: .utf8) else {
             return "Unknown"
