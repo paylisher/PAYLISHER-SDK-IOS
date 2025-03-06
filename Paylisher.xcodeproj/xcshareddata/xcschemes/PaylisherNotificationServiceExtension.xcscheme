@@ -50,7 +50,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FA2F82622D75DAB700D4DEC0"
+               BlueprintIdentifier = "FA2F82972D75DE1F00D4DEC0"
                BuildableName = "NotificationManagerFrameworkTests.xctest"
                BlueprintName = "NotificationManagerFrameworkTests"
                ReferencedContainer = "container:Paylisher.xcodeproj">

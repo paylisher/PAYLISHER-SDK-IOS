@@ -22,7 +22,6 @@ public class NotificationManager {
     ) {
         let userInfo = content.userInfo
         
-        // Parse data from userInfo
         let type = userInfo["type"] as? String ?? "UNKNOWN"
         let defaultLang = userInfo["defaultLang"] as? String ?? "en"
         let action = userInfo["action"] as? String ?? ""
@@ -30,7 +29,6 @@ public class NotificationManager {
         let message = parseJSONString(userInfo["message"] as? String, language: defaultLang)
         let silent = userInfo["silent"] as? String
         
-        // Apply your logic to the content
         if silent == "true" {
             content.sound = nil
         } else {
@@ -39,28 +37,27 @@ public class NotificationManager {
         content.title = title
         content.body = message
         
-        // Handle image attachments asynchronously
-        if
-            let imageUrlString = userInfo["imageUrl"] as? String,
-            let imageUrl = URL(string: imageUrlString)
+        
+        if let imageUrlString = userInfo["imageUrl"] as? String,
+        let imageUrl = URL(string: imageUrlString)
         {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
-                // Once the image is fetched/attached, update Core Data
-                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
-                // Then call the completion with updated content
+                
+              //  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                
                 completion(updatedContent)
             }
         } else {
             print("No image found; continuing without an image.")
-            // Update Core Data before returning
-            saveToCoreData(type: type, request: request, userInfo: userInfo)
+        
+           // saveToCoreData(type: type, request: request, userInfo: userInfo)
             completion(content)
         }
+        
+        //saveToCoreData(type: type, request: request, userInfo: userInfo)
     }
-    
-    // MARK: - Core Data Saving Logic
-    
-    private func saveToCoreData(
+   
+   /* private func saveToCoreData(
         type: String,
         request: UNNotificationRequest,
         userInfo: [AnyHashable : Any]
@@ -91,7 +88,7 @@ public class NotificationManager {
         Identifier: \(notification.notificationIdentifier)
         """)
         }
-    }
+    }*/
     
     
     func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {

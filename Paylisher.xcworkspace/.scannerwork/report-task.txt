@@ -1,0 +1,6 @@
+projectKey=usepublisher_UP-SDK-IOS_6e8cbdae-b84f-44b8-b2f9-a0f3db92d872
+serverUrl=http://46.20.156.216:9000
+serverVersion=25.2.0.102705
+dashboardUrl=http://46.20.156.216:9000/dashboard?id=usepublisher_UP-SDK-IOS_6e8cbdae-b84f-44b8-b2f9-a0f3db92d872
+ceTaskId=a8a624f1-3342-4690-b6f6-128342d9c018
+ceTaskUrl=http://46.20.156.216:9000/api/ce/task?id=a8a624f1-3342-4690-b6f6-128342d9c018

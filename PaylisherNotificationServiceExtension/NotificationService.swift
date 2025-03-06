@@ -7,7 +7,7 @@
 
 import MobileCoreServices
 import UserNotifications
-import Paylisher 
+//import Paylisher
 import UIKit
 import CoreData
 
@@ -25,32 +25,20 @@ class NotificationService: UNNotificationServiceExtension {
             Void
     ) {
         
-        // 1. Make the content mutable
+        
         guard let bestAttemptContent = request.content.mutableCopy()
                 as? UNMutableNotificationContent else {
-            // If we can't make it mutable, just pass the original content
+            
             contentHandler(request.content)
             return
         }
         
-        // 2. Store these if you need them at the instance level
         self.contentHandler = contentHandler
         self.bestAttemptContent = bestAttemptContent
         
-        // 3. Call your custom method, passing in all necessary data
-     /*   NotificationManager.showNotification(
-            with: bestAttemptContent,
-            for: request
-        ) { updatedContent in
-            // 4. Once your custom method finishes (even if asynchronously),
-            //    call the contentHandler with the final content.
-            contentHandler(updatedContent)
-        } */
-        
         NotificationManager.shared.showNotification(with: bestAttemptContent,
                                                     for: request) { updatedContent in
-            // 4. Once your custom method finishes (even if asynchronously),
-            //    call the contentHandler with the final content.
+            
             contentHandler(updatedContent)
         }
         
