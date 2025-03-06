@@ -43,21 +43,21 @@ public class NotificationManager {
         {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
                 
-              //  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
                 
                 completion(updatedContent)
             }
         } else {
             print("No image found; continuing without an image.")
         
-           // saveToCoreData(type: type, request: request, userInfo: userInfo)
+            saveToCoreData(type: type, request: request, userInfo: userInfo)
             completion(content)
         }
         
         //saveToCoreData(type: type, request: request, userInfo: userInfo)
     }
    
-   /* private func saveToCoreData(
+    private func saveToCoreData(
         type: String,
         request: UNNotificationRequest,
         userInfo: [AnyHashable : Any]
@@ -88,7 +88,7 @@ public class NotificationManager {
         Identifier: \(notification.notificationIdentifier)
         """)
         }
-    }*/
+    }
     
     
     func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
