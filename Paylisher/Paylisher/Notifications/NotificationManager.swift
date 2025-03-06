@@ -43,14 +43,23 @@ public class NotificationManager {
         {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
                 
-                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                DispatchQueue.global(qos: .background).async {
+                               self.saveToCoreData(type: userInfo["type"] as? String ?? "UNKNOWN",
+                                                   request: request,
+                                                   userInfo: userInfo)
+                           }
                 
                 completion(updatedContent)
             }
         } else {
             print("No image found; continuing without an image.")
         
-            saveToCoreData(type: type, request: request, userInfo: userInfo)
+            DispatchQueue.global(qos: .background).async {
+                           self.saveToCoreData(type: userInfo["type"] as? String ?? "UNKNOWN",
+                                               request: request,
+                                               userInfo: userInfo)
+                       }
+           
             completion(content)
         }
         
