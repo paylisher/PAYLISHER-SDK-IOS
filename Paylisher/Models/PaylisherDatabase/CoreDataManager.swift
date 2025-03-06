@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-class CoreDataManager {
+public class CoreDataManager {
     static let shared = CoreDataManager()
 
     let persistentContainer: NSPersistentContainer
@@ -40,7 +40,7 @@ class CoreDataManager {
         return persistentContainer.viewContext
     }
 
-    func saveContext() {
+   public func saveContext() {
         let context = persistentContainer.viewContext
         if context.hasChanges {
             do {
@@ -83,7 +83,7 @@ class CoreDataManager {
     }
 
     
-    func fetchAllNotifications() -> [NotificationEntity] {
+   public func fetchAllNotifications() -> [NotificationEntity] {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
         do {
             return try context.fetch(fetchRequest)
