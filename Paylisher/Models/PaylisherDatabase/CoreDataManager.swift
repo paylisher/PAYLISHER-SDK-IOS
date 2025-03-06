@@ -109,7 +109,7 @@ public class CoreDataManager {
         }
     }
     
-    func notificationExists(withIdentifier identifier: String) -> Bool {
+   public func notificationExists(withIdentifier identifier: String) -> Bool {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
         fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
 
