@@ -16,8 +16,11 @@ public class CoreDataManager {
 
     public init() {
         
-        let bundleIdentifier = "com.paylisher.Paylisher"
-        let bundle = Bundle(identifier: bundleIdentifier)
+     //   let bundleIdentifier = "com.paylisher.Paylisher"
+     //   let bundle = Bundle(identifier: bundleIdentifier)
+        
+        let bundle = Bundle(for: type(of: self))
+        
         
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
@@ -28,16 +31,17 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
-        print("Bundle path: \(bundle?.bundlePath)")
-        print("All bundle resources: \(bundle?.paths(forResourcesOfType: "momd", inDirectory: nil))")
+        print("Bundle path: \(bundle.bundlePath)")
+        print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
         
-        guard let modelURL = bundle?.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             
-            if let allModels = bundle?.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
+            if let allModels = bundle.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
                        print("Available models: \(allModels)")
                    } else {
                        print("No models found in bundle")
+                       print("Bundle for type: \(bundle.bundlePath)")
                    }
             
             fatalError("Core Data modeli yüklenemedi.")
