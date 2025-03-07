@@ -16,7 +16,8 @@ public class CoreDataManager {
 
     public init() {
         
-        let bundle = Bundle(for: NotificationEntity.self)
+        let bundleIdentifier = "com.paylisher.Paylisher"
+        let bundle = Bundle(identifier: bundleIdentifier)
         
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
@@ -27,8 +28,18 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
-        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+        print("Bundle path: \(bundle?.bundlePath)")
+        print("All bundle resources: \(bundle?.paths(forResourcesOfType: "momd", inDirectory: nil))")
+        
+        guard let modelURL = bundle?.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
+            
+            if let allModels = bundle?.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
+                       print("Available models: \(allModels)")
+                   } else {
+                       print("No models found in bundle")
+                   }
+            
             fatalError("Core Data modeli yüklenemedi.")
         }
         
