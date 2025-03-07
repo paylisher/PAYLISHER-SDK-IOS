@@ -27,7 +27,7 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
-        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "xcdatamodeld"),
+        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             fatalError("Core Data modeli yüklenemedi.")
         }
