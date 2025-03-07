@@ -20,7 +20,7 @@ public class CoreDataManager {
      //   let bundle = Bundle(identifier: bundleIdentifier)
         
         let bundle = Bundle(for: type(of: self))
-        
+        print("Bundle path: \(bundle.bundlePath)")
         
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
@@ -31,10 +31,13 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
+        let model = CoreDataManager.createManagedObjectModel()
+        print("Model programatik olarak oluşturuldu")
+        
         print("Bundle path: \(bundle.bundlePath)")
         print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
         
-        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+       /* guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             
             if let allModels = bundle.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
@@ -45,16 +48,79 @@ public class CoreDataManager {
                    }
             
             fatalError("Core Data modeli yüklenemedi.")
-        }
+        }*/
         
         persistentContainer = NSPersistentContainer(name: "PaylisherDatabase", managedObjectModel: model)
         persistentContainer.persistentStoreDescriptions = [storeDescription]
         
-        persistentContainer.loadPersistentStores { _, error in
+        persistentContainer.loadPersistentStores { storeDEscription, error in
             if let error = error {
+                print("CoreData yüklenirken hata oluştu: \(error)")
+                print("Store URL: \(storeDescription.url?.absoluteString ?? "nil")")
                 fatalError("Core Data yüklenirken hata oluştu: \(error.localizedDescription)")
+            }else{
+                print("CoreData başarıyla yüklendi")
             }
         }
+    }
+    
+    private static func createManagedObjectModel() -> NSManagedObjectModel {
+        let model = NSManagedObjectModel()
+        
+        
+        let notificationEntity = NSEntityDescription()
+        notificationEntity.name = "NotificationEntity"
+        notificationEntity.managedObjectClassName = "NotificationEntity"
+       
+        var properties: [NSPropertyDescription] = []
+        
+        let id = NSAttributeDescription()
+        id.name = "id"
+        id.attributeType = .integer64AttributeType
+        id.isOptional = false
+        properties.append(id)
+        
+        let payload = NSAttributeDescription()
+        payload.name = "payload"
+        payload.attributeType = .stringAttributeType
+        payload.isOptional = true
+        properties.append(payload)
+        
+        let status = NSAttributeDescription()
+        status.name = "status"
+        status.attributeType = .stringAttributeType
+        status.isOptional = true
+        properties.append(status)
+        
+        let type = NSAttributeDescription()
+        type.name = "type"
+        type.attributeType = .stringAttributeType
+        type.isOptional = true
+        properties.append(type)
+        
+        let notificationIdentifier = NSAttributeDescription()
+        notificationIdentifier.name = "notificationIdentifier"
+        notificationIdentifier.attributeType = .stringAttributeType
+        notificationIdentifier.isOptional = true
+        properties.append(notificationIdentifier)
+        
+        let receivedDate = NSAttributeDescription()
+        receivedDate.name = "receivedDate"
+        receivedDate.attributeType = .dateAttributeType
+        receivedDate.isOptional = true
+        properties.append(receivedDate)
+        
+        let expirationDate = NSAttributeDescription()
+        expirationDate.name = "expirationDate"
+        expirationDate.attributeType = .dateAttributeType
+        expirationDate.isOptional = true
+        properties.append(expirationDate)
+        
+        
+        notificationEntity.properties = properties
+        model.entities = [notificationEntity]
+        
+        return model
     }
 
     var context: NSManagedObjectContext {
