@@ -8,11 +8,12 @@
 import Foundation
 import CoreData
 
+@objc(NotificationEntity)
 public class NotificationEntity: NSManagedObject {
     
     @NSManaged public var id: Int64
     
-    @NSManaged public var type: String
+    @NSManaged public var type: String?
     
     @NSManaged public var receivedDate: Date?
     
@@ -20,7 +21,7 @@ public class NotificationEntity: NSManagedObject {
     
     @NSManaged public var payload: String?
     
-    @NSManaged public var status: String
+    @NSManaged public var status: String?
     
-    @NSManaged public var notificationIdentifier: String
+    @NSManaged public var notificationIdentifier: String?
 }

@@ -19,8 +19,8 @@ public class CoreDataManager {
      //   let bundleIdentifier = "com.paylisher.Paylisher"
      //   let bundle = Bundle(identifier: bundleIdentifier)
         
-        let bundle = Bundle(for: type(of: self))
-        print("Bundle path: \(bundle.bundlePath)")
+        let bundle = Bundle(for: NotificationEntity.self)
+        print("NotificationEntity bundle: \(bundle.bundlePath)")
         
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
@@ -36,6 +36,7 @@ public class CoreDataManager {
         
         print("Bundle path: \(bundle.bundlePath)")
         print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
+        print("Model entities: \(model.entities.map { $0.name ?? "unnamed" })")
         
        /* guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
@@ -70,7 +71,8 @@ public class CoreDataManager {
         
         let notificationEntity = NSEntityDescription()
         notificationEntity.name = "NotificationEntity"
-        notificationEntity.managedObjectClassName = "NotificationEntity"
+        notificationEntity.managedObjectClassName = "Paylisher.NotificationEntity"
+        
        
         var properties: [NSPropertyDescription] = []
         
@@ -116,6 +118,7 @@ public class CoreDataManager {
         expirationDate.isOptional = true
         properties.append(expirationDate)
         
+        model.entities = [notificationEntity]
         
         notificationEntity.properties = properties
         model.entities = [notificationEntity]
