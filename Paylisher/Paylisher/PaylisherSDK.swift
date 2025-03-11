@@ -26,7 +26,7 @@ let maxRetryDelay = 30.0
 
 // renamed to PaylisherSDK due to https://github.com/apple/swift/issues/56573
 @objc public class PaylisherSDK: NSObject {
-    private var config: PaylisherConfig
+    public var config: PaylisherConfig
 
     private init(_ config: PaylisherConfig) {
         self.config = config

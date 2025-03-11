@@ -5,6 +5,7 @@
 //  Created by Ben White on 07.02.23.
 //
 import Foundation
+import UIKit
 
 @objc(PaylisherConfig) public class PaylisherConfig: NSObject {
     @objc(PaylisherDataMode) public enum PaylisherDataMode: Int {
@@ -27,6 +28,9 @@ import Foundation
     @objc public var debug: Bool = false
     @objc public var optOut: Bool = false
     @objc public var getAnonymousId: ((UUID) -> UUID) = { uuid in uuid }
+    
+    @objc public var windowScene: UIWindowScene? = nil
+    
     /// Hook that allows to sanitize the event properties
     /// The hook is called before the event is cached or sent over the wire
     @objc public var propertiesSanitizer: PaylisherPropertiesSanitizer?
