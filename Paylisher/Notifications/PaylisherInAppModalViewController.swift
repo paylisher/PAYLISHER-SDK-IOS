@@ -4,10 +4,10 @@
 //
 //  Created by Rasim Burak Kaya on 14.02.2025.
 //
-/*
+
 import UIKit
 
-@available(iOSApplicationExtension, unavailable)
+//@available(iOSApplicationExtension, unavailable)
 class PaylisherInAppModalViewController: UIViewController {
 
     private let titleText: String
@@ -136,12 +136,13 @@ class PaylisherInAppModalViewController: UIViewController {
         
        
               dismiss(animated: true) {
-                
+#if IOS
                   if let actionUrl = self.actionUrlString, let url = URL(string: actionUrl) {
                       UIApplication.shared.open(url, options: [:], completionHandler: nil)
                   }
-              } 
+#endif
+              }
 
     }
 
-}*/
+}

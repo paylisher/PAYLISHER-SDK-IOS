@@ -8,7 +8,7 @@
 import Foundation
 import CoreData
 
-@objc(NotificationEntity)
+//@objc(NotificationEntity)
 public class NotificationEntity: NSManagedObject {
     
     @NSManaged public var id: Int64

@@ -8,8 +8,7 @@
 import Foundation
 import UIKit
 
-@available(iOSApplicationExtension, unavailable)
-
+//@available(iOSApplicationExtension, unavailable)
 public class PaylisherCustomInAppNotificationManager {
     
     public static let shared = PaylisherCustomInAppNotificationManager()
@@ -20,7 +19,7 @@ public class PaylisherCustomInAppNotificationManager {
         
     }
     
-   public func parseInAppPayload(from userInfo: [AnyHashable: Any]) -> CustomInAppPayload? {
+   public func parseInAppPayload(from userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) -> CustomInAppPayload? {
        
         guard let stringKeyedInfo = userInfo as? [String: Any] else {
             print("userInfo'yu [String:Any] olarak cast edemedim.")
@@ -79,9 +78,9 @@ public class PaylisherCustomInAppNotificationManager {
         }
     }
 
-    public func customInAppFunction(userInfo: [AnyHashable: Any]) {
+    public func customInAppFunction(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) {
         
-        guard let payload = parseInAppPayload(from: userInfo) else {
+        guard let payload = parseInAppPayload(from: userInfo, windowScene: windowScene) else {
             print("Payload parse edilemedi.")
             return
         }
@@ -112,11 +111,21 @@ public class PaylisherCustomInAppNotificationManager {
                 print("active: ", close.active ?? "")
                 
                 let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
-                styleVC.modalPresentationStyle = .overFullScreen
+//#if IOS
+//                styleVC.modalPresentationStyle = .overFullScreen
                         
-                        if let rootVC = UIApplication.shared.windows.first?.rootViewController {
-                            rootVC.present(styleVC, animated: false)
-                        }
+//                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
+//                    rootVC.present(styleVC, animated: false)
+//                }
+                
+                if windowScene != nil,
+                   let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
+                   let rootVC = keyWindow.rootViewController {
+                       rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
+                       rootVC.present(styleVC, animated: false)
+                }
+//#endif
+
             }
             
             

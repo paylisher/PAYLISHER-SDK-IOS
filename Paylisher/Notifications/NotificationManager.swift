@@ -10,61 +10,119 @@ import UserNotifications
 import UIKit
 import CoreData
 import MobileCoreServices
-
+//import Paylisher
+ 
 public class NotificationManager {
-    
+     
     public static let shared = NotificationManager()
+     
     
-    public func showNotification (
-        with content: UNMutableNotificationContent,
-        for request: UNNotificationRequest,
-        completion: @escaping (UNNotificationContent) -> Void
-    ) {
-        let userInfo = content.userInfo
+    private func showNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+        let pushNotification = PushPayload.shared.pushPayload(userInfo: userInfo)
         
-        let type = userInfo["type"] as? String ?? "UNKNOWN"
-        let defaultLang = userInfo["defaultLang"] as? String ?? "en"
-        let action = userInfo["action"] as? String ?? ""
-        let title = parseJSONString(userInfo["title"] as? String, language: defaultLang)
-        let message = parseJSONString(userInfo["message"] as? String, language: defaultLang)
-        let silent = userInfo["silent"] as? String
+        let defaultLang = pushNotification.defaultLang
+        let localizedTitle = parseJSONString(pushNotification.title, language: defaultLang)
+        let localizedMessage = parseJSONString(pushNotification.message, language: defaultLang)
+        let action = pushNotification.action
+        let silent = pushNotification.silent
+        let imageUrll = pushNotification.imageUrl
+        let type = pushNotification.type
+        
         
         if silent == "true" {
             content.sound = nil
         } else {
             content.sound = UNNotificationSound.default
         }
-        content.title = title
-        content.body = message
         
+        content.title = localizedTitle
+        content.body = localizedMessage
         
-        if let imageUrlString = userInfo["imageUrl"] as? String,
-        let imageUrl = URL(string: imageUrlString)
-        {
+        // Görsel ekleme işlemi
+        if let imageUrl = URL(string: imageUrll ) {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
                 
                 DispatchQueue.global(qos: .background).async {
-                               self.saveToCoreData(type: userInfo["type"] as? String ?? "UNKNOWN",
-                                                   request: request,
-                                                   userInfo: userInfo)
-                           }
+                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                }
                 
                 completion(updatedContent)
             }
         } else {
             print("No image found; continuing without an image.")
-        
+            
             DispatchQueue.global(qos: .background).async {
-                           self.saveToCoreData(type: userInfo["type"] as? String ?? "UNKNOWN",
-                                               request: request,
-                                               userInfo: userInfo)
-                       }
-           
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+            }
+            
             completion(content)
         }
-        
-        //saveToCoreData(type: type, request: request, userInfo: userInfo)
     }
+    
+    public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
+        
+        
+      //  let dfdfgdg = PaylisherSDK.config.windowScene;
+        
+//        print("customNotification userInfo \(userInfo)" )
+        // Check the source condition first
+        if let source = userInfo["source"] as? String, source == "Paylisher" {
+            
+//            print("customNotification source string: \(source)")
+            
+            // Get the type as String first, then convert it
+            if let typeString = userInfo["type"] as? String {
+//                print("customNotification type string: \(typeString)")
+                let notificationType = NotificationType(rawValue: typeString)
+                
+                print("customNotification type string: \(notificationType)")
+                switch notificationType {
+                case .push:
+                    print("FCM customNotification push")
+                    // Handle push notification
+                    showNotification(userInfo, content, request, completion)
+                    break
+                case .actionBased:
+                    // Handle action based notification
+                    // TODO: conditions
+                    break
+                case .geofence:
+                    // Handle geofence notification
+                    break
+                case .inApp:
+                    // Handle in-app notification
+                    print("FCM customNotification inApp")
+                 
+//                    #if IOS
+                    PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+                    PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
+                    PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+//                    #endif
+                    
+                    break
+                case .none:
+                    break
+                }
+            }
+        }
+
+    }
+    
+    public func customNotification(
+        windowScene: UIWindowScene?,
+        with content: UNMutableNotificationContent,
+        for request: UNNotificationRequest,
+        completion: @escaping (UNNotificationContent) -> Void
+    ) {
+        let userInfo = content.userInfo
+        
+        // customNotification(userInfo: userInfo, content, request, completion)
+        customNotification(windowScene: windowScene, userInfo: userInfo, content, request) { _completion in
+            completion(_completion)
+        }
+    }
+
+   
    
     public func saveToCoreData(
         type: String,
@@ -127,7 +185,7 @@ public class NotificationManager {
         }.resume()
     }
     
-   public func parseJSONString(_ jsonString: String?, language: String?) -> String {
+  public func parseJSONString(_ jsonString: String?, language: String?) -> String {
         guard let jsonString = jsonString,
               let jsonData = jsonString.data(using: .utf8) else {
             return "Unknown"

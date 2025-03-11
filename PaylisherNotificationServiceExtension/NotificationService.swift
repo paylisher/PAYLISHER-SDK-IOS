@@ -11,7 +11,7 @@ import UserNotifications
 import UIKit
 import CoreData
 
-
+//@available(iOSApplicationExtension, unavailable)
 class NotificationService: UNNotificationServiceExtension {
     
 
@@ -35,10 +35,20 @@ class NotificationService: UNNotificationServiceExtension {
         
         self.contentHandler = contentHandler
         self.bestAttemptContent = bestAttemptContent
+       
+        // TODO: windowScene needed but cant get it from here -> FIX IT
+        let windowScene: UIWindowScene? = nil
+       
+       //   windowScene = UIApplication.shared.connectedScenes
+         //   .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
         
-        NotificationManager.shared.showNotification(with: bestAttemptContent,
+        
+        
+        let userInfo = bestAttemptContent.userInfo
+        //print("FCM NotificationService -> didReceive \(userInfo["type"])")
+        
+        NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
-            
             contentHandler(updatedContent)
         }
         

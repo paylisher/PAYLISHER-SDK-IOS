@@ -31,8 +31,13 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
-        let model = CoreDataManager.createManagedObjectModel()
-        print("Model programatik olarak oluşturuldu")
+        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+                     let model = NSManagedObjectModel(contentsOf: modelURL) else {
+                   fatalError("Core Data modeli yüklenemedi.")
+               }
+        
+        //let model = CoreDataManager.createManagedObjectModel()
+        //print("Model programatik olarak oluşturuldu")
         
         print("Bundle path: \(bundle.bundlePath)")
         print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
@@ -71,7 +76,7 @@ public class CoreDataManager {
         
         let notificationEntity = NSEntityDescription()
         notificationEntity.name = "NotificationEntity"
-        notificationEntity.managedObjectClassName = "Paylisher.NotificationEntity"
+        notificationEntity.managedObjectClassName = "NotificationEntity"
         
        
         var properties: [NSPropertyDescription] = []
@@ -118,7 +123,7 @@ public class CoreDataManager {
         expirationDate.isOptional = true
         properties.append(expirationDate)
         
-        model.entities = [notificationEntity]
+        
         
         notificationEntity.properties = properties
         model.entities = [notificationEntity]
@@ -175,11 +180,15 @@ public class CoreDataManager {
     
    public func fetchAllNotifications() -> [NotificationEntity] {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-        do {
-            return try context.fetch(fetchRequest)
-        } catch {
-            return []
-        }
+  
+       // Filter for notifications with status "UNREAD"
+       fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
+       
+       do {
+           return try context.fetch(fetchRequest)
+       } catch {
+           return []
+       }
     }
 
     
