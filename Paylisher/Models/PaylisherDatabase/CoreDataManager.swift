@@ -4,7 +4,6 @@
 //
 //  Created by Rasim Burak Kaya on 11.02.2025.
 //
-
 import Foundation
 import CoreData
 import Paylisher
@@ -12,69 +11,40 @@ import Paylisher
 public class CoreDataManager {
     
    public static let shared = CoreDataManager()
-    
+
+    var persistentContainer: NSPersistentContainer?
     private var appGroupIdentifier: String?
-    private var persistentContainer: NSPersistentContainer?
-    
-    private init() {
-        
-    }
     
     public func configure(appGroupIdentifier: String) {
-            self.appGroupIdentifier = appGroupIdentifier
-            self.setupPersistentContainer()
-        }
+                self.appGroupIdentifier = appGroupIdentifier
+        self.x()
+            }
     
-    private func setupPersistentContainer() {
-           guard let appGroupID = self.appGroupIdentifier else {
-               fatalError("appGroupIdentifier önce configure edilmedi.")
-           }
-           
-           guard let appGroupURL = FileManager.default.containerURL(forSecurityApplicationGroupIdentifier: appGroupID)
-           else {
-               fatalError("App Group URL bulunamadı: \(appGroupID)")
-           }
-           
-           let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
-           let storeDescription = NSPersistentStoreDescription(url: storeURL)
-           
-           // Burada model dosyası vs. yüklersiniz veya programatik oluşturursunuz:
-           let model = createManagedObjectModel()
-           
-           let container = NSPersistentContainer(name: "PaylisherDatabase", managedObjectModel: model)
-           container.persistentStoreDescriptions = [storeDescription]
-           
-           container.loadPersistentStores { _, error in
-               if let error = error {
-                   fatalError("Persistent store yüklenirken hata oluştu: \(error)")
-               }
-               print("Core Data başarıyla yüklendi, store: \(storeURL)")
-           }
-           
-           self.persistentContainer = container
-       }
+    private init(){}
 
-   /* public init() {
+    
         
        // let bundleIdentifier = "Paylisher_Paylisher"
        // let bundle = Bundle(identifier: bundleIdentifier)
-      
+    
+    func x(){
+        
         let bundle = Bundle(for: NotificationEntity.self)
         print("Bundle identifier: \(bundle.bundleIdentifier ?? "nil")")
         
         guard let appGroupURL = FileManager.default
-                   .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
-               else {
-                   fatalError("App Group URL bulunamadı.")
-               }
+            .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
+        else {
+            fatalError("App Group URL bulunamadı.")
+        }
         
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
-      /*  guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
-                     let model = NSManagedObjectModel(contentsOf: modelURL) else {
-                   fatalError("Core Data modeli yüklenemedi.")
-               }*/
+        /*  guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+         let model = NSManagedObjectModel(contentsOf: modelURL) else {
+         fatalError("Core Data modeli yüklenemedi.")
+         }*/
         
         let model = CoreDataManager.createManagedObjectModel()
         print("Model programatik olarak oluşturuldu")
@@ -82,23 +52,23 @@ public class CoreDataManager {
         print("Bundle path: \(bundle.bundlePath)")
         print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
         print("Model entities: \(model.entities.map { $0.name ?? "unnamed" })")
-       /* guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
-              let model = NSManagedObjectModel(contentsOf: modelURL) else {
-            
-            if let allModels = bundle.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
-                       print("Available models: \(allModels)")
-                   } else {
-                       print("No models found in bundle")
-                       print("Bundle for type: \(bundle.bundlePath)")
-                   }
-            
-            fatalError("Core Data modeli yüklenemedi.")
-        }*/
+        /* guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+         let model = NSManagedObjectModel(contentsOf: modelURL) else {
+         
+         if let allModels = bundle.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
+         print("Available models: \(allModels)")
+         } else {
+         print("No models found in bundle")
+         print("Bundle for type: \(bundle.bundlePath)")
+         }
+         
+         fatalError("Core Data modeli yüklenemedi.")
+         }*/
         
         persistentContainer = NSPersistentContainer(name: "PaylisherDatabase", managedObjectModel: model)
-        persistentContainer.persistentStoreDescriptions = [storeDescription]
+        persistentContainer?.persistentStoreDescriptions = [storeDescription]
         
-        persistentContainer.loadPersistentStores { _, error in
+        persistentContainer?.loadPersistentStores { _, error in
             if let error = error {
                 print("CoreData yüklenirken hata oluştu: \(error)")
                 print("Store URL: \(storeDescription.url?.absoluteString ?? "nil")")
@@ -107,9 +77,9 @@ public class CoreDataManager {
                 print("CoreData başarıyla yüklendi")
             }
         }
-    }*/
+    }
     
-    private func createManagedObjectModel() -> NSManagedObjectModel {
+    private static func createManagedObjectModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         
         
@@ -176,10 +146,11 @@ public class CoreDataManager {
     }
 
     var context: NSManagedObjectContext {
+        
         guard let container = persistentContainer else {
-               fatalError("Persistent container henüz oluşturulmadı. configure(appGroupIdentifier:) çağırdınız mı?")
-           }
-           return container.viewContext
+                       fatalError("Persistent container henüz oluşturulmadı")
+                   }
+                   return container.viewContext
     }
 
    public func saveContext() {
@@ -289,4 +260,4 @@ public class CoreDataManager {
             print("Silme hatası: \(error)")
         }
     }
-}
+} 
