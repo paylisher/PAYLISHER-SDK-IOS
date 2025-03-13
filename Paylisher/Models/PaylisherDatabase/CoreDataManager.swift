@@ -17,9 +17,11 @@ public class CoreDataManager {
 
     public init() {
         
-        let bundleIdentifier = "Paylisher_Paylisher"
-        let bundle = Bundle(identifier: bundleIdentifier)
+       // let bundleIdentifier = "Paylisher_Paylisher"
+       // let bundle = Bundle(identifier: bundleIdentifier)
       
+        let bundle = Bundle(for: NotificationEntity.self)
+        print("Bundle identifier: \(bundle.bundleIdentifier ?? "nil")")
         
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
@@ -35,24 +37,24 @@ public class CoreDataManager {
                    fatalError("Core Data modeli yüklenemedi.")
                }*/
         
-        //let model = CoreDataManager.createManagedObjectModel(isExample: false)
-        //print("Model programatik olarak oluşturuldu")
+        let model = CoreDataManager.createManagedObjectModel()
+        print("Model programatik olarak oluşturuldu")
         
-        print("Bundle path: \(bundle?.bundlePath)")
-        print("All bundle resources: \(bundle?.paths(forResourcesOfType: "momd", inDirectory: nil))")
-       // print("Model entities: \(model.entities.map { $0.name ?? "unnamed" })")
-        guard let modelURL = bundle?.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+        print("Bundle path: \(bundle.bundlePath)")
+        print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
+        print("Model entities: \(model.entities.map { $0.name ?? "unnamed" })")
+       /* guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             
-            if let allModels = bundle?.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
+            if let allModels = bundle.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
                        print("Available models: \(allModels)")
                    } else {
                        print("No models found in bundle")
-                       print("Bundle for type: \(bundle?.bundlePath)")
+                       print("Bundle for type: \(bundle.bundlePath)")
                    }
             
             fatalError("Core Data modeli yüklenemedi.")
-        }
+        }*/
         
         persistentContainer = NSPersistentContainer(name: "PaylisherDatabase", managedObjectModel: model)
         persistentContainer.persistentStoreDescriptions = [storeDescription]
@@ -68,12 +70,13 @@ public class CoreDataManager {
         }
     }
     
-    private static func createManagedObjectModel(isExample: Bool = false) -> NSManagedObjectModel {
+    private static func createManagedObjectModel() -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         
         
         let notificationEntity = NSEntityDescription()
         notificationEntity.name = "NotificationEntity"
+        notificationEntity.managedObjectClassName = "NotificationEntity"
       /*  if isExample {
                 notificationEntity.managedObjectClassName = "NotificationEntity"
             } else {
