@@ -7,6 +7,7 @@
 
 import Foundation
 import UIKit
+import Paylisher
 //import Paylisher
 
 public class PushPayload {

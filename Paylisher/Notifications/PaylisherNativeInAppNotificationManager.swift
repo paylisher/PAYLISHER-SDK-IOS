@@ -8,6 +8,7 @@
 import Foundation
 import UIKit
 
+
 //@available(iOSApplicationExtension, unavailable)
 public class PaylisherNativeInAppNotificationManager {
  

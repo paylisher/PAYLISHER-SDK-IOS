@@ -17,9 +17,9 @@ import CoreData
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
     
     
-    // MARK: - Background Fetch for Remote Notifications
+ 
         func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-            // Ensure this is a Firebase notification
+
             guard let _ = userInfo["gcm.message_id"] else {
                 completionHandler(.noData)
                 return
@@ -57,7 +57,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
         
-        config.maxQueueSize = 1
+        config.windowScene = windowScene
         
         PaylisherSDK.shared.setup(config)
         
@@ -182,6 +182,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
            let identifier = response.notification.request.identifier
            
            CoreDataManager.shared.updateNotificationStatus(byIdentifier: identifier, newStatus: "READ")
+          
+           
+           
            
            PaylisherSDK.shared.capture("notificationOpen")
            

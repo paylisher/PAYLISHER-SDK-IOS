@@ -10,7 +10,8 @@ import UserNotifications
 import UIKit
 import CoreData
 import MobileCoreServices
-//import Paylisher
+
+
  
 public class NotificationManager {
      
@@ -62,7 +63,10 @@ public class NotificationManager {
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
         
         
-      //  let dfdfgdg = PaylisherSDK.config.windowScene;
+        
+        
+        
+        
         
 //        print("customNotification userInfo \(userInfo)" )
         // Check the source condition first

@@ -7,11 +7,12 @@
 
 import MobileCoreServices
 import UserNotifications
-//import Paylisher
 import UIKit
 import CoreData
+import Paylisher
 
-//@available(iOSApplicationExtension, unavailable)
+
+@available(iOSApplicationExtension, unavailable)
 class NotificationService: UNNotificationServiceExtension {
     
 
@@ -37,12 +38,15 @@ class NotificationService: UNNotificationServiceExtension {
         self.bestAttemptContent = bestAttemptContent
        
         // TODO: windowScene needed but cant get it from here -> FIX IT
-        let windowScene: UIWindowScene? = nil
+        
        
-       //   windowScene = UIApplication.shared.connectedScenes
-         //   .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+       /*let windowScene = UIApplication.shared.connectedScenes
+           .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+        let w = PaylisherConfig(apiKey: "")
         
+        w.windowScene = windowScene*/
         
+        let windowScene: UIWindowScene? = nil
         
         let userInfo = bestAttemptContent.userInfo
         //print("FCM NotificationService -> didReceive \(userInfo["type"])")

@@ -1,5 +1,5 @@
 {
-  "originHash" : "d4a96e61f635ce3b1da4567a53fc5a762204d8b30158113a52442db8d75edd8b",
+  "originHash" : "6fac20d55dc915c77bfcdb71f39d8755452c8a3554f749023de2000cbf40fc2f",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -42,8 +42,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/firebase/firebase-ios-sdk",
       "state" : {
-        "branch" : "main",
-        "revision" : "2b802c4a59b5d152376d9b15f6c8847141e27c5d"
+        "revision" : "eb523407e4293568ed55590728205c359cbecc5b",
+        "version" : "11.9.0"
       }
     },
     {
@@ -142,7 +142,7 @@
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
         "branch" : "main",
-        "revision" : "68e61bfc31ac1c33dfdbf3163be93417e3fb3096"
+        "revision" : "0a50ecf87dfefd5cc82b6325265955b90fb18a6b"
       }
     },
     {

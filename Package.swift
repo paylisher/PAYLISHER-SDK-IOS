@@ -27,7 +27,7 @@ let package = Package(
             path: "Paylisher",
             resources: [
                 .copy("Resources/PrivacyInfo.xcprivacy"),
-                .process("Resources/PaylisherDatabase.momd")
+                .process("Resources/PaylisherDatabase.xcdatamodeld")
             ]
         ),
         .testTarget(

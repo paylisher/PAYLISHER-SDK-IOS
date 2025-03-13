@@ -7,6 +7,7 @@
 
 import Foundation
 import CoreData
+import Paylisher
 
 public class CoreDataManager {
     
@@ -16,11 +17,9 @@ public class CoreDataManager {
 
     public init() {
         
-     //   let bundleIdentifier = "com.paylisher.Paylisher"
-     //   let bundle = Bundle(identifier: bundleIdentifier)
-        
-        let bundle = Bundle(for: NotificationEntity.self)
-        print("NotificationEntity bundle: \(bundle.bundlePath)")
+        let bundleIdentifier = "Paylisher_Paylisher"
+        let bundle = Bundle(identifier: bundleIdentifier)
+      
         
         guard let appGroupURL = FileManager.default
                    .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
@@ -31,35 +30,34 @@ public class CoreDataManager {
         let storeURL = appGroupURL.appendingPathComponent("PaylisherDatabase.sqlite")
         let storeDescription = NSPersistentStoreDescription(url: storeURL)
         
-        guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+      /*  guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
                      let model = NSManagedObjectModel(contentsOf: modelURL) else {
                    fatalError("Core Data modeli yüklenemedi.")
-               }
+               }*/
         
-        //let model = CoreDataManager.createManagedObjectModel()
+        //let model = CoreDataManager.createManagedObjectModel(isExample: false)
         //print("Model programatik olarak oluşturuldu")
         
-        print("Bundle path: \(bundle.bundlePath)")
-        print("All bundle resources: \(bundle.paths(forResourcesOfType: "momd", inDirectory: nil))")
-        print("Model entities: \(model.entities.map { $0.name ?? "unnamed" })")
-        
-       /* guard let modelURL = bundle.url(forResource: "PaylisherDatabase", withExtension: "momd"),
+        print("Bundle path: \(bundle?.bundlePath)")
+        print("All bundle resources: \(bundle?.paths(forResourcesOfType: "momd", inDirectory: nil))")
+       // print("Model entities: \(model.entities.map { $0.name ?? "unnamed" })")
+        guard let modelURL = bundle?.url(forResource: "PaylisherDatabase", withExtension: "momd"),
               let model = NSManagedObjectModel(contentsOf: modelURL) else {
             
-            if let allModels = bundle.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
+            if let allModels = bundle?.urls(forResourcesWithExtension: "momd", subdirectory: nil) {
                        print("Available models: \(allModels)")
                    } else {
                        print("No models found in bundle")
-                       print("Bundle for type: \(bundle.bundlePath)")
+                       print("Bundle for type: \(bundle?.bundlePath)")
                    }
             
             fatalError("Core Data modeli yüklenemedi.")
-        }*/
+        }
         
         persistentContainer = NSPersistentContainer(name: "PaylisherDatabase", managedObjectModel: model)
         persistentContainer.persistentStoreDescriptions = [storeDescription]
         
-        persistentContainer.loadPersistentStores { storeDEscription, error in
+        persistentContainer.loadPersistentStores { _, error in
             if let error = error {
                 print("CoreData yüklenirken hata oluştu: \(error)")
                 print("Store URL: \(storeDescription.url?.absoluteString ?? "nil")")
@@ -70,13 +68,17 @@ public class CoreDataManager {
         }
     }
     
-    private static func createManagedObjectModel() -> NSManagedObjectModel {
+    private static func createManagedObjectModel(isExample: Bool = false) -> NSManagedObjectModel {
         let model = NSManagedObjectModel()
         
         
         let notificationEntity = NSEntityDescription()
         notificationEntity.name = "NotificationEntity"
-        notificationEntity.managedObjectClassName = "NotificationEntity"
+      /*  if isExample {
+                notificationEntity.managedObjectClassName = "NotificationEntity"
+            } else {
+                notificationEntity.managedObjectClassName = "Paylisher.NotificationEntity"
+            }*/
         
        
         var properties: [NSPropertyDescription] = []
@@ -147,10 +149,10 @@ public class CoreDataManager {
     }
 
     
-    func generateNewID() -> Int64 {
+   public func generateNewID() -> Int64 {
         //let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest()
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-
+        
         fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
         fetchRequest.fetchLimit = 1
 
@@ -180,9 +182,9 @@ public class CoreDataManager {
     
    public func fetchAllNotifications() -> [NotificationEntity] {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-  
+       
        // Filter for notifications with status "UNREAD"
-       fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
+      // fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
        
        do {
            return try context.fetch(fetchRequest)
@@ -192,9 +194,12 @@ public class CoreDataManager {
     }
 
     
-    func updateNotificationStatus(byIdentifier identifier: String, newStatus: String) {
+   public func updateNotificationStatus(byIdentifier identifier: String, newStatus: String) {
+     
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-        fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
+     fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
+      
+        
         
         do {
             let notifications = try context.fetch(fetchRequest)
@@ -210,6 +215,7 @@ public class CoreDataManager {
    public func notificationExists(withIdentifier identifier: String) -> Bool {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
         fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
+    
 
         do {
             let count = try context.count(for: fetchRequest)
@@ -223,8 +229,12 @@ public class CoreDataManager {
 
 
     
-    func deleteAllNotifications() {
+   public func deleteAllNotifications() {
+        
         let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NotificationEntity.fetchRequest()
+       
+        
+        
         let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
 
         do {
