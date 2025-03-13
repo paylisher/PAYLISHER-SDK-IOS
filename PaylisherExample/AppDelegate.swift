@@ -83,6 +83,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         Messaging.messaging().delegate = self
         application.registerForRemoteNotifications()
         
+        CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
+        
     
 //        PaylisherSDK.shared.debug()
         PaylisherSDK.shared.capture("App started!")
