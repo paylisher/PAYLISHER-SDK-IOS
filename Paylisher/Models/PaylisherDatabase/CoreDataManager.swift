@@ -33,7 +33,7 @@ public class CoreDataManager {
         print("Bundle identifier: \(bundle.bundleIdentifier ?? "nil")")
         
         guard let appGroupURL = FileManager.default
-            .containerURL(forSecurityApplicationGroupIdentifier: "group.com.paylisher.Paylisher")
+            .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier!)
         else {
             fatalError("App Group URL bulunamadı.")
         }

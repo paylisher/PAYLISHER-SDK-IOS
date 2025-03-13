@@ -51,6 +51,8 @@ class NotificationService: UNNotificationServiceExtension {
         let userInfo = bestAttemptContent.userInfo
         //print("FCM NotificationService -> didReceive \(userInfo["type"])")
         
+        CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
+        
         NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
             contentHandler(updatedContent)
