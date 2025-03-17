@@ -18,13 +18,13 @@ class NotificationService: UNNotificationServiceExtension {
 
     var contentHandler: ((UNNotificationContent) -> Void)?
     var bestAttemptContent: UNMutableNotificationContent?
- 
     
     override func didReceive(
         _ request: UNNotificationRequest,
         withContentHandler contentHandler: @escaping (UNNotificationContent) ->
             Void
     ) {
+        
         
         
         guard let bestAttemptContent = request.content.mutableCopy()
@@ -51,12 +51,21 @@ class NotificationService: UNNotificationServiceExtension {
         let userInfo = bestAttemptContent.userInfo
         //print("FCM NotificationService -> didReceive \(userInfo["type"])")
         
+        
         CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
         
-        NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
+       /* NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
             contentHandler(updatedContent)
-        }
+        }*/
+          
+        NotificationManager.shared.processNotificationFromExtension(
+               userInfo: bestAttemptContent.userInfo,
+               content: bestAttemptContent,
+               request: request) { updatedContent in
+                   contentHandler(updatedContent)
+           }
+        
         
     
 
@@ -64,7 +73,7 @@ class NotificationService: UNNotificationServiceExtension {
 
     override func serviceExtensionTimeWillExpire() {
 
-        if let contentHandler = contentHandler,
+      if let contentHandler = contentHandler,
             let bestAttemptContent = bestAttemptContent
         {
             contentHandler(bestAttemptContent)

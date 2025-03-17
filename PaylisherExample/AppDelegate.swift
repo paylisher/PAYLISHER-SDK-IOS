@@ -18,7 +18,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     
  
-        func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+       /* func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
 
             guard let _ = userInfo["gcm.message_id"] else {
                 completionHandler(.noData)
@@ -31,7 +31,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("FCM application -> didReceiveRemoteNotification")
         print(userInfo)
       
-    }
+    }*/
  
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
@@ -40,8 +40,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let PAYLISHER_HOST = "https://datastudio.paylisher.com" //"<https://test.paylisher.com>"
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
-        
-    
         
         config.captureScreenViews = true
         config.captureApplicationLifecycleEvents = true
@@ -112,13 +110,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("user receiveFeatureFlags callback")
     }
     
-    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    /*func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
            
         
         print("FCM application -> didRegisterForRemoteNotificationsWithDeviceToken")
         Messaging.messaging().apnsToken = deviceToken
            
-    }
+    }*/
     
 
       var processedNotifications = Set<String>()
@@ -127,49 +125,52 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
           let userInfo = notification.request.content.userInfo
          
           let notificationID = notification.request.identifier
-
-          if processedNotifications.contains(notificationID) {
+          
+         if processedNotifications.contains(notificationID) {
               print("Tekrarlanan bildirim algılandı, işlenmiyor.")
               return
           }
-           
-           
-          // Create a new mutable content object instead of casting
-          let mutableContent = UNMutableNotificationContent()
-          mutableContent.title = notification.request.content.title
-          mutableContent.subtitle = notification.request.content.subtitle
-          mutableContent.body = notification.request.content.body
-          mutableContent.sound = notification.request.content.sound
-          mutableContent.badge = notification.request.content.badge
-          mutableContent.userInfo = notification.request.content.userInfo
-          mutableContent.categoryIdentifier = notification.request.content.categoryIdentifier
-          
-          // If you're using iOS 15+, you can copy additional properties
-          if #available(iOS 15.0, *) {
-              mutableContent.interruptionLevel = notification.request.content.interruptionLevel
-              mutableContent.relevanceScore = notification.request.content.relevanceScore
-          }
-          
-          let windowScene = UIApplication.shared.connectedScenes
-              .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
-          
-          NotificationManager.shared.customNotification(
-            windowScene: windowScene,
-              userInfo: userInfo,
-              mutableContent,
-              notification.request,
-              { content in
-                         // Handle the notification content here
-                         // You may need to modify this based on what the method is supposed to do
-                         completionHandler([.banner, .sound])
-             }
-          )
-        
           processedNotifications.insert(notificationID)
           print("Bildirim ID’si: \(notificationID) - İşleniyor.")
+    
+      let mutableContent = UNMutableNotificationContent()
+      mutableContent.title = notification.request.content.title
+      mutableContent.subtitle = notification.request.content.subtitle
+      mutableContent.body = notification.request.content.body
+      mutableContent.sound = notification.request.content.sound
+      mutableContent.badge = notification.request.content.badge
+      mutableContent.userInfo = notification.request.content.userInfo
+      mutableContent.categoryIdentifier = notification.request.content.categoryIdentifier
+      
+      // If you're using iOS 15+, you can copy additional properties
+      if #available(iOS 15.0, *) {
+          mutableContent.interruptionLevel = notification.request.content.interruptionLevel
+          mutableContent.relevanceScore = notification.request.content.relevanceScore
+      }
+      
+      let windowScene = UIApplication.shared.connectedScenes
+          .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+      
           
+          
+          
+     NotificationManager.shared.customNotification(
+        windowScene: windowScene,
+          userInfo: userInfo,
+          mutableContent,
+        notification.request,
+          { content in
+                 
+              
+                  //   completionHandler([.banner, .sound])
+         }
+        
+        
+        
+      )
+    
           print("FCM -> willPresents")
-          print(userInfo)
+      //    print(userInfo)
           
           PaylisherSDK.shared.capture("notificationReceived")//Normalde bu eventin bu fonksiyon altında yazılmaması gerekiyor çünkü bu fonksiyon uygulama ön plandayken bildirim geldiğinde aktif oluyor yani uygulama arka plandayken bildirim geldiğinde event gönderilmiyor. Aklında bulunsun, sonra düzelt.
          
@@ -179,15 +180,14 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
        func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
            
+          
+           
            let userInfo = response.notification.request.content.userInfo
            
            let identifier = response.notification.request.identifier
            
            CoreDataManager.shared.updateNotificationStatus(byIdentifier: identifier, newStatus: "READ")
           
-           
-           
-           
            PaylisherSDK.shared.capture("notificationOpen")
            
            print("FCM -> didReceive")
@@ -200,7 +200,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                print("Action URL bulunamadı!")
            }
            
-           completionHandler()
+          completionHandler()
   
        }
 

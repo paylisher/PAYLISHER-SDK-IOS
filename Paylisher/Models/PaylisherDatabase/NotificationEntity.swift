@@ -23,7 +23,7 @@ public class NotificationEntity: NSManagedObject {
     
     @NSManaged public var status: String?
     
-    @NSManaged public var notificationIdentifier: String?
+    @NSManaged public var notificationIdentifier: String
     
   
 }
