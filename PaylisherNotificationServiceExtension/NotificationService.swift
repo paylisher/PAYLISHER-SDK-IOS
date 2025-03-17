@@ -54,17 +54,17 @@ class NotificationService: UNNotificationServiceExtension {
         
         CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
         
-       /* NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
+        NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
             contentHandler(updatedContent)
-        }*/
+        }
           
-        NotificationManager.shared.processNotificationFromExtension(
+      /*  NotificationManager.shared.processNotificationFromExtension(
                userInfo: bestAttemptContent.userInfo,
                content: bestAttemptContent,
                request: request) { updatedContent in
                    contentHandler(updatedContent)
-           }
+           }*/
         
         
     

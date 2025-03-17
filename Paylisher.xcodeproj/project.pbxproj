@@ -43,8 +43,6 @@
 		690FF0E92AEFD3BD00A0B06B /* PaylisherQueueTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF0E82AEFD3BD00A0B06B /* PaylisherQueueTest.swift */; };
 		690FF0EB2AEFF22F00A0B06B /* Quick in Frameworks */ = {isa = PBXBuildFile; productRef = 690FF0EA2AEFF22F00A0B06B /* Quick */; };
 		690FF0ED2AEFF23300A0B06B /* Nimble in Frameworks */ = {isa = PBXBuildFile; productRef = 690FF0EC2AEFF23300A0B06B /* Nimble */; };
-		690FF0EF2AEFF23D00A0B06B /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = 690FF0EE2AEFF23D00A0B06B /* OHHTTPStubsSwift */; };
-		690FF0F12AEFF24200A0B06B /* OHHTTPStubs in Frameworks */ = {isa = PBXBuildFile; productRef = 690FF0F02AEFF24200A0B06B /* OHHTTPStubs */; };
 		690FF0F52AF0F06100A0B06B /* PaylisherSDKTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF0F42AF0F06100A0B06B /* PaylisherSDKTest.swift */; };
 		69261D132AD5685B00232EC7 /* PaylisherFeatureFlags.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69261D122AD5685B00232EC7 /* PaylisherFeatureFlags.swift */; };
 		69261D192AD9673500232EC7 /* PaylisherBatchUploadInfo.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69261D182AD9673500232EC7 /* PaylisherBatchUploadInfo.swift */; };
@@ -512,9 +510,7 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				690FF0F12AEFF24200A0B06B /* OHHTTPStubs in Frameworks */,
 				690FF0ED2AEFF23300A0B06B /* Nimble in Frameworks */,
-				690FF0EF2AEFF23D00A0B06B /* OHHTTPStubsSwift in Frameworks */,
 				690FF0EB2AEFF22F00A0B06B /* Quick in Frameworks */,
 				3AC745C0296D6FE60025C109 /* Paylisher.framework in Frameworks */,
 			);
@@ -962,8 +958,6 @@
 			packageProductDependencies = (
 				690FF0EA2AEFF22F00A0B06B /* Quick */,
 				690FF0EC2AEFF23300A0B06B /* Nimble */,
-				690FF0EE2AEFF23D00A0B06B /* OHHTTPStubsSwift */,
-				690FF0F02AEFF24200A0B06B /* OHHTTPStubs */,
 			);
 			productName = PaylisherTests;
 			productReference = 3AC745BF296D6FE60025C109 /* PaylisherTests.xctest */;
@@ -1118,7 +1112,6 @@
 			packageReferences = (
 				3A867B6E29C1DF73009D0852 /* XCRemoteSwiftPackageReference "Quick" */,
 				3A867B7129C1DFEF009D0852 /* XCRemoteSwiftPackageReference "Nimble" */,
-				3A580B3D29E481F200C5C6F3 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				FADBFAEA2D842AA4001CE4A9 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */,
 			);
@@ -2263,14 +2256,6 @@
 /* End XCConfigurationList section */
 
 /* Begin XCRemoteSwiftPackageReference section */
-		3A580B3D29E481F200C5C6F3 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 9.1.0;
-			};
-		};
 		3A867B6E29C1DF73009D0852 /* XCRemoteSwiftPackageReference "Quick" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/Quick/Quick.git";
@@ -2331,16 +2316,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 3A867B7129C1DFEF009D0852 /* XCRemoteSwiftPackageReference "Nimble" */;
 			productName = Nimble;
-		};
-		690FF0EE2AEFF23D00A0B06B /* OHHTTPStubsSwift */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3A580B3D29E481F200C5C6F3 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
-			productName = OHHTTPStubsSwift;
-		};
-		690FF0F02AEFF24200A0B06B /* OHHTTPStubs */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = 3A580B3D29E481F200C5C6F3 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
-			productName = OHHTTPStubs;
 		};
 		A32E143D2D11F4B800FD15B7 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;

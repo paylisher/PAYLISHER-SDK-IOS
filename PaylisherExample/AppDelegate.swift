@@ -126,6 +126,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
          
           let notificationID = notification.request.identifier
           
+          //let request = notification.request
+          
          if processedNotifications.contains(notificationID) {
               print("Tekrarlanan bildirim algılandı, işlenmiyor.")
               return
@@ -168,6 +170,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         
       )
+          
+       /*   NotificationManager.shared.processNotificationInForeground(
+                  windowScene: windowScene,
+                  userInfo: userInfo,
+                  content: mutableContent,
+                  request: request) { updatedContent in
+                      // Notification'u gösterme seçenekleri
+                      completionHandler([.alert, .badge, .sound])
+              }*/
     
           print("FCM -> willPresents")
       //    print(userInfo)

@@ -1,5 +1,5 @@
 {
-  "originHash" : "6fac20d55dc915c77bfcdb71f39d8755452c8a3554f749023de2000cbf40fc2f",
+  "originHash" : "2b30f31bc5161a20e88606f732bc61efae4bc3f03e69e8263d94746e534433b6",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -128,21 +128,12 @@
       }
     },
     {
-      "identity" : "ohhttpstubs",
-      "kind" : "remoteSourceControl",
-      "location" : "https://github.com/AliSoftware/OHHTTPStubs",
-      "state" : {
-        "revision" : "12f19662426d0434d6c330c6974d53e2eb10ecd9",
-        "version" : "9.1.0"
-      }
-    },
-    {
       "identity" : "paylisher-sdk-ios",
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
         "branch" : "main",
-        "revision" : "8f6b232054a8f6902aca71c8cd2785f26c5246af"
+        "revision" : "df052874e70ab09f82965c6f1f7057c5a75fe60d"
       }
     },
     {

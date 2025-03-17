@@ -16,7 +16,7 @@ import Paylisher
 public class NotificationManager {
      
     public static let shared = NotificationManager()
-    private var isProcessingFromExtension = false
+    //private var isProcessingFromExtension = false
     
     
     
@@ -74,7 +74,7 @@ public class NotificationManager {
             
             // Get the type as String first, then convert it
             if let typeString = userInfo["type"] as? String {
-//                print("customNotification type string: \(typeString)")
+               print("customNotification type string: \(typeString)")
                 let notificationType = NotificationType(rawValue: typeString)
                 
                 
@@ -84,21 +84,9 @@ public class NotificationManager {
                 case .push:
                     print("FCM customNotification push")
                     
-                   // showNotification(userInfo, content, request, completion)
+                    showNotification(userInfo, content, request, completion)
                     
-                    showNotification(userInfo, content, request) { updatedContent in
-                                        // Extension'da mı yoksa willPresent'te mi çalışıyoruz?
-                                        if windowScene == nil {
-                                            // Extension'da çalışıyoruz, veritabanına kaydet
-                                            DispatchQueue.global(qos: .background).async {
-                                                self.saveToCoreData(type: typeString, request: request, userInfo: userInfo)
-                                            }
-                                        } else {
-                                            // willPresent'te çalışıyoruz, sadece göster kaydetme
-                                            print("Notification already saved in extension, skipping database save")
-                                        }
-                                        completion(updatedContent)
-                                    }
+                   
                                         
                     
                 case .actionBased:
@@ -140,7 +128,7 @@ public class NotificationManager {
         }
     }
     
-    public func processNotificationFromExtension(userInfo: [AnyHashable: Any], content: UNMutableNotificationContent, request: UNNotificationRequest, completion: @escaping (UNNotificationContent) -> Void) {
+   /* public func processNotificationFromExtension(userInfo: [AnyHashable: Any], content: UNMutableNotificationContent, request: UNNotificationRequest, completion: @escaping (UNNotificationContent) -> Void) {
         isProcessingFromExtension = true
         // Görseli ve içeriği özelleştir
         self.customNotification(windowScene: nil, userInfo: userInfo, content, request) { updatedContent in
@@ -157,7 +145,7 @@ public class NotificationManager {
             // Push bildirimi - zaten extension'da işlenmiş olmalı
             completion(content)
         }
-    }
+    }*/
 
    
    
@@ -169,10 +157,10 @@ public class NotificationManager {
         let identifier = request.identifier
         print("saveToCoreData CALLED -> type: \(type), identifier: \(identifier)")
         
-        if isProcessingFromExtension || type == "inApp" {
+       
             
             if !CoreDataManager.shared.notificationExists(withIdentifier: identifier){
-                print("saveToCoreData -> RECORD NOT FOUND -> inserting to DB")
+               print("saveToCoreData -> RECORD NOT FOUND -> inserting to DB")
                 CoreDataManager.shared.insertNotification(
                     type: type,
                     receivedDate: Date(),
@@ -199,11 +187,11 @@ public class NotificationManager {
                 }
                 
                 
-            }else{
+           }else{
                 print("saveToCoreData -> RECORD ALREADY EXISTS -> skipping insert")
             }
             
-        }
+        
         
         
         
