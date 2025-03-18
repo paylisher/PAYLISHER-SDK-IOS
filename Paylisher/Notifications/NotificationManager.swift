@@ -16,9 +16,7 @@ import Paylisher
 public class NotificationManager {
      
     public static let shared = NotificationManager()
-    //private var isProcessingFromExtension = false
-    
-    
+     
     
     private func showNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
         let pushNotification = PushPayload.shared.pushPayload(userInfo: userInfo)
@@ -70,25 +68,18 @@ public class NotificationManager {
             
 //            print("customNotification source string: \(source)")
             
-           
-            
             // Get the type as String first, then convert it
             if let typeString = userInfo["type"] as? String {
-               print("customNotification type string: \(typeString)")
+//                print("customNotification type string: \(typeString)")
                 let notificationType = NotificationType(rawValue: typeString)
-                
-                
                 
                 print("customNotification type string: \(notificationType)")
                 switch notificationType {
                 case .push:
                     print("FCM customNotification push")
-                    
+                    // Handle push notification
                     showNotification(userInfo, content, request, completion)
-                    
-                   
-                                        
-                    
+                    break
                 case .actionBased:
                     // Handle action based notification
                     // TODO: conditions
@@ -98,12 +89,13 @@ public class NotificationManager {
                     break
                 case .inApp:
                     // Handle in-app notification
-                    
                     print("FCM customNotification inApp")
-                    
+                 
+//                    #if IOS
                     PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
                     PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
                     PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+//                    #endif
                     
                     break
                 case .none:
@@ -127,25 +119,6 @@ public class NotificationManager {
             completion(_completion)
         }
     }
-    
-   /* public func processNotificationFromExtension(userInfo: [AnyHashable: Any], content: UNMutableNotificationContent, request: UNNotificationRequest, completion: @escaping (UNNotificationContent) -> Void) {
-        isProcessingFromExtension = true
-        // Görseli ve içeriği özelleştir
-        self.customNotification(windowScene: nil, userInfo: userInfo, content, request) { updatedContent in
-            self.isProcessingFromExtension = false
-            completion(updatedContent)
-        }
-    }
-    
-    public func processNotificationInForeground(windowScene: UIWindowScene?, userInfo: [AnyHashable: Any], content: UNMutableNotificationContent, request: UNNotificationRequest, completion: @escaping (UNNotificationContent) -> Void) {
-        // Sadece in-app mesajları işleyin, push bildirimleri extension'da işlenmiş olmalı
-        if let typeString = userInfo["type"] as? String, typeString == "inApp" {
-            self.customNotification(windowScene: windowScene, userInfo: userInfo, content, request, completion)
-        } else {
-            // Push bildirimi - zaten extension'da işlenmiş olmalı
-            completion(content)
-        }
-    }*/
 
    
    
@@ -155,45 +128,36 @@ public class NotificationManager {
         userInfo: [AnyHashable : Any]
     ) {
         let identifier = request.identifier
-        print("saveToCoreData CALLED -> type: \(type), identifier: \(identifier)")
         
-       
+        if !CoreDataManager.shared.notificationExists(withIdentifier: identifier){
             
-            if !CoreDataManager.shared.notificationExists(withIdentifier: identifier){
-               print("saveToCoreData -> RECORD NOT FOUND -> inserting to DB")
-                CoreDataManager.shared.insertNotification(
-                    type: type,
-                    receivedDate: Date(),
-                    expirationDate: Date().addingTimeInterval(120),
-                    payload: userInfo.description,
-                    status: "UNREAD",
-                    identifier: identifier
-                )
-                
-                print("Notification saved to Core Data!")
-                
-                let notifications = CoreDataManager.shared.fetchAllNotifications()
-                print("Core Data Notifications (\(notifications.count) records):")
-                
-                for notification in notifications {
-                    print("""
-                ID: \(notification.id)
-                Type: \(notification.type)
-                Received Date: \(notification.receivedDate ?? Date())
-                Status: \(notification.status)
-                Payload: \(notification.payload ?? "Empty")
-                Identifier: \(notification.notificationIdentifier)
-                """)
-                }
-                
-                
-           }else{
-                print("saveToCoreData -> RECORD ALREADY EXISTS -> skipping insert")
+            CoreDataManager.shared.insertNotification(
+                type: type,
+                receivedDate: Date(),
+                expirationDate: Date().addingTimeInterval(120),
+                payload: userInfo.description,
+                status: "UNREAD",
+                identifier: identifier
+            )
+            
+            print("Notification saved to Core Data!")
+            
+            let notifications = CoreDataManager.shared.fetchAllNotifications()
+            print("Core Data Notifications (\(notifications.count) records):")
+            
+            for notification in notifications {
+                print("""
+            ID: \(notification.id)
+            Type: \(notification.type)
+            Received Date: \(notification.receivedDate ?? Date())
+            Status: \(notification.status)
+            Payload: \(notification.payload ?? "Empty")
+            Identifier: \(notification.notificationIdentifier)
+            """)
             }
             
-        
-        
-        
+            
+        }
         
         
         

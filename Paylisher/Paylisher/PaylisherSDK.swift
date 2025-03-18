@@ -851,12 +851,30 @@ let maxRetryDelay = 30.0
         }
     }
 
-    private func isEnabled() -> Bool {
+   /* private func isEnabled() -> Bool {
         if !enabled {
             hedgeLog("Paylisher method was called without `setup` being complete. Call wil be ignored.")
         }
         return enabled
+    }*/
+    
+    public func test(){
+        isEnabled()
     }
+    
+    private func isEnabled() -> Bool {
+        print("isEnabled is working.")
+       
+            if let validEnabled = enabled as? Bool {
+                if !validEnabled {
+                    hedgeLog("Paylisher method was called without 'setup' being complete. Call will be ignored.")
+                }
+                return validEnabled
+            } else {
+                hedgeLog("Invalid type for enabled: \(type(of: enabled)). Defaulting to false.")
+                return false
+            }
+        }
 
     @objc public func optIn() {
         if !isEnabled() {

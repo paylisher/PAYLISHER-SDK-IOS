@@ -51,13 +51,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         config.sessionReplayConfig.maskAllTextInputs = false
         config.sessionReplayConfig.maskAllImages = false
         
+        PaylisherSDK.shared.setup(config)
+        
+    
         
         let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
         
         config.windowScene = windowScene
         
-        PaylisherSDK.shared.setup(config)
+       
         
     
         
@@ -110,13 +113,13 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         print("user receiveFeatureFlags callback")
     }
     
-    /*func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
+    func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
            
         
         print("FCM application -> didRegisterForRemoteNotificationsWithDeviceToken")
         Messaging.messaging().apnsToken = deviceToken
            
-    }*/
+    }
     
 
       var processedNotifications = Set<String>()
@@ -156,7 +159,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
           
           
           
-     NotificationManager.shared.customNotification(
+    NotificationManager.shared.customNotification(
         windowScene: windowScene,
           userInfo: userInfo,
           mutableContent,
@@ -171,7 +174,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
       )
           
-       /*   NotificationManager.shared.processNotificationInForeground(
+     /*     NotificationManager.shared.processNotificationInForeground(
                   windowScene: windowScene,
                   userInfo: userInfo,
                   content: mutableContent,

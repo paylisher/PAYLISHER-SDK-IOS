@@ -12,7 +12,7 @@ import CoreData
 import Paylisher
 
 
-@available(iOSApplicationExtension, unavailable)
+//@available(iOSApplicationExtension, unavailable)
 class NotificationService: UNNotificationServiceExtension {
     
 
