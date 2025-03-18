@@ -863,7 +863,7 @@ let maxRetryDelay = 30.0
     }
     
     private func isEnabled() -> Bool {
-        print("isEnabled is working.")
+        //print("isEnabled is working.")
        
             if let validEnabled = enabled as? Bool {
                 if !validEnabled {
