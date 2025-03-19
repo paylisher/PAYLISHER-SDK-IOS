@@ -11,13 +11,13 @@ public struct ActionBaseNotification {
     
     let title: String
     
-    let body: String
+    let message: String
     
     let imageUrl: String
     
     let type: String
     
-    let silent: Bool
+    let silent: String
     
     let action: String
     
@@ -25,9 +25,9 @@ public struct ActionBaseNotification {
     
     //condition kısmını daha sonra ekle
     
-    public init(title: String, body: String, imageUrl: String, type: String, silent: Bool, action: String, defaultLang: String) {
+    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String) {
         self.title = title
-        self.body = body
+        self.message = message
         self.imageUrl = imageUrl
         self.type = type
         self.silent = silent

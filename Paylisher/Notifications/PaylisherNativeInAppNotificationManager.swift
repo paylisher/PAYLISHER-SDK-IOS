@@ -76,11 +76,11 @@ public class PaylisherNativeInAppNotificationManager {
             print("Bildirim Core Data'ya kaydedildi!")
         }
         
-//        DispatchQueue.main.async {
-//            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
-//                rootVC.present(inAppVC, animated: true, completion: nil)
-//            }
-//        }
+       /* DispatchQueue.main.async {
+            if let rootVC = UIApplication.shared.keyWindow?.rootViewController {
+                rootVC.present(inAppVC, animated: true, completion: nil)
+            }
+       }*/
 //        #if IOS
         DispatchQueue.main.async {
 //            if let windowScene = UIApplication.shared.connectedScenes

@@ -1,23 +1,21 @@
 //
-//  PushPayload.swift
+//  GeofencePayload.swift
 //  Paylisher
 //
-//  Created by Rasim Burak Kaya on 10.03.2025.
+//  Created by Rasim Burak Kaya on 19.03.2025.
 //
 
 import Foundation
 import Paylisher
 
-public class PushPayload {
+public class GeofencePayload {
     
-    public static let shared = PushPayload()
+    public static let shared = GeofencePayload()
     
-    public init() {
+    public init(){}
+    
+    public func geofencePayload(userInfo: [AnyHashable: Any]) -> GeofenceNotification {
         
-    }
-  
-    public func pushPayload(userInfo: [AnyHashable: Any]) -> PushNotification {
-    
         let title = userInfo["title"] as? String ?? ""
         let message = userInfo["message"] as? String ?? ""
         let imageUrl = userInfo["imageUrl"] as? String ?? ""
@@ -26,11 +24,10 @@ public class PushPayload {
         let action = userInfo["action"] as? String ?? ""
         let defaultLang = userInfo["defaultLang"] as? String ?? ""
         
-        let pushNotification = PushNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang)
-           
-           return pushNotification
-           
+        let geofenceNotification = GeofenceNotification(title: title, message: message, imageUrl: imageUrl, type: type, action: action, defaultLang: defaultLang, silent: silent)
+        
+        return geofenceNotification
         
     }
-
+    
 }

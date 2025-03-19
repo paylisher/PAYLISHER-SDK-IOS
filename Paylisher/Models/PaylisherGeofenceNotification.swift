@@ -11,7 +11,7 @@ public struct GeofenceNotification {
     
     let title: String
     
-    let body: String
+    let message: String
     
     let imageUrl: String
     
@@ -21,14 +21,17 @@ public struct GeofenceNotification {
     
     let defaultLang: String
     
+    let silent: String
+    
     //condition ve geofence'yi daha sonra ekle
     
-    public init(title: String, body: String, imageUrl: String, type: String, action: String, defaultLang: String) {
+    public init(title: String, message: String, imageUrl: String, type: String, action: String, defaultLang: String, silent: String) {
         self.title = title
-        self.body = body
+        self.message = message
         self.imageUrl = imageUrl
         self.type = type
         self.action = action
         self.defaultLang = defaultLang
+        self.silent = silent
     }
 }

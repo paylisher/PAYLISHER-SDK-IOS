@@ -18,7 +18,7 @@ public class NotificationManager {
     public static let shared = NotificationManager()
      
     
-    private func showNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+    private func pushNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
         let pushNotification = PushPayload.shared.pushPayload(userInfo: userInfo)
         
         let defaultLang = pushNotification.defaultLang
@@ -26,7 +26,7 @@ public class NotificationManager {
         let localizedMessage = parseJSONString(pushNotification.message, language: defaultLang)
         let action = pushNotification.action
         let silent = pushNotification.silent
-        let imageUrll = pushNotification.imageUrl
+        let imageUrl = pushNotification.imageUrl
         let type = pushNotification.type
         
         
@@ -40,7 +40,7 @@ public class NotificationManager {
         content.body = localizedMessage
         
         // Görsel ekleme işlemi
-        if let imageUrl = URL(string: imageUrll ) {
+        if let imageUrl = URL(string: imageUrl ) {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
                 
                 DispatchQueue.global(qos: .background).async {
@@ -60,6 +60,89 @@ public class NotificationManager {
         }
     }
     
+    private func actionBasedNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+        
+        let actionBasedNotification = ActionBasedPayload.shared.actionBasedPayload(userInfo: userInfo)
+        
+        let defaultLang = actionBasedNotification.defaultLang
+        let title = parseJSONString(actionBasedNotification.title, language: defaultLang)
+        let message = parseJSONString(actionBasedNotification.message, language: defaultLang)
+        let action = actionBasedNotification.action
+        let silent = actionBasedNotification.silent
+        let imageUrl = actionBasedNotification.imageUrl
+        let type = actionBasedNotification.type
+        
+        if silent == "true" {
+            content.sound = nil
+        } else {
+            content.sound = UNNotificationSound.default
+        }
+        
+        content.title = title
+        content.body = message
+        
+        if let imageUrl = URL(string: imageUrl ) {
+            addImageAttachment(from: imageUrl, to: content) { updatedContent in
+                
+                DispatchQueue.global(qos: .background).async {
+                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                }
+                
+               completion(updatedContent)
+            }
+        } else {
+            print("No image found; continuing without an image.")
+            
+            DispatchQueue.global(qos: .background).async {
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+            }
+            
+            completion(content)
+        }
+    }
+    
+    private func geofenceNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+        
+        let geofenceNotification = GeofencePayload.shared.geofencePayload(userInfo: userInfo)
+        
+        let defaultLang = geofenceNotification.defaultLang
+        let title = parseJSONString(geofenceNotification.title, language: defaultLang)
+        let message = parseJSONString(geofenceNotification.message, language: defaultLang)
+        let action = geofenceNotification.action
+        let silent = geofenceNotification.silent
+        let imageUrl = geofenceNotification.imageUrl
+        let type = geofenceNotification.type
+        
+        if silent == "true" {
+            content.sound = nil
+        } else {
+            content.sound = UNNotificationSound.default
+        }
+        
+        content.title = title
+        content.body = message
+        
+        if let imageUrl = URL(string: imageUrl ) {
+            addImageAttachment(from: imageUrl, to: content) { updatedContent in
+                
+                DispatchQueue.global(qos: .background).async {
+                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                }
+                
+               completion(updatedContent)
+            }
+        } else {
+            print("No image found; continuing without an image.")
+            
+            DispatchQueue.global(qos: .background).async {
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+            }
+            
+            completion(content)
+        }
+    }
+    
+        
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
         
 //        print("customNotification userInfo \(userInfo)" )
@@ -78,28 +161,23 @@ public class NotificationManager {
                 case .push:
                     print("FCM customNotification push")
                     // Handle push notification
-                    showNotification(userInfo, content, request, completion)
+                    pushNotification(userInfo, content, request, completion)
                     break
                 case .actionBased:
-                    // Handle action based notification
-                    // TODO: conditions
+                    print("FCM customNotification action based")
+                    actionBasedNotification(userInfo, content, request, completion)
                     break
                 case .geofence:
-                    // Handle geofence notification
+                    print("FCM customNotification geofence")
+                    geofenceNotification(userInfo, content, request, completion)
                     break
                 case .inApp:
-                    // Handle in-app notification
                     print("FCM customNotification inApp")
-                    print("FCM inApp")
-                 
-
-                    PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
-                    PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
-                    PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
                     
-                    saveToCoreData(type: typeString, request: request, userInfo: userInfo)
-
-                    
+                        PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+                        PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
+                        PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+ 
                     break
                 case .none:
                     break

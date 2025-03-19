@@ -24,7 +24,7 @@ class NotificationService: UNNotificationServiceExtension {
         withContentHandler contentHandler: @escaping (UNNotificationContent) ->
             Void
     ) {
-        
+        print("çalıştı")
         
         
         guard let bestAttemptContent = request.content.mutableCopy()
@@ -57,6 +57,7 @@ class NotificationService: UNNotificationServiceExtension {
         NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
             contentHandler(updatedContent)
+            
         }
           
       /*  NotificationManager.shared.processNotificationFromExtension(

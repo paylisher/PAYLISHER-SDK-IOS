@@ -12,25 +12,16 @@ import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
 import Combine
-import CoreData
+//import CoreData
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
     
     
  
-       /* func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-
-            guard let _ = userInfo["gcm.message_id"] else {
-                completionHandler(.noData)
-                return
-            }
-            
-            print("FCM Received remote notification with userInfo: \(userInfo)")
-             
+    /* func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
        
-        print("FCM application -> didReceiveRemoteNotification")
-        print(userInfo)
-      
+    
+    
     }*/
  
 
@@ -158,6 +149,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       
    //       let windowScene: UIWindowScene? = nil
           
+         
           
     NotificationManager.shared.customNotification(
         windowScene: windowScene,
