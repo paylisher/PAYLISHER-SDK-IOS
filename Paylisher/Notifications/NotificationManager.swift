@@ -90,12 +90,15 @@ public class NotificationManager {
                 case .inApp:
                     // Handle in-app notification
                     print("FCM customNotification inApp")
+                    print("FCM inApp")
                  
-//                    #if IOS
+
                     PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
                     PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
                     PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
-//                    #endif
+                    
+                    saveToCoreData(type: typeString, request: request, userInfo: userInfo)
+
                     
                     break
                 case .none:

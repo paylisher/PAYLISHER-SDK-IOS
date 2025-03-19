@@ -156,7 +156,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       let windowScene = UIApplication.shared.connectedScenes
           .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
       
-          
+   //       let windowScene: UIWindowScene? = nil
           
           
     NotificationManager.shared.customNotification(
