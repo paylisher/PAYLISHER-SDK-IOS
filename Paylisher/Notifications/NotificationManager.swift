@@ -28,6 +28,7 @@ public class NotificationManager {
         let silent = pushNotification.silent
         let imageUrl = pushNotification.imageUrl
         let type = pushNotification.type
+        let delay = pushNotification.delay
         
         
         if silent == "true" {
@@ -39,18 +40,23 @@ public class NotificationManager {
         content.title = localizedTitle
         content.body = localizedMessage
         
+        
         // Görsel ekleme işlemi
         if let imageUrl = URL(string: imageUrl ) {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
                 
-                DispatchQueue.global(qos: .background).async {
+               DispatchQueue.global(qos: .background).async {
                     self.saveToCoreData(type: type, request: request, userInfo: userInfo)
                 }
                 
                completion(updatedContent)
+                
+               // self.handleNotificationDisplay(updatedContent, request: request, userInfo: userInfo, type: type, delay: delay, completion: completion)
             }
         } else {
             print("No image found; continuing without an image.")
+            
+           // self.handleNotificationDisplay(content, request: request, userInfo: userInfo, type: type, delay: delay, completion: completion)
             
             DispatchQueue.global(qos: .background).async {
                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
@@ -71,6 +77,65 @@ public class NotificationManager {
         let silent = actionBasedNotification.silent
         let imageUrl = actionBasedNotification.imageUrl
         let type = actionBasedNotification.type
+        let delayMinutes = actionBasedNotification.condition.delay
+        
+        if silent == "true" {
+            content.sound = nil
+        } else {
+            content.sound = UNNotificationSound.default
+        }
+        
+        content.title = title
+        content.body = message
+        
+        
+        if let imageUrl = URL(string: imageUrl ) {
+            addImageAttachment(from: imageUrl, to: content) { updatedContent in
+            
+                self.NotificationDisplay(with: updatedContent,
+                                                           request: request,
+                                                           userInfo: userInfo,
+                                                           type: type,
+                                               delayMinutes: delayMinutes,
+                                                           completion: completion)
+        
+                
+               /* DispatchQueue.global(qos: .background).async {
+                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                }
+                
+               completion(updatedContent)*/
+            }
+        } else {
+            print("No image found; continuing without an image.")
+            
+            self.NotificationDisplay(with: content,
+                                                       request: request,
+                                                       userInfo: userInfo,
+                                                       type: type,
+                                           delayMinutes: delayMinutes,
+                                                       completion: completion)
+            
+         /*  DispatchQueue.global(qos: .background).async {
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+            }
+            
+            completion(content)*/
+        }
+    }
+    
+    private func geofenceNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+        
+        let geofenceNotification = GeofencePayload.shared.geofencePayload(userInfo: userInfo)
+        
+        let defaultLang = geofenceNotification.defaultLang
+        let title = parseJSONString(geofenceNotification.title, language: defaultLang)
+        let message = parseJSONString(geofenceNotification.message, language: defaultLang)
+        let action = geofenceNotification.action
+        let silent = geofenceNotification.silent
+        let imageUrl = geofenceNotification.imageUrl
+        let type = geofenceNotification.type
+        
         
         if silent == "true" {
             content.sound = nil
@@ -83,6 +148,7 @@ public class NotificationManager {
         
         if let imageUrl = URL(string: imageUrl ) {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
+              
                 
                 DispatchQueue.global(qos: .background).async {
                     self.saveToCoreData(type: type, request: request, userInfo: userInfo)
@@ -101,46 +167,67 @@ public class NotificationManager {
         }
     }
     
-    private func geofenceNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
-        
-        let geofenceNotification = GeofencePayload.shared.geofencePayload(userInfo: userInfo)
-        
-        let defaultLang = geofenceNotification.defaultLang
-        let title = parseJSONString(geofenceNotification.title, language: defaultLang)
-        let message = parseJSONString(geofenceNotification.message, language: defaultLang)
-        let action = geofenceNotification.action
-        let silent = geofenceNotification.silent
-        let imageUrl = geofenceNotification.imageUrl
-        let type = geofenceNotification.type
-        
-        if silent == "true" {
-            content.sound = nil
-        } else {
-            content.sound = UNNotificationSound.default
+  
+    private func NotificationDisplay(with updatedContent: UNMutableNotificationContent,
+                                             request: UNNotificationRequest,
+                                             userInfo: [AnyHashable: Any],
+                                             type: String,
+                                             delayMinutes: Int,
+                                             completion: @escaping (UNNotificationContent) -> Void) {
+        // Veritabanına kaydı duplicate kontrolüyle yapıyoruz:
+        DispatchQueue.global(qos: .background).async {
+            self.saveToCoreData(type: type, request: request, userInfo: userInfo)
         }
         
-        content.title = title
-        content.body = message
         
-        if let imageUrl = URL(string: imageUrl ) {
-            addImageAttachment(from: imageUrl, to: content) { updatedContent in
-                
-                DispatchQueue.global(qos: .background).async {
-                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+        // Eğer delay > 0 ise, bildirimin gösterimini geciktirmek için yeni bir yerel bildirim planlayın.
+        if delayMinutes > 0 {
+            let delaySeconds = TimeInterval(delayMinutes * 60)
+
+            completion(UNMutableNotificationContent())
+
+            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delaySeconds, repeats: false)
+
+            let localRequest = UNNotificationRequest(identifier: request.identifier, content: updatedContent, trigger: trigger)
+            
+            UNUserNotificationCenter.current().add(localRequest) { error in
+                if let error = error {
+                    print("Local notification scheduling error: \(error)")
+                } else {
+                    print("Local notification scheduled with delay of \(delaySeconds) saniye.")
                 }
-                
-               completion(updatedContent)
             }
+            
+            
         } else {
-            print("No image found; continuing without an image.")
-            
-            DispatchQueue.global(qos: .background).async {
-                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
-            }
-            
-            completion(content)
+            // Delay 0 ise, bildirimi hemen göster:
+            completion(updatedContent)
         }
     }
+    
+   /* private func handleActionBasedCompletion(with content: UNMutableNotificationContent,
+                                               type: String,
+                                               request: UNNotificationRequest,
+                                               userInfo: [AnyHashable: Any],
+                                               delayMinutes: Int,
+                                               completion: @escaping (UNNotificationContent) -> Void) {
+        // Öncelikle, DB insert işlemi duplicate kontrolü ile yapılıyor.
+        DispatchQueue.global(qos: .background).async {
+            self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+        }
+        
+        // Delay değeri 0'dan büyükse, bildirimin gösterimini geciktiriyoruz.
+        if delayMinutes > 0 {
+            let delaySeconds = TimeInterval(delayMinutes * 60)
+            print("Action-based notification will be delayed by \(delayMinutes) minute(s) (\(delaySeconds) seconds).")
+            DispatchQueue.main.asyncAfter(deadline: .now() + delaySeconds) {
+                completion(content)
+            }
+        } else {
+            // Delay 0 ise hemen göster
+            completion(content)
+        }
+    }*/
     
         
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){

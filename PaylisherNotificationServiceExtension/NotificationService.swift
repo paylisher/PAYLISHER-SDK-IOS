@@ -4,7 +4,6 @@
 //
 //  Created by Rasim Burak Kaya on 11.02.2025.
 //
-
 import MobileCoreServices
 import UserNotifications
 import UIKit
@@ -24,8 +23,7 @@ class NotificationService: UNNotificationServiceExtension {
         withContentHandler contentHandler: @escaping (UNNotificationContent) ->
             Void
     ) {
-        print("çalıştı")
-        
+           
         
         guard let bestAttemptContent = request.content.mutableCopy()
                 as? UNMutableNotificationContent else {
@@ -59,16 +57,6 @@ class NotificationService: UNNotificationServiceExtension {
             contentHandler(updatedContent)
             
         }
-          
-      /*  NotificationManager.shared.processNotificationFromExtension(
-               userInfo: bestAttemptContent.userInfo,
-               content: bestAttemptContent,
-               request: request) { updatedContent in
-                   contentHandler(updatedContent)
-           }*/
-        
-        
-    
 
     }
 
@@ -81,4 +69,5 @@ class NotificationService: UNNotificationServiceExtension {
         }
     }
  }
+
 

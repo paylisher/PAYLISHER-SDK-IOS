@@ -163,6 +163,8 @@
 		FA37CC082D8ADEFA000C4B7B /* ActionBasedPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA37CC052D8ADE7B000C4B7B /* ActionBasedPayload.swift */; };
 		FA499F8F2D8AF0B400AC1753 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F8E2D8AF0B400AC1753 /* Paylisher */; };
 		FA499F912D8AF0D100AC1753 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F902D8AF0D100AC1753 /* Paylisher */; };
+		FA499F9A2D8AF69500AC1753 /* OHHTTPStubs in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F992D8AF69500AC1753 /* OHHTTPStubs */; };
+		FA499F9C2D8AF69500AC1753 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F9B2D8AF69500AC1753 /* OHHTTPStubsSwift */; };
 		FA54EF1D2D64C9C4008A04DC /* CustomInAppPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */; };
 		FA58D30C2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */; };
 		FA58D30E2D5B454C009A34DB /* NotificationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30D2D5B454C009A34DB /* NotificationEntity.swift */; };
@@ -534,6 +536,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				FA342FF32D42367500A8DA67 /* FirebaseAnalytics in Frameworks */,
+				FA499F9A2D8AF69500AC1753 /* OHHTTPStubs in Frameworks */,
 				FA63B8122D8970C700C99A9E /* FirebaseAuth in Frameworks */,
 				FAC2425A2D89751300E2467C /* FirebaseStorage in Frameworks */,
 				FA63B8162D8970C700C99A9E /* FirebaseCore in Frameworks */,
@@ -569,6 +572,7 @@
 				FAC242502D89751300E2467C /* FirebaseCore in Frameworks */,
 				FAC242562D89751300E2467C /* FirebaseMessaging in Frameworks */,
 				FA342FFB2D42367500A8DA67 /* FirebaseCore in Frameworks */,
+				FA499F9C2D8AF69500AC1753 /* OHHTTPStubsSwift in Frameworks */,
 				FA63B8082D8970C700C99A9E /* FirebaseAnalytics in Frameworks */,
 				FA63B8182D8970C700C99A9E /* FirebaseCrashlytics in Frameworks */,
 				FA63B8222D8970C700C99A9E /* FirebaseFunctions in Frameworks */,
@@ -1223,6 +1227,7 @@
 				3A867B7129C1DFEF009D0852 /* XCRemoteSwiftPackageReference "Nimble" */,
 				FAC242462D89751300E2467C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 				FA499F8D2D8AF0B400AC1753 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */,
+				FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 			);
 			productRefGroup = 3AC745B6296D6FE60025C109 /* Products */;
 			projectDirPath = "";
@@ -2430,6 +2435,14 @@
 				kind = branch;
 			};
 		};
+		FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
+			isa = XCRemoteSwiftPackageReference;
+			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
+			requirement = {
+				kind = upToNextMajorVersion;
+				minimumVersion = 9.1.0;
+			};
+		};
 		FA591E4D2D6DAE040003E702 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
@@ -2642,6 +2655,16 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA499F8D2D8AF0B400AC1753 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
 			productName = Paylisher;
+		};
+		FA499F992D8AF69500AC1753 /* OHHTTPStubs */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
+			productName = OHHTTPStubs;
+		};
+		FA499F9B2D8AF69500AC1753 /* OHHTTPStubsSwift */ = {
+			isa = XCSwiftPackageProductDependency;
+			package = FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
+			productName = OHHTTPStubsSwift;
 		};
 		FA591E4E2D6DAE1C0003E702 /* Paylisher */ = {
 			isa = XCSwiftPackageProductDependency;

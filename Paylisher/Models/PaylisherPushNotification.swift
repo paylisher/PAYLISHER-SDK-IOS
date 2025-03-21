@@ -7,6 +7,16 @@
 
 import Foundation
 
+/*public struct PushNotificationCondition {
+    
+    public let delay: Int
+    
+    public init(delay: Int) {
+        
+        self.delay = delay
+    }
+}*/
+
 public struct PushNotification {
     
     let title: String
@@ -23,7 +33,10 @@ public struct PushNotification {
     
     let defaultLang: String
     
-    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String) {
+    let delay: Int
+    
+    
+    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String, delay: Int) {
         self.title = title
         self.message = message
         self.imageUrl = imageUrl
@@ -31,6 +44,7 @@ public struct PushNotification {
         self.silent = silent
         self.action = action
         self.defaultLang = defaultLang
+        self.delay = delay
     }
     
 }

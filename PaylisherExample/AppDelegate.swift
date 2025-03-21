@@ -165,15 +165,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         
       )
-          
-     /*     NotificationManager.shared.processNotificationInForeground(
-                  windowScene: windowScene,
-                  userInfo: userInfo,
-                  content: mutableContent,
-                  request: request) { updatedContent in
-                      // Notification'u gösterme seçenekleri
-                      completionHandler([.alert, .badge, .sound])
-              }*/
+        
     
           print("FCM -> willPresents")
       //    print(userInfo)
