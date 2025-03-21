@@ -1,11 +1,6 @@
 {
-
-
-  "originHash" : "07828e55411a1d9d83ebdb68457912fb6f55bde16049555026ac01eb66f47f78",
-
-
-
-
+  "originHash" : "c380a49f66dfde1febc6b5ade7748115db3190c75a5cdb4b4b490dc551c1f6a9"
+}
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -147,8 +142,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
-        "branch" : "main",
-        "revision" : "7262e0ffabb355f8fcbb041fb03bd756c955c53d"
+        "revision" : "e8ef25224ccfda2eebad841959125728353d6ddd",
+        "version" : "1.0.0"
       }
     },
     {

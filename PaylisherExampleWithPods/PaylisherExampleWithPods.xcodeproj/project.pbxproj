@@ -3,7 +3,7 @@
 	archiveVersion = 1;
 	classes = {
 	};
-	objectVersion = 77;
+	objectVersion = 56;
 	objects = {
 
 /* Begin PBXBuildFile section */
@@ -132,6 +132,7 @@
 				};
 			};
 			buildConfigurationList = 690FF0192AE7C5B900A0B06B /* Build configuration list for PBXProject "PaylisherExampleWithPods" */;
+			compatibilityVersion = "Xcode 14.0";
 			developmentRegion = en;
 			hasScannedForEncodings = 0;
 			knownRegions = (
@@ -139,7 +140,6 @@
 				Base,
 			);
 			mainGroup = 690FF0152AE7C5B900A0B06B;
-			preferredProjectObjectVersion = 77;
 			productRefGroup = 690FF01F2AE7C5B900A0B06B /* Products */;
 			projectDirPath = "";
 			projectRoot = "";
