@@ -1,0 +1,37 @@
+# This workflow will build a Swift project
+# For more information see: https://docs.github.com/en/actions/automating-builds-and-tests/building-and-testing-swift
+
+name: iOS Build
+
+on:
+  push:
+    branches: [ "main", "develop" ]
+  pull_request:
+    branches: [ "main", "develop" ]
+
+jobs:
+  build-sdk:
+    name: Build & Test Paylisher (SDK)
+    runs-on: macos-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Build SDK
+        run: xcodebuild -workspace Paylisher.xcworkspace -scheme Paylisher -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' build
+
+      - name: Test SDK
+        run: xcodebuild -workspace Paylisher.xcworkspace -scheme Paylisher -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' test
+
+  build-example:
+    name: Build & Test PaylisherExample (Örnek Uygulama)
+    runs-on: macos-latest
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v3
+
+      - name: Build Example
+        run: xcodebuild -workspace Paylisher.xcworkspace -scheme PaylisherExample -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' build
+
+      - name: Test Example
+        run: xcodebuild -workspace Paylisher.xcworkspace -scheme PaylisherExample -sdk iphonesimulator -destination 'platform=iOS Simulator,name=iPhone 14,OS=latest' test
