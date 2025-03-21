@@ -33,10 +33,10 @@ public struct PushNotification {
     
     let defaultLang: String
     
-    let delay: Int
+   // let condition: PushNotificationCondition
     
     
-    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String, delay: Int) {
+    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String) {
         self.title = title
         self.message = message
         self.imageUrl = imageUrl
@@ -44,7 +44,7 @@ public struct PushNotification {
         self.silent = silent
         self.action = action
         self.defaultLang = defaultLang
-        self.delay = delay
+        
     }
     
 }
