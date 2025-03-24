@@ -28,7 +28,7 @@ public class NotificationManager {
         let silent = pushNotification.silent
         let imageUrl = pushNotification.imageUrl
         let type = pushNotification.type
-        let delay = pushNotification.delay
+        
         
         
         if silent == "true" {
