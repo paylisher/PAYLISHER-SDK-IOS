@@ -4,6 +4,7 @@
 //
 //  Created by Rasim Burak Kaya on 11.02.2025.
 //
+
 import MobileCoreServices
 import UserNotifications
 import UIKit
@@ -51,6 +52,8 @@ class NotificationService: UNNotificationServiceExtension {
         
         
         CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
+        
+        
         
         NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
