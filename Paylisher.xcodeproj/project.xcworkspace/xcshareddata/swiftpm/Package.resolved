@@ -141,8 +141,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
-        "revision" : "291aff5328ed82f31b155628f2ad8c4ac99e85c5",
-        "version" : "1.0.1"
+        "branch" : "develop",
+        "revision" : "7bc1200a6d7495cb478f1b7988aa8e79730f2d24"
       }
     },
     {
