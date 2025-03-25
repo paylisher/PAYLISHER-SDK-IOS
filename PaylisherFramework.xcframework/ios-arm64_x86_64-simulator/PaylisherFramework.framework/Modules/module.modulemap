@@ -1,0 +1,6 @@
+framework module PaylisherFramework {
+  umbrella header "PaylisherFramework.h"
+  export *
+
+  module * { export * }
+}

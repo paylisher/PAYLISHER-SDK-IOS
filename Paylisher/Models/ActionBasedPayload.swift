@@ -25,7 +25,7 @@ public class ActionBasedPayload {
         let action = userInfo["action"] as? String ?? ""
         let defaultLang = userInfo["defaultLang"] as? String ?? ""
         
-        var delayValue: Int = 0
+        /*var delayValue: Int = 0
            
            if let conditionDict = userInfo["condition"] as? [String: Any] {
                // Eğer condition doğrudan bir sözlük olarak geliyorsa
@@ -37,9 +37,12 @@ public class ActionBasedPayload {
                delayValue = conditionDict["delay"] as? Int ?? 0
            }
            
-           let condition = ActionBasedCondition(delay: delayValue)
+           let condition = ActionBasedCondition(delay: delayValue)*/
         
-        let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, condition: condition )
+        let conditionString = userInfo["condition"] as? String ?? ""
+        let condition = ActionBasedCondition(displayTime: conditionString)
+        
+        let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, condition: condition)
         
         return actionBasedNotification
         

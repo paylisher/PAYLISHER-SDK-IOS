@@ -41,6 +41,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         config.sessionReplayConfig.screenshotMode = true
         config.sessionReplayConfig.maskAllTextInputs = false
         config.sessionReplayConfig.maskAllImages = false
+    
         
         PaylisherSDK.shared.setup(config)
         
@@ -87,6 +88,16 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                     userPropertiesSetOnce: ["date_of_first_log_in": "2025-23-01"])
 
         PaylisherSDK.shared.screen("App screen", properties: ["fromIcon": "bottom"])
+        
+        
+        
+        //PaylisherSDK.shared.getDistinctId()
+        
+        //PaylisherSDK.shared.identify("user_id_from_your_database")
+        
+        //print("Distinc id: \(PaylisherSDK.shared.getDistinctId())" )
+        
+      //  config.storageManager?.getDistinctId()
 
         let defaultCenter = NotificationCenter.default
 

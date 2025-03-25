@@ -41,5 +41,9 @@ let package = Package(
             ],
             path: "PaylisherTests"
         ),
+        .binaryTarget(
+            name: "Paylisher",
+            path: "./PaylisherFramework.xcframework"
+        )
     ]
 )

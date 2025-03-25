@@ -9,11 +9,11 @@ import Foundation
 
 public struct ActionBasedCondition {
     
-    public let delay: Int
+    public let displayTime: String
     
-    public init(delay: Int) {
+    public init(displayTime: String) {
         
-        self.delay = delay
+        self.displayTime = displayTime
     }
 }
 

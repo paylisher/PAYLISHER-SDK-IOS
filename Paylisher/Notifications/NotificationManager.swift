@@ -77,7 +77,10 @@ public class NotificationManager {
         let silent = actionBasedNotification.silent
         let imageUrl = actionBasedNotification.imageUrl
         let type = actionBasedNotification.type
-        let delayMinutes = actionBasedNotification.condition.delay
+        let displayTime = actionBasedNotification.condition.displayTime
+        //let delayMinutes = actionBasedNotification.condition.delay
+        
+        print("Display Time: \(displayTime)")
         
         if silent == "true" {
             content.sound = nil
@@ -92,35 +95,35 @@ public class NotificationManager {
         if let imageUrl = URL(string: imageUrl ) {
             addImageAttachment(from: imageUrl, to: content) { updatedContent in
             
-                self.NotificationDisplay(with: updatedContent,
+               /* self.NotificationDisplay(with: updatedContent,
                                                            request: request,
                                                            userInfo: userInfo,
                                                            type: type,
                                                delayMinutes: delayMinutes,
-                                                           completion: completion)
+                                                           completion: completion)*/
         
                 
-               /* DispatchQueue.global(qos: .background).async {
+                DispatchQueue.global(qos: .background).async {
                     self.saveToCoreData(type: type, request: request, userInfo: userInfo)
                 }
                 
-               completion(updatedContent)*/
+               completion(updatedContent)
             }
         } else {
             print("No image found; continuing without an image.")
             
-            self.NotificationDisplay(with: content,
+            /*self.NotificationDisplay(with: content,
                                                        request: request,
                                                        userInfo: userInfo,
                                                        type: type,
                                            delayMinutes: delayMinutes,
-                                                       completion: completion)
+                                                       completion: completion)*/
             
-         /*  DispatchQueue.global(qos: .background).async {
+           DispatchQueue.global(qos: .background).async {
                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
             }
             
-            completion(content)*/
+            completion(content)
         }
     }
     
@@ -168,7 +171,7 @@ public class NotificationManager {
     }
     
   
-    private func NotificationDisplay(with updatedContent: UNMutableNotificationContent,
+   /* private func NotificationDisplay(with updatedContent: UNMutableNotificationContent,
                                              request: UNNotificationRequest,
                                              userInfo: [AnyHashable: Any],
                                              type: String,
@@ -203,7 +206,7 @@ public class NotificationManager {
             // Delay 0 ise, bildirimi hemen göster:
             completion(updatedContent)
         }
-    }
+    }*/
     
    /* private func handleActionBasedCompletion(with content: UNMutableNotificationContent,
                                                type: String,
