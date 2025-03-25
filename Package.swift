@@ -13,10 +13,10 @@ let package = Package(
             targets: ["Paylisher"]
         ),
         // Binary olarak oluşturulmuş .xcframework ürününüz
-        /*.library(
+        .library(
             name: "PaylisherFramework",
             targets: ["PaylisherFramework"]
-        )*/
+        )
     ],
     dependencies: [
         .package(url: "https://github.com/Quick/Quick.git", from: "6.0.0"),
@@ -43,10 +43,11 @@ let package = Package(
             ],
             path: "PaylisherTests"
         ),
-       /* .binaryTarget(
+        .binaryTarget(
             name: "PaylisherFramework",
             path: "./PaylisherFramework.xcframework"
-        )*/
+        )
     ]
 )
+
 
