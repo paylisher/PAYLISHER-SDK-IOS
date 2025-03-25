@@ -312,6 +312,8 @@
 		FAC7DE2C2D92C4B500EE7F3C /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 69BA38D62B888E8500AA69D6 /* PrivacyInfo.xcprivacy */; };
 		FAC7DE2D2D92C4C200EE7F3C /* Paylisher.h in Headers */ = {isa = PBXBuildFile; fileRef = 3AC745B8296D6FE60025C109 /* Paylisher.h */; };
 		FAC7DE2F2D92C51C00EE7F3C /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAC7DE2E2D92C51C00EE7F3C /* Paylisher */; };
+		FAC7DE3B2D92CB9F00EE7F3C /* PaylisherFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAE4ED262D92A06800AC0D29 /* PaylisherFramework.framework */; };
+		FAC7DE3C2D92CB9F00EE7F3C /* PaylisherFramework.framework in Embed Frameworks */ = {isa = PBXBuildFile; fileRef = FAE4ED262D92A06800AC0D29 /* PaylisherFramework.framework */; settings = {ATTRIBUTES = (CodeSignOnCopy, RemoveHeadersOnCopy, ); }; };
 		FAC8AF5E2D782E5C00531415 /* PaylisherNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FA58D3272D5B5205009A34DB /* PaylisherNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FAD90ED02D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */; };
 		FADBFAEC2D842AA4001CE4A9 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FADBFAEB2D842AA4001CE4A9 /* Paylisher */; };
@@ -391,6 +393,13 @@
 			remoteGlobalIDString = 3AC745B4296D6FE60025C109;
 			remoteInfo = Paylisher;
 		};
+		FAC7DE3D2D92CB9F00EE7F3C /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = 3AC745AC296D6FE60025C109 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = FAE4ED252D92A06800AC0D29;
+			remoteInfo = PaylisherFramework;
+		};
 		FAC8AF5F2D782E5C00531415 /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = 3AC745AC296D6FE60025C109 /* Project object */;
@@ -455,6 +464,17 @@
 			dstSubfolderSpec = 10;
 			files = (
 				69F5180D2BAC770800F52C14 /* Paylisher.framework in Embed Frameworks */,
+			);
+			name = "Embed Frameworks";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		FAC7DE3F2D92CB9F00EE7F3C /* Embed Frameworks */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "";
+			dstSubfolderSpec = 10;
+			files = (
+				FAC7DE3C2D92CB9F00EE7F3C /* PaylisherFramework.framework in Embed Frameworks */,
 			);
 			name = "Embed Frameworks";
 			runOnlyForDeploymentPostprocessing = 0;
@@ -686,6 +706,7 @@
 				FA63B82C2D8970C700C99A9E /* FirebaseMessaging in Frameworks */,
 				FAC2425F2D89754D00E2467C /* Paylisher in Frameworks */,
 				FAC242542D89751300E2467C /* FirebaseFunctions in Frameworks */,
+				FAC7DE3B2D92CB9F00EE7F3C /* PaylisherFramework.framework in Frameworks */,
 				FAE233002D91A84A007D2774 /* OHHTTPStubs in Frameworks */,
 				FAC242502D89751300E2467C /* FirebaseCore in Frameworks */,
 				FAC242562D89751300E2467C /* FirebaseMessaging in Frameworks */,
@@ -1171,11 +1192,13 @@
 				3AA34CF4296D951A003398F4 /* Frameworks */,
 				3AA34CF5296D951A003398F4 /* Resources */,
 				FAC8AF612D782E5C00531415 /* Embed Foundation Extensions */,
+				FAC7DE3F2D92CB9F00EE7F3C /* Embed Frameworks */,
 			);
 			buildRules = (
 			);
 			dependencies = (
 				FAC8AF602D782E5C00531415 /* PBXTargetDependency */,
+				FAC7DE3E2D92CB9F00EE7F3C /* PBXTargetDependency */,
 			);
 			name = PaylisherExample;
 			productName = PaylisherExample;
@@ -1881,6 +1904,11 @@
 			isa = PBXTargetDependency;
 			target = 3AC745B4296D6FE60025C109 /* Paylisher */;
 			targetProxy = 69F5180E2BAC770800F52C14 /* PBXContainerItemProxy */;
+		};
+		FAC7DE3E2D92CB9F00EE7F3C /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = FAE4ED252D92A06800AC0D29 /* PaylisherFramework */;
+			targetProxy = FAC7DE3D2D92CB9F00EE7F3C /* PBXContainerItemProxy */;
 		};
 		FAC8AF602D782E5C00531415 /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
