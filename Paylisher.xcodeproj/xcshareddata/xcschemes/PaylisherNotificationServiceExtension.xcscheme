@@ -61,7 +61,7 @@
             parallelizable = "YES">
             <BuildableReference
                BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FA308F8E2D9297960064CA0C"
+               BlueprintIdentifier = "FAE4ED2E2D92A06800AC0D29"
                BuildableName = "PaylisherFrameworkTests.xctest"
                BlueprintName = "PaylisherFrameworkTests"
                ReferencedContainer = "container:Paylisher.xcodeproj">
