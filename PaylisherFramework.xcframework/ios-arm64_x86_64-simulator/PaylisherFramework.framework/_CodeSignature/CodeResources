@@ -10,7 +10,7 @@
 		</data>
 		<key>Info.plist</key>
 		<data>
-		dGm/J7LbFzxT44evwyF3kYqiZ+c=
+		0o0CGV5+0A77+ttbxXkYuqVLJZo=
 		</data>
 		<key>Modules/module.modulemap</key>
 		<data>
@@ -21,6 +21,10 @@
 	<dict>
 		<key>Headers/PaylisherFramework.h</key>
 		<dict>
+			<key>hash</key>
+			<data>
+			1IW9k12cA5tZtW8lQ/0ZYjpqxXw=
+			</data>
 			<key>hash2</key>
 			<data>
 			BmmMB/i3nLN9Zp47Afjri7kzbiU+Tlmv0DvGNTl190Y=
@@ -28,6 +32,10 @@
 		</dict>
 		<key>Modules/module.modulemap</key>
 		<dict>
+			<key>hash</key>
+			<data>
+			XSEGauDBfzOLI2zi94WCUZDU/xc=
+			</data>
 			<key>hash2</key>
 			<data>
 			QI/OMDEl0HzzF9/zGrrLQY6nJjwhGcckQfmawuTASHM=
