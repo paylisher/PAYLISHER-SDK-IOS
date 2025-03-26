@@ -1,6 +1,5 @@
 
-
-  "originHash" : "dd880add0dcb272cab668904b83059c617979cb14dfdcff7dfaaf3b44c3c4269",
+  "originHash" : "c380a49f66dfde1febc6b5ade7748115db3190c75a5cdb4b4b490dc551c1f6a9",
 
   "pins" : [
     {
@@ -143,8 +142,8 @@
       "kind" : "remoteSourceControl",
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
-        "revision" : "291aff5328ed82f31b155628f2ad8c4ac99e85c5",
-        "version" : "1.0.1"
+        "branch" : "develop",
+        "revision" : "d44d9619df0569eac992d57543d3a9c7d5bd29b3"
       }
     },
     {
