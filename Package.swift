@@ -7,12 +7,12 @@ let package = Package(
         .macOS(.v10_15), .iOS(.v13), .tvOS(.v13), .watchOS(.v6),
     ],
     products: [
-        // Kaynak koddan üretilen kütüphane
+        
         .library(
             name: "Paylisher",
             targets: ["Paylisher"]
         ),
-        // Binary olarak oluşturulmuş .xcframework ürününüz
+        
         .library(
             name: "PaylisherFramework",
             targets: ["PaylisherFramework"]
