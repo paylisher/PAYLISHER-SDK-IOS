@@ -12,6 +12,7 @@ import FirebaseCore
 import FirebaseMessaging
 import UserNotifications
 import Combine
+import MobileCoreServices
 //import CoreData
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
@@ -23,6 +24,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     
     }*/
+    
+   
+
  
 
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
@@ -230,4 +234,133 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                userPropertiesSetOnce : ["birthday": "2024-03-01"])
            }
        }
+    
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        
+        let state = UIApplication.shared.applicationState
+            
+            if state == .active {
+                // Uygulama ön planda ise hiçbir şey yapmadan hemen completion çağır
+                print("Sessiz push geldi ama uygulama ön planda, işleme almıyorum.")
+                completionHandler(.noData)
+                return
+            }else {
+                
+                let type = userInfo["type"] as? String ?? ""
+                
+                switch type {
+                case "IN-APP":
+                    print("Sessiz IN-APP alındı: \(userInfo)")
+                    completionHandler(.newData)
+                    
+                    let content = UNMutableNotificationContent()
+        
+                    content.userInfo = userInfo
+
+                    let request = UNNotificationRequest(
+                        identifier: UUID().uuidString,
+                        content: content,
+                        trigger: nil // sessiz push'ta trigger yok
+                    )
+
+                    NotificationManager.shared.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                    
+                case "SILENT":
+                    
+                    print("Sessiz push alındı: \(userInfo)")
+                        
+                        // displayTime değeri payload'dan alınır (örneğin milisaniye cinsinden string)
+                        if let displayTimeString = userInfo["displayTime"] as? String,
+                           let displayTimeMillis = Double(displayTimeString) {
+                            
+                            let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
+                            print("Planlanacak tarih: \(displayDate)")
+                            scheduleLocalNotification(at: displayDate, userInfo: userInfo)
+                        } else {
+                            print("displayTime verisi yok ya da dönüştürülemiyor")
+                        }
+                        
+                        completionHandler(.newData)
+               
+                
+                default:
+                    print("defffaaauuullttt")
+                }
+                
+            }
+
+    }
+    
+    func scheduleLocalNotification(at date: Date, userInfo: [AnyHashable: Any]) {
+            let content = UNMutableNotificationContent()
+            content.title = userInfo["title"] as? String ?? ""
+            content.body = userInfo["message"] as? String ?? ""
+            
+        let silent = userInfo["silent"] as? String ?? ""
+        
+        if silent == "true" {
+            content.sound = nil
+        }else{
+            content.sound = UNNotificationSound.default
+        }
+          
+            content.userInfo = userInfo
+             
+            
+
+            if let imageUrlString = userInfo["imageUrl"] as? String,
+               let imageURL = URL(string: imageUrlString) {
+                addImageAttachment(from: imageURL, to: content) { updatedContent in
+                    self.scheduleNotification(with: updatedContent, at: date)
+                }
+            } else {
+                self.scheduleNotification(with: content, at: date)
+            }
+        }
+
+        private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
+            let triggerDate = Calendar.current.dateComponents(in: TimeZone.current, from: date)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+            
+            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Local notification planlanırken hata: \(error)")
+                } else {
+                    print("Local notification planlandı: \(date)")
+                }
+            }
+        }
+    
+    func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
+        URLSession.shared.downloadTask(with: imageUrl) { localURL, response, error in
+            print("Görsel İndirme Tamamlandı. localURL: \(String(describing: localURL)), error: \(String(describing: error))")
+            
+            if let localURL = localURL {
+                do {
+                    let tempDirectory = FileManager.default.temporaryDirectory
+                    let tempFileURL = tempDirectory
+                        .appendingPathComponent(UUID().uuidString)
+                        .appendingPathExtension("jpg")
+                    
+                    try FileManager.default.moveItem(at: localURL, to: tempFileURL)
+                    
+                    // Attachment seçenekleri, kUTTypeJPEG kullandığımız için JPEG olduğunu belirtiyoruz.
+                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
+                    let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
+                    
+                    content.attachments = [attachment]
+                } catch {
+                    print("Görsel ekleme hatası: \(error)")
+                }
+            } else {
+                print("Görsel indirilemedi")
+            }
+            completion(content)
+        }.resume()
+    }
+
+
 }
