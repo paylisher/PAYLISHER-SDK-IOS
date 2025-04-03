@@ -16,14 +16,14 @@ class PaylisherInAppModalViewController: UIViewController {
     private let imageUrlString: String?
     private let actionUrlString: String?
     private let actionText: String
-    private let identifier: String
+    private let gcmMessageID: String
     
     init(title: String,
          body: String,
          imageUrl: String?,
          actionUrl: String?,
          actionText: String,
-         identifier: String)
+         gcmMessageID: String)
     {
         
         self.titleText = title
@@ -31,7 +31,7 @@ class PaylisherInAppModalViewController: UIViewController {
         self.imageUrlString = imageUrl
         self.actionUrlString = actionUrl
         self.actionText = actionText
-        self.identifier = identifier
+        self.gcmMessageID = gcmMessageID
         super.init(nibName: nil, bundle: nil)
         
         modalPresentationStyle = .overFullScreen
@@ -129,7 +129,7 @@ class PaylisherInAppModalViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
           super.viewDidAppear(animated)
         
-          CoreDataManager.shared.updateNotificationStatus(byIdentifier: identifier, newStatus: "READ")
+        CoreDataManager.shared.updateNotificationStatus(byMessageID: gcmMessageID, newStatus: "READ")
           print("In-App Bildirim READ olarak güncellendi!")
       }
     

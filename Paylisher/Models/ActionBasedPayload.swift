@@ -24,25 +24,9 @@ public class ActionBasedPayload {
         let silent = userInfo["silent"] as? String ?? ""
         let action = userInfo["action"] as? String ?? ""
         let defaultLang = userInfo["defaultLang"] as? String ?? ""
+        let displayTime = userInfo["displayTime"] as? String
         
-        /*var delayValue: Int = 0
-           
-           if let conditionDict = userInfo["condition"] as? [String: Any] {
-               // Eğer condition doğrudan bir sözlük olarak geliyorsa
-               delayValue = conditionDict["delay"] as? Int ?? 0
-           } else if let conditionString = userInfo["condition"] as? String,
-                     let data = conditionString.data(using: .utf8),
-                     let conditionDict = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-               // Eğer condition bir JSON string olarak geliyorsa
-               delayValue = conditionDict["delay"] as? Int ?? 0
-           }
-           
-           let condition = ActionBasedCondition(delay: delayValue)*/
-        
-        let conditionString = userInfo["condition"] as? String ?? ""
-        let condition = ActionBasedCondition(displayTime: conditionString)
-        
-        let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, condition: condition)
+        let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, displayTime: displayTime)
         
         return actionBasedNotification
         

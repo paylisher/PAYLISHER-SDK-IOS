@@ -119,11 +119,11 @@ public class CoreDataManager {
         type.isOptional = true
         properties.append(type)
         
-        let notificationIdentifier = NSAttributeDescription()
-        notificationIdentifier.name = "notificationIdentifier"
-        notificationIdentifier.attributeType = .stringAttributeType
-        notificationIdentifier.isOptional = true
-        properties.append(notificationIdentifier)
+        let gcmMessageID = NSAttributeDescription()
+        gcmMessageID.name = "gcmMessageID"
+        gcmMessageID.attributeType = .stringAttributeType
+        gcmMessageID.isOptional = true
+        properties.append(gcmMessageID)
         
         let receivedDate = NSAttributeDescription()
         receivedDate.name = "receivedDate"
@@ -181,7 +181,7 @@ public class CoreDataManager {
     }
 
     
-    public func insertNotification(type: String, receivedDate: Date, expirationDate: Date, payload: String, status: String, identifier: String) {
+    public func insertNotification(type: String, receivedDate: Date, expirationDate: Date, payload: String, status: String, gcmMessageID: String) {
         let context = (persistentContainer?.viewContext)!
         let notification = NotificationEntity(context: context)
         notification.id = generateNewID()
@@ -190,7 +190,7 @@ public class CoreDataManager {
         notification.expirationDate = expirationDate
         notification.payload = payload
         notification.status = status
-        notification.notificationIdentifier = identifier
+        notification.gcmMessageID = gcmMessageID
 
         saveContext()
     }
@@ -210,10 +210,10 @@ public class CoreDataManager {
     }
 
     
-   public func updateNotificationStatus(byIdentifier identifier: String, newStatus: String) {
+   public func updateNotificationStatus(byMessageID gcmMessageID: String, newStatus: String) {
      
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-     fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
+       fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
       
         
         
@@ -228,9 +228,9 @@ public class CoreDataManager {
         }
     }
     
-   public func notificationExists(withIdentifier identifier: String) -> Bool {
+   public func notificationExists(withMessageID gcmMessageID: String) -> Bool {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-        fetchRequest.predicate = NSPredicate(format: "notificationIdentifier == %@", identifier)
+        fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
     
 
         do {

@@ -17,18 +17,6 @@ import MobileCoreServices
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
     
-    
- 
-    /* func application(_ application: UIApplication, didReceiveRemoteNotification userInfo: [AnyHashable : Any], fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-       
-    
-    
-    }*/
-    
-   
-
- 
-
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
 
         let PAYLISHER_API_KEY = "phc_vFmOmzIfHMJtUvcTI8qCQu7VDPdKtO8Mz3kic7AIIvj" // "<phc_test>"
@@ -45,20 +33,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         config.sessionReplayConfig.screenshotMode = true
         config.sessionReplayConfig.maskAllTextInputs = false
         config.sessionReplayConfig.maskAllImages = false
-    
-        
+       
         PaylisherSDK.shared.setup(config)
-        
-    
-        
+  
         let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
-        
-        config.windowScene = windowScene
-        
-       
-        
-    
         
         
         FirebaseApp.configure()
@@ -71,11 +50,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                        }
                        print("Granted in APNS registry")
                    }
-                   
-                   
+                  
                }
-        
-        
+
         UNUserNotificationCenter.current().delegate = self
         Messaging.messaging().delegate = self
         application.registerForRemoteNotifications()
@@ -92,9 +69,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                                     userPropertiesSetOnce: ["date_of_first_log_in": "2025-23-01"])
 
         PaylisherSDK.shared.screen("App screen", properties: ["fromIcon": "bottom"])
-        
-        
-        
+
         //PaylisherSDK.shared.getDistinctId()
         
         //PaylisherSDK.shared.identify("user_id_from_your_database")
@@ -126,18 +101,17 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         Messaging.messaging().apnsToken = deviceToken
            
     }
-    
 
-      var processedNotifications = Set<String>()
+      //var processedNotifications = Set<String>()
       func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
           
-          let userInfo = notification.request.content.userInfo
+       //   let userInfo = notification.request.content.userInfo
          
-          let notificationID = notification.request.identifier
+       //   let notificationID = notification.request.identifier
           
           //let request = notification.request
           
-         if processedNotifications.contains(notificationID) {
+     /*    if processedNotifications.contains(notificationID) {
               print("Tekrarlanan bildirim algılandı, işlenmiyor.")
               return
           }
@@ -158,56 +132,107 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
           mutableContent.interruptionLevel = notification.request.content.interruptionLevel
           mutableContent.relevanceScore = notification.request.content.relevanceScore
       }
-      
-      let windowScene = UIApplication.shared.connectedScenes
-          .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+      */
+    //  let windowScene = UIApplication.shared.connectedScenes
+     //     .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
       
    //       let windowScene: UIWindowScene? = nil
-          
-         
-          
-    NotificationManager.shared.customNotification(
-        windowScene: windowScene,
-          userInfo: userInfo,
-          mutableContent,
-        notification.request,
-          { content in
-                 
-              
-                  //   completionHandler([.banner, .sound])
-         }
-        
-        
-        
-      )
-        
-    
+       
           print("FCM -> willPresents")
       //    print(userInfo)
           
           PaylisherSDK.shared.capture("notificationReceived")//Normalde bu eventin bu fonksiyon altında yazılmaması gerekiyor çünkü bu fonksiyon uygulama ön plandayken bildirim geldiğinde aktif oluyor yani uygulama arka plandayken bildirim geldiğinde event gönderilmiyor. Aklında bulunsun, sonra düzelt.
-         
-          completionHandler([.sound, .list, .banner, .badge ])
+         /*  NotificationManager.shared.customNotification(
+                  windowScene: windowScene,
+                    userInfo: userInfo,
+                    mutableContent,
+                  notification.request,
+                    { content in
+                 
+                            //   completionHandler([.banner, .sound])
+                   }
+       
+                )*/
+              
+              completionHandler([.sound, .list, .banner, .badge ])
+              
        }
-
     
+    func application(_ application: UIApplication,
+                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
+                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
+        
+        let state = UIApplication.shared.applicationState
+        
+        let windowScene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+ 
+              /*  let type = userInfo["type"] as? String ?? ""
+                
+                switch type {
+                case "IN-APP":
+                    print("Sessiz IN-APP alındı: \(userInfo)")
+                    completionHandler(.newData)
+                    
+                    let content = UNMutableNotificationContent()
+        
+                    content.userInfo = userInfo
+
+                    let request = UNNotificationRequest(
+                        identifier: UUID().uuidString,
+                        content: content,
+                        trigger: nil // sessiz push'ta trigger yok
+                    )
+
+                    NotificationManager.shared.saveToCoreData(type: type, request: request, userInfo: userInfo)
+               
+                default:
+                    print("defffaaauuullttt")
+                }*/
+        
+        let content = UNMutableNotificationContent()
+        
+        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+
+        
+        let request = UNNotificationRequest(
+            identifier: userInfo["gcm.message_id"] as? String ?? "",
+            content: content,
+            trigger: trigger
+        )
+        
+        //print("Sessiz push alındı: \(userInfo)")
+            
+            // displayTime değeri payload'dan alınır (örneğin milisaniye cinsinden string)
+        
+        //print("gcm message id: \(userInfo["gcm.message_id"])")
+        
+            
+        NotificationManager.shared.customNotification(windowScene: windowScene, userInfo: userInfo, content, request, {
+            content in
+        }
+   )
+
+    }
+
        func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-           
           
-           
            let userInfo = response.notification.request.content.userInfo
            
-           let identifier = response.notification.request.identifier
+           //let identifier = response.notification.request.identifier
            
-           CoreDataManager.shared.updateNotificationStatus(byIdentifier: identifier, newStatus: "READ")
+           let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
+           
+           CoreDataManager.shared.updateNotificationStatus(byMessageID: gcmMessageID, newStatus: "READ")
           
            PaylisherSDK.shared.capture("notificationOpen")
            
            print("FCM -> didReceive")
+           print("Bildirime tıklandı.")
            
            if let actionURLString = userInfo["action"] as? String,
               let actionURL = URL(string: actionURLString) {
-               print("Bildirime tıklandı, açılan URL: \(actionURL)")
+               //print("Bildirime tıklandı, açılan URL: \(actionURL)")
                UIApplication.shared.open(actionURL, options: [:], completionHandler: nil)
            } else {
                print("Action URL bulunamadı!")
@@ -235,96 +260,54 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
            }
        }
     
-    func application(_ application: UIApplication,
-                     didReceiveRemoteNotification userInfo: [AnyHashable: Any],
-                     fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        
-        let state = UIApplication.shared.applicationState
-            
-            if state == .active {
-                // Uygulama ön planda ise hiçbir şey yapmadan hemen completion çağır
-                print("Sessiz push geldi ama uygulama ön planda, işleme almıyorum.")
-                completionHandler(.noData)
-                return
-            }else {
-                
-                let type = userInfo["type"] as? String ?? ""
-                
-                switch type {
-                case "IN-APP":
-                    print("Sessiz IN-APP alındı: \(userInfo)")
-                    completionHandler(.newData)
-                    
-                    let content = UNMutableNotificationContent()
-        
-                    content.userInfo = userInfo
 
-                    let request = UNNotificationRequest(
-                        identifier: UUID().uuidString,
-                        content: content,
-                        trigger: nil // sessiz push'ta trigger yok
-                    )
-
-                    NotificationManager.shared.saveToCoreData(type: type, request: request, userInfo: userInfo)
-                    
-                case "SILENT":
-                    
-                    print("Sessiz push alındı: \(userInfo)")
-                        
-                        // displayTime değeri payload'dan alınır (örneğin milisaniye cinsinden string)
-                        if let displayTimeString = userInfo["displayTime"] as? String,
-                           let displayTimeMillis = Double(displayTimeString) {
-                            
-                            let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
-                            print("Planlanacak tarih: \(displayDate)")
-                            scheduleLocalNotification(at: displayDate, userInfo: userInfo)
-                        } else {
-                            print("displayTime verisi yok ya da dönüştürülemiyor")
-                        }
-                        
-                        completionHandler(.newData)
-               
-                
-                default:
-                    print("defffaaauuullttt")
-                }
-                
-            }
-
-    }
     
-    func scheduleLocalNotification(at date: Date, userInfo: [AnyHashable: Any]) {
-            let content = UNMutableNotificationContent()
-            content.title = userInfo["title"] as? String ?? ""
-            content.body = userInfo["message"] as? String ?? ""
-            
+    /*func scheduleLocalNotification(at date: Date, userInfo: [AnyHashable: Any]) {
+        let content = UNMutableNotificationContent()
+        content.title = userInfo["title"] as? String ?? ""
+        content.body = userInfo["message"] as? String ?? ""
+        content.userInfo = userInfo
+        
         let silent = userInfo["silent"] as? String ?? ""
         
-        if silent == "true" {
+        if silent == "true"{
             content.sound = nil
         }else{
             content.sound = UNNotificationSound.default
         }
-          
-            content.userInfo = userInfo
-             
-            
-
-            if let imageUrlString = userInfo["imageUrl"] as? String,
-               let imageURL = URL(string: imageUrlString) {
-                addImageAttachment(from: imageURL, to: content) { updatedContent in
-                    self.scheduleNotification(with: updatedContent, at: date)
-                }
-            } else {
-                self.scheduleNotification(with: content, at: date)
+        
+        // Eğer imageUrl varsa attachment ekleme kısmı
+        if let imageUrlString = userInfo["imageUrl"] as? String,
+           let imageURL = URL(string: imageUrlString) {
+            addImageAttachment(from: imageURL, to: content) { updatedContent in
+                self.scheduleNotification(with: updatedContent, at: date)
             }
+        } else {
+            self.scheduleNotification(with: content, at: date)
         }
-
-        private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
+    }*/
+    
+   /* private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
+        let timeInterval = date.timeIntervalSinceNow
+        if timeInterval <= 0 {
+            // Eğer tarih geçmişte veya 0 ise, bildirimi hemen gönder (trigger nil)
+            let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                                  content: content,
+                                                  trigger: nil)
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Bildirim hemen gönderilirken hata: \(error)")
+                } else {
+                    print("Bildirim hemen gönderildi.")
+                }
+            }
+        } else {
+            // Aksi halde belirlenen tarihe göre planla
             let triggerDate = Calendar.current.dateComponents(in: TimeZone.current, from: date)
             let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
-            
-            let request = UNNotificationRequest(identifier: UUID().uuidString, content: content, trigger: trigger)
+            let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                                  content: content,
+                                                  trigger: trigger)
             UNUserNotificationCenter.current().add(request) { error in
                 if let error = error {
                     print("Local notification planlanırken hata: \(error)")
@@ -333,8 +316,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 }
             }
         }
-    
-    func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
+    }*/
+/* func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
         URLSession.shared.downloadTask(with: imageUrl) { localURL, response, error in
             print("Görsel İndirme Tamamlandı. localURL: \(String(describing: localURL)), error: \(String(describing: error))")
             
@@ -360,7 +343,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
             completion(content)
         }.resume()
-    }
-
+    }*/
 
 }

@@ -29,7 +29,7 @@ public class NotificationManager {
         let imageUrl = pushNotification.imageUrl
         let type = pushNotification.type
         
-        
+        content.userInfo = userInfo
         
         if silent == "true" {
             content.sound = nil
@@ -77,10 +77,9 @@ public class NotificationManager {
         let silent = actionBasedNotification.silent
         let imageUrl = actionBasedNotification.imageUrl
         let type = actionBasedNotification.type
-        let displayTime = actionBasedNotification.condition.displayTime
-        //let delayMinutes = actionBasedNotification.condition.delay
+        let displayTime = actionBasedNotification.displayTime
         
-        print("Display Time: \(displayTime)")
+        content.userInfo = userInfo
         
         if silent == "true" {
             content.sound = nil
@@ -91,39 +90,37 @@ public class NotificationManager {
         content.title = title
         content.body = message
         
-        
-        if let imageUrl = URL(string: imageUrl ) {
-            addImageAttachment(from: imageUrl, to: content) { updatedContent in
-            
-               /* self.NotificationDisplay(with: updatedContent,
-                                                           request: request,
-                                                           userInfo: userInfo,
-                                                           type: type,
-                                               delayMinutes: delayMinutes,
-                                                           completion: completion)*/
-        
+        let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
+                // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
+               
                 
-                DispatchQueue.global(qos: .background).async {
-                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                // displayTime değerine göre zamanlamayı belirleyelim:
+                if let displayTime = displayTime,
+                   let displayTimeMillis = Double(displayTime) {
+                    let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
+                    // scheduleNotification(with:at:) metodumuz,
+                    // timeInterval <= 0 ise trigger'ı nil yapıp bildirimi hemen gönderiyor.
+                    self.scheduleNotification(with: finalContent, at: displayDate)
+                } else {
+                    // Eğer displayTime yoksa, bildirimi hemen gönderelim.
+                    self.scheduleNotification(with: finalContent, at: Date())
                 }
                 
-               completion(updatedContent)
-            }
-        } else {
-            print("No image found; continuing without an image.")
-            
-            /*self.NotificationDisplay(with: content,
-                                                       request: request,
-                                                       userInfo: userInfo,
-                                                       type: type,
-                                           delayMinutes: delayMinutes,
-                                                       completion: completion)*/
-            
-           DispatchQueue.global(qos: .background).async {
-                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                completion(finalContent)
             }
             
-            completion(content)
+            // Resim eklemek istiyorsak, imageUrl kontrolü:
+            if let imageUrl = URL(string: imageUrl) {
+                addImageAttachment(from: imageUrl, to: content) { updatedContent in
+                    processContent(updatedContent)
+                }
+            } else {
+                print("No image found; continuing without an image.")
+                processContent(content)
+            }
+        
+       DispatchQueue.global(qos: .background).async {
+            self.saveToCoreData(type: type, request: request, userInfo: userInfo)
         }
     }
     
@@ -139,6 +136,7 @@ public class NotificationManager {
         let imageUrl = geofenceNotification.imageUrl
         let type = geofenceNotification.type
         
+        content.userInfo = userInfo
         
         if silent == "true" {
             content.sound = nil
@@ -170,69 +168,64 @@ public class NotificationManager {
         }
     }
     
-  
-   /* private func NotificationDisplay(with updatedContent: UNMutableNotificationContent,
-                                             request: UNNotificationRequest,
-                                             userInfo: [AnyHashable: Any],
-                                             type: String,
-                                             delayMinutes: Int,
-                                             completion: @escaping (UNNotificationContent) -> Void) {
-        // Veritabanına kaydı duplicate kontrolüyle yapıyoruz:
-        DispatchQueue.global(qos: .background).async {
-            self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+    private func silentNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+        
+        let silentPayload = SilentPayload.shared.silentPayload(userInfo: userInfo)
+        
+        let title = silentPayload.title
+        let message = silentPayload.message
+        let action = silentPayload.action
+        let silent = silentPayload.silent
+        let type = silentPayload.type
+        let imageUrl = silentPayload.imageUrl
+        let displayTime = silentPayload.displayTime
+        
+        content.userInfo = userInfo
+      
+        if silent == "true" {
+            content.sound = nil
+        } else {
+            content.sound = UNNotificationSound.default
         }
         
+        content.title = title
+        content.body = message
         
-        // Eğer delay > 0 ise, bildirimin gösterimini geciktirmek için yeni bir yerel bildirim planlayın.
-        if delayMinutes > 0 {
-            let delaySeconds = TimeInterval(delayMinutes * 60)
-
-            completion(UNMutableNotificationContent())
-
-            let trigger = UNTimeIntervalNotificationTrigger(timeInterval: delaySeconds, repeats: false)
-
-            let localRequest = UNNotificationRequest(identifier: request.identifier, content: updatedContent, trigger: trigger)
-            
-            UNUserNotificationCenter.current().add(localRequest) { error in
-                if let error = error {
-                    print("Local notification scheduling error: \(error)")
+        let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
+                // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
+               
+                
+                // displayTime değerine göre zamanlamayı belirleyelim:
+                if let displayTime = displayTime,
+                   let displayTimeMillis = Double(displayTime) {
+                    let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
+                    // scheduleNotification(with:at:) metodumuz,
+                    // timeInterval <= 0 ise trigger'ı nil yapıp bildirimi hemen gönderiyor.
+                    self.scheduleNotification(with: finalContent, at: displayDate)
                 } else {
-                    print("Local notification scheduled with delay of \(delaySeconds) saniye.")
+                    // Eğer displayTime yoksa, bildirimi hemen gönderelim.
+                    self.scheduleNotification(with: finalContent, at: Date())
                 }
+                
+                completion(finalContent)
             }
             
-            
-        } else {
-            // Delay 0 ise, bildirimi hemen göster:
-            completion(updatedContent)
-        }
-    }*/
-    
-   /* private func handleActionBasedCompletion(with content: UNMutableNotificationContent,
-                                               type: String,
-                                               request: UNNotificationRequest,
-                                               userInfo: [AnyHashable: Any],
-                                               delayMinutes: Int,
-                                               completion: @escaping (UNNotificationContent) -> Void) {
-        // Öncelikle, DB insert işlemi duplicate kontrolü ile yapılıyor.
+            // Resim eklemek istiyorsak, imageUrl kontrolü:
+            if let imageUrl = URL(string: imageUrl) {
+                addImageAttachment(from: imageUrl, to: content) { updatedContent in
+                    processContent(updatedContent)
+                }
+            } else {
+                print("No image found; continuing without an image.")
+                processContent(content)
+            }
+        
         DispatchQueue.global(qos: .background).async {
             self.saveToCoreData(type: type, request: request, userInfo: userInfo)
         }
         
-        // Delay değeri 0'dan büyükse, bildirimin gösterimini geciktiriyoruz.
-        if delayMinutes > 0 {
-            let delaySeconds = TimeInterval(delayMinutes * 60)
-            print("Action-based notification will be delayed by \(delayMinutes) minute(s) (\(delaySeconds) seconds).")
-            DispatchQueue.main.asyncAfter(deadline: .now() + delaySeconds) {
-                completion(content)
-            }
-        } else {
-            // Delay 0 ise hemen göster
-            completion(content)
-        }
-    }*/
+    }
     
-        
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
         
 //        print("customNotification userInfo \(userInfo)" )
@@ -269,6 +262,9 @@ public class NotificationManager {
                         PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
  
                     break
+                case .silent:
+                    print("FCM customNotification silent")
+                    silentNotification(userInfo, content, request, completion)
                 case .none:
                     break
                 }
@@ -291,16 +287,48 @@ public class NotificationManager {
         }
     }
 
-   
+    private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
+        let timeInterval = date.timeIntervalSinceNow
+        if timeInterval <= 0 {
+            // Eğer hedef zaman geçmişte veya 0 ise, bildirimi hemen gönder
+            let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                                  content: content,
+                                                  trigger: nil)
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Bildirim hemen gönderilirken hata: \(error)")
+                } else {
+                    print("Bildirim hemen gönderildi.")
+                }
+            }
+        } else {
+            // Belirlenen tarihe göre planla
+            let triggerDate = Calendar.current.dateComponents(in: TimeZone.current, from: date)
+            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
+            let request = UNNotificationRequest(identifier: UUID().uuidString,
+                                                  content: content,
+                                                  trigger: trigger)
+            UNUserNotificationCenter.current().add(request) { error in
+                if let error = error {
+                    print("Local notification planlanırken hata: \(error)")
+                } else {
+                    print("Local notification planlandı: \(date)")
+                }
+            }
+        }
+    }
+
    
     public func saveToCoreData(
         type: String,
         request: UNNotificationRequest,
         userInfo: [AnyHashable : Any]
     ) {
-        let identifier = request.identifier
+        let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         
-        if !CoreDataManager.shared.notificationExists(withIdentifier: identifier){
+        //let userInfo = request.content.userInfo
+        
+      /*  if !CoreDataManager.shared.notificationExists(withIdentifier: identifier){
             
             CoreDataManager.shared.insertNotification(
                 type: type,
@@ -311,7 +339,21 @@ public class NotificationManager {
                 identifier: identifier
             )
             
-            print("Notification saved to Core Data!")
+            print("Notification saved to Core Data!") */
+        
+        if CoreDataManager.shared.notificationExists(withMessageID: gcmMessageID) {
+            print("Bildirim zaten kaydedilmiş, tekrar eklenmiyor.")
+        } else {
+            
+            CoreDataManager.shared.insertNotification(
+                type: type,
+                receivedDate: Date(),
+                expirationDate: Date().addingTimeInterval(120),
+                payload: userInfo.description,
+                status: "UNREAD",
+                gcmMessageID: gcmMessageID
+            )
+            print("Bildirim Core Data'ya kaydedildi!")
             
             let notifications = CoreDataManager.shared.fetchAllNotifications()
             print("Core Data Notifications (\(notifications.count) records):")
@@ -319,17 +361,15 @@ public class NotificationManager {
             for notification in notifications {
                 print("""
             ID: \(notification.id)
-            Type: \(notification.type)
+            Type: \(notification.type ?? type)
             Received Date: \(notification.receivedDate ?? Date())
-            Status: \(notification.status)
+            Status: \(notification.status ?? "UNREAD")
             Payload: \(notification.payload ?? "Empty")
-            Identifier: \(notification.notificationIdentifier)
+            MessageID: \(notification.gcmMessageID)
             """)
             }
             
-            
         }
-        
         
         
         
