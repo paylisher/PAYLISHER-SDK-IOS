@@ -19,8 +19,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
 
-        let PAYLISHER_API_KEY = "phc_vFmOmzIfHMJtUvcTI8qCQu7VDPdKtO8Mz3kic7AIIvj" // "<phc_test>"
-        let PAYLISHER_HOST = "https://datastudio.paylisher.com" //"<https://test.paylisher.com>"
+        let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
+        let PAYLISHER_HOST = "https://analytics.paylisher.com" //"<https://test.paylisher.com>"
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
@@ -200,14 +200,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             content: content,
             trigger: trigger
         )
-        
-        //print("Sessiz push alındı: \(userInfo)")
-            
-            // displayTime değeri payload'dan alınır (örneğin milisaniye cinsinden string)
-        
-        //print("gcm message id: \(userInfo["gcm.message_id"])")
-        
-            
+     
         NotificationManager.shared.customNotification(windowScene: windowScene, userInfo: userInfo, content, request, {
             content in
         }

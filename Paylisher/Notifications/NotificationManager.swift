@@ -9,7 +9,7 @@ import Foundation
 import UserNotifications
 import UIKit
 import CoreData
-import MobileCoreServices
+import UniformTypeIdentifiers
 import Paylisher
 
  
@@ -28,6 +28,7 @@ public class NotificationManager {
         let silent = pushNotification.silent
         let imageUrl = pushNotification.imageUrl
         let type = pushNotification.type
+        let displayTime = pushNotification.condition.displayTime
         
         content.userInfo = userInfo
         
@@ -40,30 +41,37 @@ public class NotificationManager {
         content.title = localizedTitle
         content.body = localizedMessage
         
-        
-        // Görsel ekleme işlemi
-        if let imageUrl = URL(string: imageUrl ) {
-            addImageAttachment(from: imageUrl, to: content) { updatedContent in
+        let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
+                // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
+            DispatchQueue.global(qos: .background).async {
+                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+             }
                 
-               DispatchQueue.global(qos: .background).async {
-                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                // displayTime değerine göre zamanlamayı belirleyelim:
+                if let displayTime = displayTime,
+                   let displayTimeMillis = Double(displayTime) {
+                    let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
+                    // scheduleNotification(with:at:) metodumuz,
+                    // timeInterval <= 0 ise trigger'ı nil yapıp bildirimi hemen gönderiyor.
+                    self.scheduleNotification(with: finalContent, at: displayDate)
+                } else {
+                    // Eğer displayTime yoksa, bildirimi hemen gönderelim.
+                    self.scheduleNotification(with: finalContent, at: Date())
                 }
                 
-               completion(updatedContent)
-                
-               // self.handleNotificationDisplay(updatedContent, request: request, userInfo: userInfo, type: type, delay: delay, completion: completion)
-            }
-        } else {
-            print("No image found; continuing without an image.")
-            
-           // self.handleNotificationDisplay(content, request: request, userInfo: userInfo, type: type, delay: delay, completion: completion)
-            
-            DispatchQueue.global(qos: .background).async {
-                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                completion(finalContent)
             }
             
-            completion(content)
-        }
+            // Resim eklemek istiyorsak, imageUrl kontrolü:
+            if let imageUrl = URL(string: imageUrl) {
+                addImageAttachment(from: imageUrl, to: content) { updatedContent in
+                    processContent(updatedContent)
+                }
+            } else {
+                print("No image found; continuing without an image.")
+                processContent(content)
+            }
+
     }
     
     private func actionBasedNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
@@ -77,7 +85,7 @@ public class NotificationManager {
         let silent = actionBasedNotification.silent
         let imageUrl = actionBasedNotification.imageUrl
         let type = actionBasedNotification.type
-        let displayTime = actionBasedNotification.displayTime
+        let displayTime = actionBasedNotification.condition.displayTime
         
         content.userInfo = userInfo
         
@@ -92,7 +100,9 @@ public class NotificationManager {
         
         let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
                 // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
-               
+            DispatchQueue.global(qos: .background).async {
+                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+             }
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
                 if let displayTime = displayTime,
@@ -119,9 +129,7 @@ public class NotificationManager {
                 processContent(content)
             }
         
-       DispatchQueue.global(qos: .background).async {
-            self.saveToCoreData(type: type, request: request, userInfo: userInfo)
-        }
+       
     }
     
     private func geofenceNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
@@ -193,10 +201,14 @@ public class NotificationManager {
         
         let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
                 // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
-               
+            DispatchQueue.global(qos: .background).async {
+                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+            }
+            
+            self.scheduleNotification(with: finalContent, at: Date())
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
-                if let displayTime = displayTime,
+             /*   if let displayTime = displayTime,
                    let displayTimeMillis = Double(displayTime) {
                     let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
                     // scheduleNotification(with:at:) metodumuz,
@@ -205,7 +217,7 @@ public class NotificationManager {
                 } else {
                     // Eğer displayTime yoksa, bildirimi hemen gönderelim.
                     self.scheduleNotification(with: finalContent, at: Date())
-                }
+                }*/
                 
                 completion(finalContent)
             }
@@ -220,9 +232,7 @@ public class NotificationManager {
                 processContent(content)
             }
         
-        DispatchQueue.global(qos: .background).async {
-            self.saveToCoreData(type: type, request: request, userInfo: userInfo)
-        }
+        
         
     }
     
@@ -290,8 +300,10 @@ public class NotificationManager {
     private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
         let timeInterval = date.timeIntervalSinceNow
         if timeInterval <= 0 {
-            // Eğer hedef zaman geçmişte veya 0 ise, bildirimi hemen gönder
-            let request = UNNotificationRequest(identifier: UUID().uuidString,
+            
+            let userInfo = content.userInfo
+            
+            let request = UNNotificationRequest(identifier: userInfo["gcm.message_id"] as? String ?? "",
                                                   content: content,
                                                   trigger: nil)
             UNUserNotificationCenter.current().add(request) { error in
@@ -326,6 +338,15 @@ public class NotificationManager {
     ) {
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         
+        var scheduledDate = Date() 
+        if let conditionString = userInfo["condition"] as? String,
+           let data = conditionString.data(using: .utf8),
+           let conditionDict = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+           let displayTimeString = conditionDict["displayTime"] as? String,
+           let displayTimeMillis = Double(displayTimeString) {
+            scheduledDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
+        }
+        
         //let userInfo = request.content.userInfo
         
       /*  if !CoreDataManager.shared.notificationExists(withIdentifier: identifier){
@@ -347,7 +368,7 @@ public class NotificationManager {
             
             CoreDataManager.shared.insertNotification(
                 type: type,
-                receivedDate: Date(),
+                receivedDate: scheduledDate,
                 expirationDate: Date().addingTimeInterval(120),
                 payload: userInfo.description,
                 status: "UNREAD",
@@ -389,7 +410,7 @@ public class NotificationManager {
                     
                     try FileManager.default.moveItem(at: localURL, to: tempFileURL)
                     
-                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
+                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: UTType.jpeg.identifier] as [AnyHashable: Any]
                     let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
                     
                     content.attachments = [attachment]

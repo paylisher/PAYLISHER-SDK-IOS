@@ -24,9 +24,24 @@ public class ActionBasedPayload {
         let silent = userInfo["silent"] as? String ?? ""
         let action = userInfo["action"] as? String ?? ""
         let defaultLang = userInfo["defaultLang"] as? String ?? ""
-        let displayTime = userInfo["displayTime"] as? String
         
-        let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, displayTime: displayTime)
+        let condition: ActionBaseCondition = {
+                    if let conditionString = userInfo["condition"] as? String,
+                       let data = conditionString.data(using: .utf8) {
+                        do {
+                            if let conditionDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+                               let displayTime = conditionDict["displayTime"] as? String {
+                                return ActionBaseCondition(displayTime: displayTime)
+                            }
+                        } catch {
+                            print("Error parsing condition JSON: \(error)")
+                        }
+                    }
+                    // Varsayılan olarak boş bir displayTime atayabilirsiniz veya istediğiniz başka bir default değeri.
+            return ActionBaseCondition(displayTime: "")
+                }()
+        
+        let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, condition: condition)
         
         return actionBasedNotification
         
