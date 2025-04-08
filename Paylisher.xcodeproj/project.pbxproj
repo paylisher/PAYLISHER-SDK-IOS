@@ -217,7 +217,6 @@
 		FA63B8342D8970C700C99A9E /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8332D8970C700C99A9E /* FirebaseStorageCombine-Community */; };
 		FA63B8362D8970C700C99A9E /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8352D8970C700C99A9E /* FirebaseVertexAI */; };
 		FA6EBBEA2DA52B6900825982 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6EBBE92DA52B6900825982 /* Test.swift */; };
-		FA6EBBEB2DA52B6900825982 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6EBBE92DA52B6900825982 /* Test.swift */; };
 		FA6EBBED2DA52BDB00825982 /* Test.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA6EBBE92DA52B6900825982 /* Test.swift */; };
 		FA857BDA2D81D1F1009E490D /* PaylisherDatabase.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */; };
 		FA8A989A2D81C50700219DF5 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA8A98992D81C50700219DF5 /* Paylisher */; };
@@ -1600,7 +1599,6 @@
 				69ED1A5C2C7F15F300FE7A91 /* PaylisherSessionManager.swift in Sources */,
 				69F23A742BB3088E001194F6 /* URLSessionSwizzler.swift in Sources */,
 				69F518142BAC7F4300F52C14 /* Date+Util.swift in Sources */,
-				FA6EBBEB2DA52B6900825982 /* Test.swift in Sources */,
 				FACFB7D52D96AE3C00F392F1 /* PaylisherSilentNotification.swift in Sources */,
 				69F5183A2BB2BA8300F52C14 /* UIApplicationTracker.swift in Sources */,
 				FA92C1D82D8AEB76006DA5D6 /* GeofencePayload.swift in Sources */,
