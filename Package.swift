@@ -22,7 +22,7 @@ let package = Package(
         .package(url: "https://github.com/Quick/Quick.git", from: "6.0.0"),
         .package(url: "https://github.com/Quick/Nimble.git", from: "12.0.0"),
         .package(url: "https://github.com/AliSoftware/OHHTTPStubs.git", from: "9.0.0"),
-        .package(url: "https://github.com/paylisher/PAYLISHER-SDK-IOS", from: "1.1.2")
+        .package(url: "https://github.com/paylisher/PAYLISHER-SDK-IOS.git", from: "1.1.2")
     ],
     targets: [
         .target(
