@@ -1,4 +1,4 @@
-[![Build](https://img.shields.io/github/actions/workflow/status/Paylisher/paylisher-ios/build.yml?branch=main)](https://github.com/Paylisher/paylisher-ios/actions/workflows/build.yml?query=branch%3Amain)
+[![Build](https://img.shields.io/github/actions/workflow/status/paylisher/PAYLISHER-SDK-IOS/ios-build.yml?branch=main)](https://github.com/paylisher/PAYLISHER-SDK-IOS/actions/workflows/ios-build.yml)
 [![CocoaPods compadible](https://img.shields.io/cocoapods/v/Paylisher.svg)](https://cocoapods.org/pods/Paylisher)
 [![SwiftPM compatible](https://img.shields.io/badge/spm-compatible-brightgreen.svg?style=flat)](https://swift.org/package-manager)
 ![platforms](https://img.shields.io/cocoapods/p/Paylisher.svg?style=flat)
