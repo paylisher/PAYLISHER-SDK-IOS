@@ -9,7 +9,7 @@ import Foundation
 import UserNotifications
 import UIKit
 import CoreData
-import UniformTypeIdentifiers
+import MobileCoreServices
 import Paylisher
 
  
@@ -410,7 +410,7 @@ public class NotificationManager {
                     
                     try FileManager.default.moveItem(at: localURL, to: tempFileURL)
                     
-                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: UTType.jpeg.identifier] as [AnyHashable: Any]
+                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
                     let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
                     
                     content.attachments = [attachment]
