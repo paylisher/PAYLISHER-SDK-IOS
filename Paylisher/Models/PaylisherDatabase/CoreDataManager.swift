@@ -190,7 +190,7 @@ public class CoreDataManager {
         notification.expirationDate = expirationDate
         notification.payload = payload
         notification.status = status
-        notification.gcmMessageID = gcmMessageID
+        //notification.gcmMessageID = gcmMessageID
 
         saveContext()
     }

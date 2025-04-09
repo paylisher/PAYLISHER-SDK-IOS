@@ -120,7 +120,7 @@ struct ContentView: View {
     @State private var deepLinkDestination: String?
     @StateObject var signInViewModel = SignInViewModel()
     @StateObject var featureFlagsModel = FeatureFlagsModel()
-    @StateObject var locationManager = LocationManager()
+    
         
 
     func incCounter() {

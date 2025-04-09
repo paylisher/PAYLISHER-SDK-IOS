@@ -26,7 +26,7 @@ public enum NotificationType {
     case actionBased
     case geofence
     case inApp
-    case silent
+    
     
     init?(rawValue: String) {
         switch rawValue {
@@ -38,8 +38,7 @@ public enum NotificationType {
             self = .actionBased
         case "GEOFENCE":
             self = .geofence
-        case "SILENT":
-            self = .silent
+        
         default:
             return nil
         }
