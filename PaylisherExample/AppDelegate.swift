@@ -13,7 +13,7 @@ import FirebaseMessaging
 import UserNotifications
 import Combine
 import MobileCoreServices
-import PaylisherFramework
+
 
 class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDelegate, MessagingDelegate  {
     
@@ -39,7 +39,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
         
-        let t = Test(name: "a", surName: "w")
+        
         
         
         FirebaseApp.configure()
