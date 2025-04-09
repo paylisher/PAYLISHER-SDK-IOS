@@ -1,0 +1,14 @@
+Command line invocation:
+    /Applications/Xcode.app/Contents/Developer/usr/bin/xcodebuild archive -project Paylisher.xcodeproj -scheme Paylisher -sdk iphoneos -archivePath build/ios.xcarchive SKIP_INSTALL=NO BUILD_LIBRARY_FOR_DISTRIBUTION=YES -verbose
+
+User defaults from command line:
+    IDEArchivePathOverride = /Users/rasimburakkaya/Desktop/Swift/PAYLISHER-SDK-IOS/Paylisher.xcworkspace/build/ios.xcarchive
+    IDEPackageSupportUseBuiltinSCM = YES
+
+Build settings from command line:
+    BUILD_LIBRARY_FOR_DISTRIBUTION = YES
+    SDKROOT = iphoneos18.2
+    SKIP_INSTALL = NO
+
+2025-04-08 15:00:22.938 xcodebuild[78383:25562490] Writing error result bundle to /var/folders/4p/xtpgs83s0mq1cgpc_xm1sk7m0000gn/T/ResultBundle_2025-08-04_15-00-0022.xcresult
+xcodebuild: error: 'Paylisher.xcodeproj' does not exist.

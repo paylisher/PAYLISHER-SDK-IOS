@@ -7,15 +7,13 @@
 
 import Foundation
 
-/*public struct PushNotificationCondition {
-    
-    public let delay: Int
-    
-    public init(delay: Int) {
-        
-        self.delay = delay
+public struct PushCondition {
+    public let displayTime: String?
+
+    public init(displayTime: String?) {
+        self.displayTime = displayTime
     }
-}*/
+}
 
 public struct PushNotification {
     
@@ -33,10 +31,9 @@ public struct PushNotification {
     
     let defaultLang: String
     
-   // let condition: PushNotificationCondition
-    
-    
-    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String) {
+    let condition: PushCondition
+
+    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String, condition: PushCondition) {
         self.title = title
         self.message = message
         self.imageUrl = imageUrl
@@ -44,7 +41,7 @@ public struct PushNotification {
         self.silent = silent
         self.action = action
         self.defaultLang = defaultLang
-        
+        self.condition = condition
     }
     
 }

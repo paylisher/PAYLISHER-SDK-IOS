@@ -25,22 +25,21 @@ public class ActionBasedPayload {
         let action = userInfo["action"] as? String ?? ""
         let defaultLang = userInfo["defaultLang"] as? String ?? ""
         
-        /*var delayValue: Int = 0
-           
-           if let conditionDict = userInfo["condition"] as? [String: Any] {
-               // Eğer condition doğrudan bir sözlük olarak geliyorsa
-               delayValue = conditionDict["delay"] as? Int ?? 0
-           } else if let conditionString = userInfo["condition"] as? String,
-                     let data = conditionString.data(using: .utf8),
-                     let conditionDict = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
-               // Eğer condition bir JSON string olarak geliyorsa
-               delayValue = conditionDict["delay"] as? Int ?? 0
-           }
-           
-           let condition = ActionBasedCondition(delay: delayValue)*/
-        
-        let conditionString = userInfo["condition"] as? String ?? ""
-        let condition = ActionBasedCondition(displayTime: conditionString)
+        let condition: ActionBaseCondition = {
+                    if let conditionString = userInfo["condition"] as? String,
+                       let data = conditionString.data(using: .utf8) {
+                        do {
+                            if let conditionDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
+                               let displayTime = conditionDict["displayTime"] as? String {
+                                return ActionBaseCondition(displayTime: displayTime)
+                            }
+                        } catch {
+                            print("Error parsing condition JSON: \(error)")
+                        }
+                    }
+                    // Varsayılan olarak boş bir displayTime atayabilirsiniz veya istediğiniz başka bir default değeri.
+            return ActionBaseCondition(displayTime: "")
+                }()
         
         let actionBasedNotification = ActionBaseNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang, condition: condition)
         

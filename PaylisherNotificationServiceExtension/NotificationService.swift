@@ -4,7 +4,7 @@
 //
 //  Created by Rasim Burak Kaya on 11.02.2025.
 //
-
+/*
 import MobileCoreServices
 import UserNotifications
 import UIKit
@@ -72,5 +72,5 @@ class NotificationService: UNNotificationServiceExtension {
         }
     }
  }
-
+*/
 

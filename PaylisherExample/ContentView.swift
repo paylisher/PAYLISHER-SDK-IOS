@@ -35,17 +35,16 @@ class SignInViewModel: NSObject, ObservableObject, ASWebAuthenticationPresentati
         session.start()
     }*/
     
-    private var authSession: ASWebAuthenticationSession? // Bellek sızıntısını önlemek için saklanan değişken
+    private var authSession: ASWebAuthenticationSession?
 
         func presentationAnchor(for _: ASWebAuthenticationSession) -> ASPresentationAnchor {
-            return UIApplication.shared.windows.first! // Doğru bir ASPresentationAnchor döndür
+            return UIApplication.shared.windows.first!
         }
 
         func triggerAuthentication() {
             guard let authURL = URL(string: "https://example.com/auth") else { return }
             let scheme = "exampleauth"
 
-            // Session'ı instance property olarak sakla
             authSession = ASWebAuthenticationSession(url: authURL, callbackURLScheme: scheme) { [weak self] callbackURL, error in defer { self?.authSession = nil }
                 if let callbackURL = callbackURL {
                     print("URL", callbackURL.absoluteString)
@@ -54,7 +53,6 @@ class SignInViewModel: NSObject, ObservableObject, ASWebAuthenticationPresentati
                     print("Error", error.localizedDescription)
                 }
 
-                // İşlem tamamlandığında session'ı temizle
                 self?.authSession = nil
             }
 
@@ -97,6 +95,7 @@ struct YeniSayfaView: View {
             Text("Bu yeni bir sayfa!")
                 .font(.largeTitle)
                 .padding()
+                
 
             NavigationLink(destination: ContentView()) {
                 Text("Ana Sayfaya Dön")
@@ -108,6 +107,7 @@ struct YeniSayfaView: View {
             }
         }
         .navigationTitle("Yeni Sayfa")
+      
     }
 }
 
@@ -120,6 +120,8 @@ struct ContentView: View {
     @State private var deepLinkDestination: String?
     @StateObject var signInViewModel = SignInViewModel()
     @StateObject var featureFlagsModel = FeatureFlagsModel()
+    @StateObject var locationManager = LocationManager()
+        
 
     func incCounter() {
         counter += 1
@@ -261,6 +263,9 @@ struct ContentView: View {
             api.listBeers(completion: { beers in
                 api.beers = beers
             })
+            
+            
+            
         }
         
         .onOpenURL { url in

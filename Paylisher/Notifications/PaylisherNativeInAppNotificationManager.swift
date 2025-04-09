@@ -46,7 +46,7 @@ public class PaylisherNativeInAppNotificationManager {
         
         let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? "No Body"
         
-        let identifier = UUID().uuidString
+        let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         
         
        
@@ -56,22 +56,22 @@ public class PaylisherNativeInAppNotificationManager {
             imageUrl: imageUrl,
             actionUrl: actionUrl,
             actionText: actionText,
-            identifier: identifier
+            gcmMessageID: gcmMessageID
         )
         
         
  
-        if CoreDataManager.shared.notificationExists(withIdentifier: identifier) {
+        if CoreDataManager.shared.notificationExists(withMessageID: gcmMessageID) {
             print("Bildirim zaten kaydedilmiş, tekrar eklenmiyor.")
         } else {
             
             CoreDataManager.shared.insertNotification(
-                type: type ?? "UNKNOWN",
+                type: type,
                 receivedDate: Date(),
                 expirationDate: Date().addingTimeInterval(120),
                 payload: userInfo.description,
                 status: "UNREAD",
-                identifier: identifier
+                gcmMessageID: gcmMessageID
             )
             print("Bildirim Core Data'ya kaydedildi!")
         }
@@ -104,7 +104,7 @@ public class PaylisherNativeInAppNotificationManager {
             Alınma Tarihi: \(notification.receivedDate ?? Date())
             Durum: \(notification.status ?? "UNREAD")
             İçerik: \(notification.payload ?? "Boş")
-            Identifier: \(notification.notificationIdentifier ?? identifier)
+            MessageID: \(notification.gcmMessageID)
             
             """)
         }

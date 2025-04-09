@@ -1,5 +1,7 @@
 
+
   "originHash" : "c380a49f66dfde1febc6b5ade7748115db3190c75a5cdb4b4b490dc551c1f6a9",
+
 
   "pins" : [
     {
@@ -143,7 +145,7 @@
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
         "branch" : "develop",
-        "revision" : "d44d9619df0569eac992d57543d3a9c7d5bd29b3"
+        "revision" : "ce0d621e27e3a38eeccde9098b7fb0fe26f215c3"
       }
     },
     {

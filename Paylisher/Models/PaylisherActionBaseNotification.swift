@@ -7,12 +7,10 @@
 
 import Foundation
 
-public struct ActionBasedCondition {
-    
-    public let displayTime: String
-    
-    public init(displayTime: String) {
-        
+public struct ActionBaseCondition {
+    public let displayTime: String?
+
+    public init(displayTime: String?) {
         self.displayTime = displayTime
     }
 }
@@ -33,9 +31,9 @@ public struct ActionBaseNotification {
     
     let defaultLang: String
     
-    let condition: ActionBasedCondition
+    let condition: ActionBaseCondition
     
-    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String, condition: ActionBasedCondition) {
+    public init(title: String, message: String, imageUrl: String, type: String, silent: String, action: String, defaultLang: String, condition: ActionBaseCondition) {
         self.title = title
         self.message = message
         self.imageUrl = imageUrl
