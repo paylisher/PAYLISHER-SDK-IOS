@@ -193,7 +193,7 @@
 		FA6D32C42DA65D5300607914 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA6D32C32DA65D5300607914 /* Paylisher */; };
 		FA857BDA2D81D1F1009E490D /* PaylisherDatabase.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */; };
 		FA8A989A2D81C50700219DF5 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA8A98992D81C50700219DF5 /* Paylisher */; };
-
+        98866816dd9f965daaeb6f2463b60d59080f5d87
 		FA92C1D82D8AEB76006DA5D6 /* GeofencePayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA92C1D52D8AEB76006DA5D6 /* GeofencePayload.swift */; };
 		FAA230EF2DA54F7200CD30A3 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAA230EE2DA54F7200CD30A3 /* Paylisher */; };
 		FAA6E4FF2D92BBC300D3E687 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAA6E4FE2D92BBC300D3E687 /* Paylisher */; };
@@ -499,7 +499,7 @@
 		FA58D3272D5B5205009A34DB /* PaylisherNotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PaylisherNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
 		FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherInAppModalViewController.swift; sourceTree = "<group>"; };
 		FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherNativeInAppNotificationManager.swift; sourceTree = "<group>"; };
-
+        98866816dd9f965daaeb6f2463b60d59080f5d87
 		FA92C1D52D8AEB76006DA5D6 /* GeofencePayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofencePayload.swift; sourceTree = "<group>"; };
 		FAB9936D2D75C00C00A232A2 /* NotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationManager.swift; sourceTree = "<group>"; };
 		FAC22F8A2D5CDE67001353B7 /* PaylisherActionBaseNotification.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherActionBaseNotification.swift; sourceTree = "<group>"; };
@@ -1513,7 +1513,7 @@
 				69ED1A5C2C7F15F300FE7A91 /* PaylisherSessionManager.swift in Sources */,
 				69F23A742BB3088E001194F6 /* URLSessionSwizzler.swift in Sources */,
 				69F518142BAC7F4300F52C14 /* Date+Util.swift in Sources */,
-
+                98866816dd9f965daaeb6f2463b60d59080f5d87
 				69F5183A2BB2BA8300F52C14 /* UIApplicationTracker.swift in Sources */,
 				FA92C1D82D8AEB76006DA5D6 /* GeofencePayload.swift in Sources */,
 				69F518182BAC80A300F52C14 /* String+Util.swift in Sources */,
