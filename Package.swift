@@ -25,15 +25,7 @@ let package = Package(
         .package(url: "https://github.com/paylisher/PAYLISHER-SDK-IOS.git", from: "1.1.2")
     ],
     targets: [
-        .target(
-            name: "Paylisher",
-            path: "Paylisher",
-            resources: [
-                .copy("Resources/PrivacyInfo.xcprivacy"),
-                .process("Resources/PaylisherDatabase.momd")
-            ]
-        ),
-        .testTarget(
+                .testTarget(
             name: "PaylisherTests",
             dependencies: [
                 "Paylisher",
