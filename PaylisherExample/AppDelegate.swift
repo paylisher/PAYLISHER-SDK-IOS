@@ -219,7 +219,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
            let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
            
 
-           CoreDataManager.shared.updateNotificationStatus(byMessageID: gcmMessageID, newStatus: "READ")
+         //  CoreDataManager.shared.updateNotificationStatus(byMessageID: gcmMessageID, newStatus: "READ")
 
           
            PaylisherSDK.shared.capture("notificationOpen")

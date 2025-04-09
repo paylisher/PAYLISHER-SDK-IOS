@@ -176,7 +176,7 @@ public class NotificationManager {
         }
     }
     
-    private func silentNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
+  /*  private func silentNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
         
         let silentPayload = SilentPayload.shared.silentPayload(userInfo: userInfo)
         
@@ -234,7 +234,7 @@ public class NotificationManager {
         
         
         
-    }
+    }*/
     
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
         
@@ -272,9 +272,7 @@ public class NotificationManager {
                         PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
  
                     break
-                case .silent:
-                    print("FCM customNotification silent")
-                    silentNotification(userInfo, content, request, completion)
+           
                 case .none:
                     break
                 }
