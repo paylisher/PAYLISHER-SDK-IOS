@@ -195,7 +195,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
            
            let identifier = response.notification.request.identifier
            
-           CoreDataManager.shared.updateNotificationStatus(byIdentifier: identifier, newStatus: "READ")
+           CoreDataManager.shared.updateNotificationStatus(byMessageID: identifier, newStatus: "READ")
           
            PaylisherSDK.shared.capture("notificationOpen")
            
