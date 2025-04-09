@@ -11,11 +11,6 @@ let package = Package(
         .library(
             name: "Paylisher",
             targets: ["Paylisher"]
-        ),
-        
-        .library(
-            name: "PaylisherFramework",
-            targets: ["PaylisherFramework"]
         )
     ],
     dependencies: [
@@ -25,17 +20,7 @@ let package = Package(
         .package(url: "https://github.com/paylisher/PAYLISHER-SDK-IOS.git", from: "1.1.2")
     ],
     targets: [
-                .testTarget(
-            name: "PaylisherTests",
-            dependencies: [
-                "Paylisher",
-                "Quick",
-                "Nimble",
-                "OHHTTPStubs",
-                .product(name: "OHHTTPStubsSwift", package: "OHHTTPStubs"),
-            ],
-            path: "PaylisherTests"
-        ),
+       
         .binaryTarget(
             name: "Paylisher",
             url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.1.2/PaylisherFramework.xcframework.zip",
