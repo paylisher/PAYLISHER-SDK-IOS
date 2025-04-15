@@ -6,7 +6,6 @@
 //
 
 import Foundation
-import Paylisher
 
 public class GeofencePayload {
     

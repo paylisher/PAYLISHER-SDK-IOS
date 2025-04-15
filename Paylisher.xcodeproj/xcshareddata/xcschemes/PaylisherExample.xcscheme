@@ -39,17 +39,6 @@
                ReferencedContainer = "container:Paylisher.xcodeproj">
             </BuildableReference>
          </TestableReference>
-         <TestableReference
-            skipped = "NO"
-            parallelizable = "YES">
-            <BuildableReference
-               BuildableIdentifier = "primary"
-               BlueprintIdentifier = "FA308F8E2D9297960064CA0C"
-               BuildableName = "PaylisherFrameworkTests.xctest"
-               BlueprintName = "PaylisherFrameworkTests"
-               ReferencedContainer = "container:Paylisher.xcodeproj">
-            </BuildableReference>
-         </TestableReference>
       </Testables>
    </TestAction>
    <LaunchAction

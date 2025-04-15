@@ -17,15 +17,15 @@ let package = Package(
         .package(url: "https://github.com/Quick/Quick.git", from: "6.0.0"),
         .package(url: "https://github.com/Quick/Nimble.git", from: "12.0.0"),
         .package(url: "https://github.com/AliSoftware/OHHTTPStubs.git", from: "9.0.0"),
-        .package(url: "https://github.com/paylisher/PAYLISHER-SDK-IOS.git", from: "1.1.2")
+        
     ],
     targets: [
        
-        .binaryTarget(
+        /*.binaryTarget(
             name: "Paylisher",
-            url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.1.2/PaylisherFramework.xcframework.zip",
+            url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.1.2/Paylisher.xcframework.zip",
             checksum: "785032bbba7dd7d5e5c2cdfa7321cbe1c908f62f620ac15108a8b9c7542e8087"
-        )
+        )*/
     ]
 )
 

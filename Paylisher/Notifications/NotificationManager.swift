@@ -10,7 +10,7 @@ import UserNotifications
 import UIKit
 import CoreData
 import MobileCoreServices
-import Paylisher
+
 
  
 public class NotificationManager {

@@ -6,7 +6,7 @@
 //
 import Foundation
 import CoreData
-import Paylisher
+
 
 public class CoreDataManager {
     

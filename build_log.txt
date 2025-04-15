@@ -111,7 +111,6 @@ note: Building targets in dependency order
 note: Target dependency graph (161 targets)
     Target 'PaylisherExample' in project 'Paylisher'
         ➜ Explicit dependency on target 'PaylisherNotificationServiceExtension' in project 'Paylisher'
-        ➜ Explicit dependency on target 'PaylisherFramework' in project 'Paylisher'
         ➜ Explicit dependency on target 'Paylisher' in project 'Paylisher'
         ➜ Explicit dependency on target 'FirebaseAnalytics' in project 'Firebase'
         ➜ Explicit dependency on target 'OHHTTPStubs' in project 'OHHTTPStubs'
@@ -1203,7 +1202,6 @@ note: Target dependency graph (161 targets)
     Target 'GoogleUtilities_GoogleUtilities-NSData' in project 'GoogleUtilities' (no dependencies)
     Target 'Firebase_FirebaseCoreInternal' in project 'Firebase' (no dependencies)
     Target 'Firebase' in project 'Firebase' (no dependencies)
-    Target 'PaylisherFramework' in project 'Paylisher' (no dependencies)
     Target 'PaylisherNotificationServiceExtension' in project 'Paylisher'
         ➜ Explicit dependency on target 'Paylisher' in project 'Paylisher'
     Target 'Paylisher' in project 'Paylisher'
