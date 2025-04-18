@@ -9,12 +9,14 @@
 		<dict>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>myapp</string>
+				<string>PaylisherExample</string>
 			</array>
 		</dict>
 	</array>
 	<key>FirebaseAppDelegateProxyEnabled</key>
 	<false/>
+	<key>NSUserActivityTypes</key>
+	<array/>
 	<key>UIBackgroundModes</key>
 	<array>
 		<string>remote-notification</string>

@@ -120,7 +120,7 @@ struct ContentView: View {
     @State private var deepLinkDestination: String?
     @StateObject var signInViewModel = SignInViewModel()
     @StateObject var featureFlagsModel = FeatureFlagsModel()
-    
+    @StateObject private var locationPerm = LocationPermissionManager()
         
 
     func incCounter() {
@@ -264,7 +264,7 @@ struct ContentView: View {
                 api.beers = beers
             })
             
-            
+            locationPerm.askPermission()
             
         }
         
@@ -275,9 +275,10 @@ struct ContentView: View {
     
     func handleDeepLink(url: URL) {
            print("Açılan Deep Link: \(url)")
-           if url.scheme == "myapp", url.host == "yeniSayfa" {
+           if url.scheme == "PaylisherExample", url.host == "yeniSayfa" {
                deepLinkDestination = "YeniSayfaView"
            }
+        
        }
     
     // Define custom errors

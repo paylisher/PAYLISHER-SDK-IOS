@@ -104,7 +104,7 @@ public class PaylisherNativeInAppNotificationManager {
             Alınma Tarihi: \(notification.receivedDate ?? Date())
             Durum: \(notification.status ?? "UNREAD")
             İçerik: \(notification.payload ?? "Boş")
-            
+            MessageID: \(notification.gcmMessageID)
             
             """)
         }

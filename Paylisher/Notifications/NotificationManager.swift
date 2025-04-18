@@ -42,27 +42,24 @@ public class NotificationManager {
         content.body = localizedMessage
         
         let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
-                // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
+                
             DispatchQueue.global(qos: .background).async {
                  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
              }
                 
-                // displayTime değerine göre zamanlamayı belirleyelim:
                 if let displayTime = displayTime,
                    let displayTimeMillis = Double(displayTime) {
                     let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
-                    // scheduleNotification(with:at:) metodumuz,
-                    // timeInterval <= 0 ise trigger'ı nil yapıp bildirimi hemen gönderiyor.
+                    
                     self.scheduleNotification(with: finalContent, at: displayDate)
                 } else {
-                    // Eğer displayTime yoksa, bildirimi hemen gönderelim.
+                    
                     self.scheduleNotification(with: finalContent, at: Date())
                 }
                 
                 completion(finalContent)
             }
-            
-            // Resim eklemek istiyorsak, imageUrl kontrolü:
+       
             if let imageUrl = URL(string: imageUrl) {
                 addImageAttachment(from: imageUrl, to: content) { updatedContent in
                     processContent(updatedContent)
@@ -143,6 +140,19 @@ public class NotificationManager {
         let silent = geofenceNotification.silent
         let imageUrl = geofenceNotification.imageUrl
         let type = geofenceNotification.type
+        let displayTime = geofenceNotification.condition.displayTime
+        /*let trigger = geofenceNotification.geofence.trigger
+        let latitude = geofenceNotification.geofence.latitude
+        let longitude = geofenceNotification.geofence.longitude
+        let radius = geofenceNotification.geofence.radius
+        let geofenceId = geofenceNotification.geofence.geofenceId
+        
+        print("Trigger: \(trigger)")
+        print("Latitude: \(latitude)")
+        print("Longitude: \(longitude)")
+        print("Radius: \(radius)")
+        print("GeofenceId: \(geofenceId)")*/
+        
         
         content.userInfo = userInfo
         
@@ -155,25 +165,36 @@ public class NotificationManager {
         content.title = title
         content.body = message
         
-        if let imageUrl = URL(string: imageUrl ) {
-            addImageAttachment(from: imageUrl, to: content) { updatedContent in
-              
+        let processContent: (UNMutableNotificationContent) -> Void = { finalContent in
+                // Öncelikle Core Data'ya kaydetme işlemini arka planda yapıyoruz.
+            DispatchQueue.global(qos: .background).async {
+                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+             }
                 
-                DispatchQueue.global(qos: .background).async {
-                    self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                // displayTime değerine göre zamanlamayı belirleyelim:
+                if let displayTime = displayTime,
+                   let displayTimeMillis = Double(displayTime) {
+                    let displayDate = Date(timeIntervalSince1970: displayTimeMillis / 1000)
+                    // scheduleNotification(with:at:) metodumuz,
+                    // timeInterval <= 0 ise trigger'ı nil yapıp bildirimi hemen gönderiyor.
+                    self.scheduleNotification(with: finalContent, at: displayDate)
+                } else {
+                    // Eğer displayTime yoksa, bildirimi hemen gönderelim.
+                    self.scheduleNotification(with: finalContent, at: Date())
                 }
                 
-               completion(updatedContent)
-            }
-        } else {
-            print("No image found; continuing without an image.")
-            
-            DispatchQueue.global(qos: .background).async {
-                self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+                completion(finalContent)
             }
             
-            completion(content)
-        }
+            // Resim eklemek istiyorsak, imageUrl kontrolü:
+            if let imageUrl = URL(string: imageUrl) {
+                addImageAttachment(from: imageUrl, to: content) { updatedContent in
+                    processContent(updatedContent)
+                }
+            } else {
+                print("No image found; continuing without an image.")
+                processContent(content)
+            }
     }
     
    /* private func silentNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
@@ -386,7 +407,7 @@ public class NotificationManager {
             Received Date: \(notification.receivedDate ?? Date())
             Status: \(notification.status ?? "UNREAD")
             Payload: \(notification.payload ?? "Empty")
-            
+            MessageID: \(notification.gcmMessageID)
             """)
             }
             

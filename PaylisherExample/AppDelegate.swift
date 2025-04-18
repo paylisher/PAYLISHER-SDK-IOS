@@ -229,7 +229,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
            
            if let actionURLString = userInfo["action"] as? String,
               let actionURL = URL(string: actionURLString) {
-               //print("Bildirime tıklandı, açılan URL: \(actionURL)")
+               print("Bildirime tıklandı, açılan URL: \(actionURL)")
                UIApplication.shared.open(actionURL, options: [:], completionHandler: nil)
            } else {
                print("Action URL bulunamadı!")

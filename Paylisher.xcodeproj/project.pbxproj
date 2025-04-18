@@ -134,6 +134,7 @@
 		FA58D3122D5B4672009A34DB /* NotificationType.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3112D5B4672009A34DB /* NotificationType.swift */; };
 		FA58D3142D5B46E3009A34DB /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */; };
 		FA591E4F2D6DAE1C0003E702 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA591E4E2D6DAE1C0003E702 /* Paylisher */; };
+		FA5A2E502DB122F7000A653F /* LocationPermissionManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5A2E4F2DB122F7000A653F /* LocationPermissionManager.swift */; };
 		FA5C7F5A2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */; };
 		FA5C7F5E2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */; };
 		FA63B8082D8970C700C99A9E /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8072D8970C700C99A9E /* FirebaseAnalytics */; };
@@ -434,6 +435,7 @@
 		FA58D3112D5B4672009A34DB /* NotificationType.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NotificationType.swift; sourceTree = "<group>"; };
 		FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoreDataManager.swift; sourceTree = "<group>"; };
 		FA58D3272D5B5205009A34DB /* PaylisherNotificationServiceExtension.appex */ = {isa = PBXFileReference; explicitFileType = "wrapper.app-extension"; includeInIndex = 0; path = PaylisherNotificationServiceExtension.appex; sourceTree = BUILT_PRODUCTS_DIR; };
+		FA5A2E4F2DB122F7000A653F /* LocationPermissionManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocationPermissionManager.swift; sourceTree = "<group>"; };
 		FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherInAppModalViewController.swift; sourceTree = "<group>"; };
 		FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherNativeInAppNotificationManager.swift; sourceTree = "<group>"; };
 		FA92C1D52D8AEB76006DA5D6 /* GeofencePayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GeofencePayload.swift; sourceTree = "<group>"; };
@@ -615,6 +617,7 @@
 				3AE3FB2B2991320300AFFC18 /* Api.swift */,
 				3AA34D16296D9993003398F4 /* AppDelegate.swift */,
 				3AA34CFB296D951A003398F4 /* ContentView.swift */,
+				FA5A2E4F2DB122F7000A653F /* LocationPermissionManager.swift */,
 				FA331A1C2D7883530008BA1B /* Assets.xcassets */,
 			);
 			path = PaylisherExample;
@@ -1257,6 +1260,7 @@
 				3AA34D17296D9993003398F4 /* AppDelegate.swift in Sources */,
 				3AA34CFC296D951A003398F4 /* ContentView.swift in Sources */,
 				3AE3FB2C2991320300AFFC18 /* Api.swift in Sources */,
+				FA5A2E502DB122F7000A653F /* LocationPermissionManager.swift in Sources */,
 				3A0F108329C47940002C0084 /* UIViewExample.swift in Sources */,
 				3AA34CFA296D951A003398F4 /* PaylisherExampleApp.swift in Sources */,
 			);
@@ -1501,7 +1505,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PaylisherExample/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PaylisherExample;
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Uygulamanın size daha iyi hizmet verebilmesi için konumunuza ihtiyacı var.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Uygulamanın size daha iyi hizmet verebilmesi için konumunuza ihtiyacı var.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;
@@ -1543,7 +1547,7 @@
 				GENERATE_INFOPLIST_FILE = YES;
 				INFOPLIST_FILE = PaylisherExample/Info.plist;
 				INFOPLIST_KEY_CFBundleDisplayName = PaylisherExample;
-				INFOPLIST_KEY_NSLocationAlwaysUsageDescription = "Uygulamanın size daha iyi hizmet verebilmesi için konumunuza ihtiyacı var.";
+				INFOPLIST_KEY_NSLocationWhenInUseUsageDescription = "Uygulamanın size daha iyi hizmet verebilmesi için konumunuza ihtiyacı var.";
 				INFOPLIST_KEY_UIApplicationSceneManifest_Generation = YES;
 				INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents = YES;
 				INFOPLIST_KEY_UILaunchScreen_Generation = YES;

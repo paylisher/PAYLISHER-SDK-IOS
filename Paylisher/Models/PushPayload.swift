@@ -38,7 +38,7 @@ public class PushPayload {
                             print("Error parsing condition JSON: \(error)")
                         }
                     }
-                    // Varsayılan olarak boş bir displayTime atayabilirsiniz veya istediğiniz başka bir default değeri.
+                    
             return PushCondition(displayTime: "")
                 }()
         

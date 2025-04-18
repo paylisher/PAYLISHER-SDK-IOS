@@ -190,7 +190,7 @@ public class CoreDataManager {
         notification.expirationDate = expirationDate
         notification.payload = payload
         notification.status = status
-        //notification.gcmMessageID = gcmMessageID
+        notification.gcmMessageID = gcmMessageID
 
         saveContext()
     }
@@ -200,7 +200,7 @@ public class CoreDataManager {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
        
        // Filter for notifications with status "UNREAD"
-      // fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
+       fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
        
        do {
            return try context.fetch(fetchRequest)
