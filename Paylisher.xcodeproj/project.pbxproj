@@ -1125,7 +1125,6 @@
 			packageReferences = (
 				3A867B6E29C1DF73009D0852 /* XCRemoteSwiftPackageReference "Quick" */,
 				3A867B7129C1DFEF009D0852 /* XCRemoteSwiftPackageReference "Nimble" */,
-				FAE232FE2D91A84A007D2774 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
 			);
 			productRefGroup = 3AC745B6296D6FE60025C109 /* Products */;
@@ -2409,14 +2408,6 @@
 			requirement = {
 				branch = main;
 				kind = branch;
-			};
-		};
-		FAE232FE2D91A84A007D2774 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/AliSoftware/OHHTTPStubs";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 9.1.0;
 			};
 		};
 		FAE233032D91A884007D2774 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {

@@ -16,7 +16,7 @@ let package = Package(
     dependencies: [
         .package(url: "https://github.com/Quick/Quick.git", from: "6.0.0"),
         .package(url: "https://github.com/Quick/Nimble.git", from: "12.0.0"),
-        .package(url: "https://github.com/AliSoftware/OHHTTPStubs.git", from: "9.0.0"),
+        //.package(url: "https://github.com/AliSoftware/OHHTTPStubs.git", from: "9.0.0"),
         
     ],
     
@@ -37,8 +37,8 @@ let package = Package(
                     "Paylisher",
                     "Quick",
                     "Nimble",
-                    "OHHTTPStubs",
-                    .product(name: "OHHTTPStubsSwift", package: "OHHTTPStubs"),
+                    //"OHHTTPStubs",
+                    //.product(name: "OHHTTPStubsSwift", package: "OHHTTPStubs"),
                 ],
                 path: "PaylisherTests"
             ),
