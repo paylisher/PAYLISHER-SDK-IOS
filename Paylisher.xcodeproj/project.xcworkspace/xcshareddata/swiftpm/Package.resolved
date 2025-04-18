@@ -1,5 +1,5 @@
 {
-  "originHash" : "355e6b4c3e820bf4349587b6a9b5e06706ce06f8a05678661f05f7d83452ccff",
+  "originHash" : "90527365d12c36b21f55f2291fa2d301934a7f883e4fdeab4da5388e4e991aa1",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -125,6 +125,15 @@
       "state" : {
         "revision" : "edaedc1ec86f14ac6e2ca495b94f0ff7150d98d0",
         "version" : "12.3.0"
+      }
+    },
+    {
+      "identity" : "paylisher-sdk-ios",
+      "kind" : "remoteSourceControl",
+      "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
+      "state" : {
+        "branch" : "develop",
+        "revision" : "deec818ec45c6fda16eb16c4c7e0869bb6595849"
       }
     },
     {

@@ -200,7 +200,8 @@ public class CoreDataManager {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
        
        // Filter for notifications with status "UNREAD"
-       fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
+       //fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
+       //yukarıdaki kod çalışıyor ve UNREAD olanları düşürüyor.
        
        do {
            return try context.fetch(fetchRequest)
