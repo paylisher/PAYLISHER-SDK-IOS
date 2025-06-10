@@ -95,6 +95,8 @@ struct YeniSayfaView: View {
             Text("Bu yeni bir sayfa!")
                 .font(.largeTitle)
                 .padding()
+            
+            
                 
 
             NavigationLink(destination: ContentView()) {
@@ -107,6 +109,13 @@ struct YeniSayfaView: View {
             }
         }
         .navigationTitle("Yeni Sayfa")
+        
+        /*.onAppear {
+                   // sayfa göründüğünde targetName’e göre in-app mesajı kontrol et
+                   NotificationManager.shared.showTargetInAppNotifications(
+                       matching: "Yeni Sayfa"
+                   )
+               }*/
       
     }
 }
@@ -120,12 +129,62 @@ struct ContentView: View {
     @State private var deepLinkDestination: String?
     @StateObject var signInViewModel = SignInViewModel()
     @StateObject var featureFlagsModel = FeatureFlagsModel()
-    @StateObject private var locationPerm = LocationPermissionManager()
+    @StateObject private var locationManager = LocationManager()
         
 
     func incCounter() {
         counter += 1
     }
+    
+  /*  func showTargetNotifications(matching targetName: String) {
+        let center  = UNUserNotificationCenter.current()
+        let targets = CoreDataManager.shared.fetchTargetNotifications()
+
+        for entity in targets {
+            guard
+                let payloadStr = entity.payload,
+                let data       = payloadStr.data(using: .utf8),
+                let topJson    = try? JSONSerialization.jsonObject(with: data, options: []),
+                let topDict    = topJson as? [String:Any]
+            else { continue }
+
+            // condition JSON'u ayrıştır
+            guard
+                let condRaw    = topDict["condition"] as? String,
+                let condData   = condRaw.data(using: .utf8),
+                let condJson   = try? JSONSerialization.jsonObject(with: condData, options: []),
+                let condDict   = condJson as? [String:Any],
+                let target     = condDict["target"] as? String,
+                target == targetName  // sadece buton adıyla eşleşene devam
+            else { continue }
+            
+            let id = entity.gcmMessageID
+            
+            center.removePendingNotificationRequests(withIdentifiers: [id])
+
+            // ... şimdi bildirim gösterme kodun ...
+            let content = UNMutableNotificationContent()
+            content.userInfo = topDict
+            // title / body için actionBasedNotification zincirine devretmek istersen:
+            NotificationManager.shared.customNotification(
+                windowScene: nil,
+                with:        content,
+                for:         UNNotificationRequest(
+                                 identifier: entity.gcmMessageID,
+                                 content: content,
+                                 trigger: nil
+                             )
+            ) { _ in
+                CoreDataManager.shared.updateNotificationStatus(
+                    byMessageID: entity.gcmMessageID,
+                    newStatus:   "READ"
+                )
+            }
+
+            // eğer sadece tek bir bildirim göstereceksen break
+        }
+    }*/
+
 
     func triggerIdentify() {
         PaylisherSDK.shared.identify(name, userProperties: [
@@ -133,10 +192,15 @@ struct ContentView: View {
         ])
         
         PaylisherSDK.shared.screen("İkinci Ekran")
+        
+        PaylisherSDK.shared.capture("buttonClick", properties: ["name": "Trigger identify!", "screen_name": "İkinci Ekran"])
     }
 
     func triggerAuthentication() {
         PaylisherSDK.shared.screen("Test Ekranı")
+        
+        PaylisherSDK.shared.capture("buttonClick", properties: ["name": "Trigger fake authentication!", "screen_name": "Test Ekranı"])
+        
         signInViewModel.triggerAuthentication()
     }
 
@@ -166,6 +230,7 @@ struct ContentView: View {
                     Button("Show Sheet") {
                         showingSheet.toggle()
                         PaylisherSDK.shared.screen("Splash")
+                        PaylisherSDK.shared.capture("buttonClick", properties: ["name": "Show Sheet", "screen_name": "Splash"])
                     }
                     .sheet(isPresented: $showingSheet) {
                         ContentView()
@@ -174,6 +239,13 @@ struct ContentView: View {
                     Button("Show redacted view") {
                         showingRedactedSheet.toggle()
                         PaylisherSDK.shared.screen("İlk Ekran")
+                        PaylisherSDK.shared.capture("buttonClick", properties: ["name": "Show redacted view", "screen_name": "İlk Ekran"])
+                        
+                       
+                        //NotificationManager.shared.showTargetNotifications(matching: "Test Ekranı")
+                        
+                        
+                        
                     }
                     .sheet(isPresented: $showingRedactedSheet) {
                         RepresentedExampleUIView()
@@ -264,7 +336,9 @@ struct ContentView: View {
                 api.beers = beers
             })
             
-            locationPerm.askPermission()
+            //locationPerm.requestWhenInUsePermission()
+            //locationPerm.requestAlwaysPermissionIfNeeded()
+            
             
         }
         

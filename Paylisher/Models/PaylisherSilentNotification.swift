@@ -1,13 +1,13 @@
 //
-//  PaylisherPushNotification.swift
+//  PaylisherSilentNotification.swift
 //  Paylisher
 //
-//  Created by Rasim Burak Kaya on 12.02.2025.
+//  Created by Rasim Burak Kaya on 12.05.2025.
 //
 
 import Foundation
 
-public struct PushNotification {
+public struct SilentNotification {
     
     let title: String
     

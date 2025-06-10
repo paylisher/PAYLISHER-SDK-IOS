@@ -1,5 +1,5 @@
 {
-  "originHash" : "90527365d12c36b21f55f2291fa2d301934a7f883e4fdeab4da5388e4e991aa1",
+  "originHash" : "16b3024f71a3111006581d27f3cb8a1cbde3d978eb2e3e33576281ba6823de1a",
   "pins" : [
     {
       "identity" : "abseil-cpp-binary",
@@ -133,7 +133,7 @@
       "location" : "https://github.com/paylisher/PAYLISHER-SDK-IOS",
       "state" : {
         "branch" : "develop",
-        "revision" : "deec818ec45c6fda16eb16c4c7e0869bb6595849"
+        "revision" : "82b9722c0ca6171a998a432822fc8c6744506cc0"
       }
     },
     {

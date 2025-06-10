@@ -9,9 +9,11 @@ import Foundation
 
 public struct ActionBaseCondition {
     public let displayTime: String?
+    public let target: String
 
-    public init(displayTime: String?) {
+    public init(displayTime: String?, target: String) {
         self.displayTime = displayTime
+        self.target = target
     }
 }
 

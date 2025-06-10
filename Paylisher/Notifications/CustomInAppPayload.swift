@@ -49,34 +49,21 @@ public struct CustomInAppPayload: Codable {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
                 
                 // navigationalArrows
-                if let arrowsStr = try? container.decode(String.self, forKey: .navigationalArrows) {
-                    self.navigationalArrows = (arrowsStr == "true")
-                } else {
-                    self.navigationalArrows = false
-                }
+                self.navigationalArrows = try? container.decode(Bool.self, forKey: .navigationalArrows)
                 
-                // radius
-                if let radiusStr = try? container.decode(String.self, forKey: .radius),
-                   let intVal = Int(radiusStr) {
-                    self.radius = intVal
-                } else {
-                    self.radius = nil
-                }
+                
+                self.radius = try? container.decode(Int.self, forKey: .radius)
                 
                 self.bgColor = try? container.decode(String.self, forKey: .bgColor)
                 self.bgImage = try? container.decode(String.self, forKey: .bgImage)
                 
                 // bgImageMask
-                if let maskStr = try? container.decode(String.self, forKey: .bgImageMask) {
-                    self.bgImageMask = (maskStr == "true")
-                } else {
-                    self.bgImageMask = false
-                }
+                self.bgImageMask = try? container.decode(Bool.self, forKey: .bgImageMask)//çalışmıyo
                 
-                self.bgImageColor = try? container.decode(String.self, forKey: .bgImageColor)
+                self.bgImageColor = try? container.decode(String.self, forKey: .bgImageColor)//görsel varsa görünmüyor
                 
                 self.verticalPosition = try? container.decode(String.self, forKey: .verticalPosition)
-                self.horizontalPosition = try? container.decode(String.self, forKey: .horizontalPosition)
+                self.horizontalPosition = try? container.decode(String.self, forKey: .horizontalPosition)// mobilde kullanılmıyor
             }
         }
 
@@ -114,7 +101,7 @@ public struct CustomInAppPayload: Codable {
                
                 let label: [String: String]?
                 
-                let fontSize: Int? // int olmalı
+                let fontSize: String? 
                 
                 let color: String?
                 
@@ -124,12 +111,7 @@ public struct CustomInAppPayload: Codable {
                     
                     self.label = try? container.decode([String: String].self, forKey: .label)
                     
-                    if let fontSizeStr = try? container.decode(String.self, forKey: .fontSize),
-                       let intVal = Int(fontSizeStr) {
-                        self.fontSize = intVal
-                    } else {
-                        self.fontSize = nil
-                    }
+                    self.fontSize = try? container.decode(String.self, forKey: .fontSize)
                     
                     self.color = try? container.decode(String.self, forKey: .color)
                     
@@ -141,12 +123,7 @@ public struct CustomInAppPayload: Codable {
                 
                 let container = try decoder.container(keyedBy: CodingKeys.self)
                 
-                if let activeStr = try? container.decode(String.self, forKey: .active) {
-                    self.active = (activeStr == "true")
-                } else {
-                    self.active = false
-                }
-                //self.verticalPosition = try? container.decode(String.self, forKey: .verticalPosition)
+                self.active = try? container.decode(Bool.self, forKey: .active)
                 self.type = try? container.decode(String.self, forKey: .type)
                 self.position = try? container.decode(String.self, forKey: .position)
                 self.icon = try? container.decode(CustomInAppPayload.Layout.Close.Icon.self, forKey: .icon)
@@ -178,12 +155,7 @@ public struct CustomInAppPayload: Codable {
                     
                     self.action = try? container.decode(String.self, forKey: .action)
                     
-                    if let durationStr = try? container.decode(String.self, forKey: .duration),
-                       let intVal = Int(durationStr) {
-                        self.duration = intVal
-                    } else {
-                        self.duration = nil
-                    }
+                    self.duration = try? container.decode(Int.self, forKey: .duration)
                     
                     
                 }
@@ -293,30 +265,15 @@ public struct CustomInAppPayload: Codable {
                     
                     self.type = try? container.decode(String.self, forKey: .type)
                     
-                    if let orderStr = try? container.decode(String.self, forKey: .order),
-                       let intVal = Int(orderStr) {
-                        self.order = intVal
-                    } else {
-                        self.order = nil
-                    }
+                    self.order = try? container.decode(Int.self, forKey: .order)
                     
                     self.url = try? container.decode(String.self, forKey: .url)
                     self.alt = try? container.decode(String.self, forKey: .alt)
                     self.link = try? container.decode(String.self, forKey: .link)
                     
-                    if let radiusStr = try? container.decode(String.self, forKey: .radius),
-                       let intVal = Int(radiusStr) {
-                        self.radius = intVal
-                    } else {
-                        self.radius = nil
-                    }
+                    self.radius = try? container.decode(Int.self, forKey: .radius)
                     
-                    if let marginStr = try? container.decode(String.self, forKey: .margin),
-                       let intVal = Int(marginStr) {
-                        self.margin = intVal
-                    } else {
-                        self.margin = nil
-                    }
+                    self.margin = try? container.decode(Int.self, forKey: .margin)
                     
                 }
                 
@@ -329,7 +286,7 @@ public struct CustomInAppPayload: Codable {
                 let type: String?
                 let order: Int? //int olmalı
                 
-                let verticalSpacing: Int? //int olmalı
+                let verticalSpacing: String?
                 let fillAvailableSpacing: Bool? //bool olmalı
                 
                 init(from decoder: Decoder) throws {
@@ -338,25 +295,11 @@ public struct CustomInAppPayload: Codable {
                     
                     self.type = try? container.decode(String.self, forKey: .type)
                     
-                    if let orderStr = try? container.decode(String.self, forKey: .order),
-                       let intVal = Int(orderStr) {
-                        self.order = intVal
-                    } else {
-                        self.order = nil
-                    }
+                    self.order = try? container.decode(Int.self, forKey: .order)
                     
-                    if let verticalSpacingStr = try? container.decode(String.self, forKey: .verticalSpacing),
-                       let intVal = Int(verticalSpacingStr) {
-                        self.verticalSpacing = intVal
-                    } else {
-                        self.verticalSpacing = nil
-                    }
+                    self.verticalSpacing = try? container.decode(String.self, forKey: .verticalSpacing)
                     
-                    if let fillAvailableSpacingStr = try? container.decode(String.self, forKey: .fillAvailableSpacing) {
-                        self.fillAvailableSpacing = (fillAvailableSpacingStr == "true")
-                    } else {
-                        self.fillAvailableSpacing = false
-                    }
+                    self.fillAvailableSpacing = try? container.decode(Bool.self, forKey: .fillAvailableSpacing)
                     
                     
                 }
@@ -387,12 +330,7 @@ public struct CustomInAppPayload: Codable {
                     
                     self.type = try? container.decode(String.self, forKey: .type)
                     
-                    if let orderStr = try? container.decode(String.self, forKey: .order),
-                       let intVal = Int(orderStr) {
-                        self.order = intVal
-                    } else {
-                        self.order = nil
-                    }
+                    self.order = try? container.decode(Int.self, forKey: .order)
                     
                     self.content = try? container.decode([String: String].self, forKey: .content)
                     self.action = try? container.decode(String.self, forKey: .action)
@@ -400,27 +338,14 @@ public struct CustomInAppPayload: Codable {
                     self.fontWeight = try? container.decode(String.self, forKey: .fontWeight)
                     self.fontSize = try? container.decode(String.self, forKey: .fontSize)
                     
-                    if let underscoreStr = try? container.decode(String.self, forKey: .underscore) {
-                        self.underscore = (underscoreStr == "true")
-                    }else{
-                        self.underscore = false
-                    }
+                    self.underscore = try? container.decode(Bool.self, forKey: .underscore)
                     
-                    if let italicStr = try? container.decode(String.self, forKey: .italic) {
-                        self.italic = (italicStr == "true")
-                    }else{
-                        self.italic = false
-                    }
+                    self.italic = try? container.decode(Bool.self, forKey: .italic)
                     
                     self.color = try? container.decode(String.self, forKey: .color)
                     self.textAlignment = try? container.decode(String.self, forKey: .textAlignment)
                     
-                    if let horizontalMarginStr = try? container.decode(String.self, forKey: .horizontalMargin),
-                       let intVal = Int(horizontalMarginStr) {
-                        self.horizontalMargin = intVal
-                    } else {
-                        self.horizontalMargin = nil
-                    }
+                    self.horizontalMargin = try? container.decode(Int.self, forKey: .horizontalMargin)
                 }
                 
             }
@@ -469,39 +394,21 @@ public struct CustomInAppPayload: Codable {
                         self.fontWeight = try? container.decode(String.self, forKey: .fontWeight)
                         self.fontSize = try? container.decode(String.self, forKey: .fontSize)
                         
-                        if let underscoreStr = try? container.decode(String.self, forKey: .underscore) {
-                            self.underscore = (underscoreStr == "true")
-                        }else{
-                            self.underscore = false
-                        }
+                        self.underscore = try? container.decode(Bool.self, forKey: .underscore)
                         
-                        if let italicStr = try? container.decode(String.self, forKey: .italic) {
-                            self.italic = (italicStr == "true")
-                        }else{
-                            self.italic = false
-                        }
+                        self.italic = try? container.decode(Bool.self, forKey: .italic)
                         
                         self.textColor = try? container.decode(String.self, forKey: .textColor)
                         self.backgroundColor = try? container.decode(String.self, forKey: .backgroundColor)
                         self.borderColor = try? container.decode(String.self, forKey: .borderColor)
                         
-                        if let borderRadiusStr = try? container.decode(String.self, forKey: .borderRadius),
-                           let intVal = Int(borderRadiusStr) {
-                            self.borderRadius = intVal
-                        } else {
-                            self.borderRadius = nil
-                        }
+                        self.borderRadius = try? container.decode(Int.self, forKey: .borderRadius)
                         
                         self.horizontalSize = try? container.decode(String.self, forKey: .horizontalSize)
                         self.verticalSize = try? container.decode(String.self, forKey: .verticalSize)
                         self.buttonPosition = try? container.decode(String.self, forKey: .buttonPosition)
                         
-                        if let marginStr = try? container.decode(String.self, forKey: .margin),
-                           let intVal = Int(marginStr) {
-                            self.margin = intVal
-                        } else {
-                            self.margin = nil
-                        }
+                        self.margin = try? container.decode(Int.self, forKey: .margin)
                         
                     }
                     
@@ -513,12 +420,7 @@ public struct CustomInAppPayload: Codable {
                     
                     self.type = try? container.decode(String.self, forKey: .type)
                     
-                    if let orderStr = try? container.decode(String.self, forKey: .order),
-                       let intVal = Int(orderStr) {
-                        self.order = intVal
-                    } else {
-                        self.order = nil
-                    }
+                    self.order = try? container.decode(Int.self, forKey: .order)
                     
                     self.buttonGroupType = try? container.decode(String.self, forKey: .buttonGroupType)
                     self.buttons = try? container.decode([ButtonBlock].self, forKey: .buttons)

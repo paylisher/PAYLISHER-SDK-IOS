@@ -94,12 +94,10 @@ public class PaylisherCustomInAppNotificationManager {
         
         if let layouts = payload.layouts, !layouts.isEmpty {
             let firstLayout = layouts[0]
-            
-            
-            
+    
             print("--------------Style---------------")
             
-            if let style = firstLayout.style, let close = firstLayout.close, let extra = firstLayout.extra, let blocks = firstLayout.blocks {
+            if let style = firstLayout.style, let close = firstLayout.close, let extra = firstLayout.extra, let blocks = firstLayout.blocks{
                 print("navigationalArrows: ", style.navigationalArrows ?? "")
                 print("radius: ", style.radius ?? "")
                 print("bgColor: ", style.bgColor ?? "")
@@ -217,7 +215,7 @@ public class PaylisherCustomInAppNotificationManager {
                                 
                                 for button in buttonsArray {
                                     
-                                    print("labelButtonGroup: ", button.label![lang]!)
+                                    print("labelButtonGroup: ", button.label?[lang])
                                     print("actionButtonGroup: ", button.action ?? "")
                                     print("fontFamilyButtonGroup: ", button.fontFamily ?? "")
                                     print("fontWeightButtonGroup: ", button.fontWeight ?? "")

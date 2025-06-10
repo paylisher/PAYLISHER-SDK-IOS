@@ -4,15 +4,13 @@
 //
 //  Created by Rasim Burak Kaya on 11.02.2025.
 //
-/*
+
 import MobileCoreServices
 import UserNotifications
 import UIKit
 import CoreData
 import Paylisher
 
-
-//@available(iOSApplicationExtension, unavailable)
 class NotificationService: UNNotificationServiceExtension {
     
 
@@ -33,8 +31,11 @@ class NotificationService: UNNotificationServiceExtension {
             return
         }
         
+        
+        //let emptyContent = UNMutableNotificationContent()
         self.contentHandler = contentHandler
         self.bestAttemptContent = bestAttemptContent
+       // self.bestAttemptContent = emptyContent
        
         // TODO: windowScene needed but cant get it from here -> FIX IT
         
@@ -52,25 +53,24 @@ class NotificationService: UNNotificationServiceExtension {
         
         
         CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
-        
-        
-        
+
         NotificationManager.shared.customNotification(windowScene: windowScene, with: bestAttemptContent,
                                                     for: request) { updatedContent in
             contentHandler(updatedContent)
             
-        }
+       }
 
     }
 
     override func serviceExtensionTimeWillExpire() {
 
-      if let contentHandler = contentHandler,
-            let bestAttemptContent = bestAttemptContent
+      if let contentHandler = contentHandler, let bestAttemptContent = bestAttemptContent
         {
-            contentHandler(bestAttemptContent)
+          //print("TESTTTT", bestAttemptContent.userInfo["source"]);
+        //  let emptyContent = UNMutableNotificationContent()
+          contentHandler(bestAttemptContent)
         }
     }
  }
-*/
+
 

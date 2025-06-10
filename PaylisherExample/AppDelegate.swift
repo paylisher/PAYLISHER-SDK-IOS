@@ -19,8 +19,11 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     
     func application(_ application: UIApplication, didFinishLaunchingWithOptions launcOptions: [UIApplication.LaunchOptionsKey: Any]? = nil) -> Bool{
 
-        let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
-        let PAYLISHER_HOST = "https://analytics.paylisher.com" //"<https://test.paylisher.com>"
+      //  let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
+      //  let PAYLISHER_HOST = "https://analytics.paylisher.com" //"<https://test.paylisher.com>"
+        
+        let PAYLISHER_API_KEY = "phc_vFmOmzIfHMJtUvcTI8qCQu7VDPdKtO8Mz3kic7AIIvj" // "<phc_test>"
+        let PAYLISHER_HOST = "https://datastudio.paylisher.com" //"<https://test.paylisher.com>"
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
@@ -35,12 +38,15 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         config.sessionReplayConfig.maskAllImages = false
        
         PaylisherSDK.shared.setup(config)
+        
+        //ViewLayoutTracker.swizzleLayoutSubviews()
   
         let windowScene = UIApplication.shared.connectedScenes
             .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
         
         
         
+
         
         FirebaseApp.configure()
                
@@ -61,6 +67,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         CoreDataManager.shared.configure(appGroupIdentifier: "group.com.paylisher.Paylisher")
         
+        //CoreDataManager.shared.deleteAllNotifications()
+        //print("Tüm eski bildirimler silindi.")
     
 //        PaylisherSDK.shared.debug()
         PaylisherSDK.shared.capture("App started!")
@@ -79,6 +87,10 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         //print("Distinc id: \(PaylisherSDK.shared.getDistinctId())" )
         
       //  config.storageManager?.getDistinctId()
+        
+        LocationManager.shared.requestLocationPermission()
+        
+        GeofenceManager.shared.startGeofencing()
 
         let defaultCenter = NotificationCenter.default
 
@@ -107,18 +119,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       //var processedNotifications = Set<String>()
       func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
           
-       //   let userInfo = notification.request.content.userInfo
+         let userInfo = notification.request.content.userInfo
          
        //   let notificationID = notification.request.identifier
           
           //let request = notification.request
           
-     /*    if processedNotifications.contains(notificationID) {
+        /*if processedNotifications.contains(notificationID) {
               print("Tekrarlanan bildirim algılandı, işlenmiyor.")
               return
           }
           processedNotifications.insert(notificationID)
-          print("Bildirim ID’si: \(notificationID) - İşleniyor.")
+          print("Bildirim ID’si: \(notificationID) - İşleniyor.")*/
     
       let mutableContent = UNMutableNotificationContent()
       mutableContent.title = notification.request.content.title
@@ -134,17 +146,18 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
           mutableContent.interruptionLevel = notification.request.content.interruptionLevel
           mutableContent.relevanceScore = notification.request.content.relevanceScore
       }
-      */
-    //  let windowScene = UIApplication.shared.connectedScenes
-     //     .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
       
-   //       let windowScene: UIWindowScene? = nil
+      let windowScene = UIApplication.shared.connectedScenes
+          .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+      
+          //let windowScene: UIWindowScene? = nil
        
           print("FCM -> willPresents")
       //    print(userInfo)
           
-          PaylisherSDK.shared.capture("notificationReceived")//Normalde bu eventin bu fonksiyon altında yazılmaması gerekiyor çünkü bu fonksiyon uygulama ön plandayken bildirim geldiğinde aktif oluyor yani uygulama arka plandayken bildirim geldiğinde event gönderilmiyor. Aklında bulunsun, sonra düzelt.
-         /*  NotificationManager.shared.customNotification(
+         
+           //Normalde bu eventin bu fonksiyon altında yazılmaması gerekiyor çünkü bu fonksiyon uygulama ön plandayken bildirim geldiğinde aktif oluyor yani uygulama arka plandayken bildirim geldiğinde event gönderilmiyor. Aklında bulunsun, sonra düzelt.
+           NotificationManager.shared.customNotification(
                   windowScene: windowScene,
                     userInfo: userInfo,
                     mutableContent,
@@ -154,21 +167,23 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                             //   completionHandler([.banner, .sound])
                    }
        
-                )*/
-              
+                )
+         /* let type = userInfo["type"] as? String
+          
+          if type != "IN-APP"{
               completionHandler([.sound, .list, .banner, .badge ])
+          }else{
+              
+          }*/
+              
+          completionHandler([.sound, .list, .banner, .badge ])
               
        }
     
     func application(_ application: UIApplication,
                      didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
-        
-        let state = UIApplication.shared.applicationState
-        
-        let windowScene = UIApplication.shared.connectedScenes
-            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
- 
+
               /*  let type = userInfo["type"] as? String ?? ""
                 
                 switch type {
@@ -191,22 +206,53 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                 default:
                     print("defffaaauuullttt")
                 }*/
+       
         
-        let content = UNMutableNotificationContent()
+        PaylisherSDK.shared.capture("notificationReceived", properties: ["type": userInfo["type"],"pushId": userInfo["pushId"]])
         
-        let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
+       /* print("User Info: \(userInfo)")
+       
+        let state = UIApplication.shared.applicationState
+        
+        let windowScene = UIApplication.shared.connectedScenes
+            .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+        
+       let content = UNMutableNotificationContent()
+        
+       let trigger = UNTimeIntervalNotificationTrigger(timeInterval: 0.1, repeats: false)
 
         
         let request = UNNotificationRequest(
             identifier: userInfo["gcm.message_id"] as? String ?? "",
             content: content,
             trigger: trigger
-        )
-     
-        NotificationManager.shared.customNotification(windowScene: windowScene, userInfo: userInfo, content, request, {
-            content in
-        }
-   )
+         )
+        
+    
+        let type = userInfo["type"] as? String ?? ""
+
+        if let conditionString = userInfo["condition"] as? String,
+           let data = conditionString.data(using: .utf8),
+           let conditionDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
+           let target = conditionDict["target"] as? String,
+           !target.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+        {
+           
+            NotificationManager.shared.saveToCoreData(type: type, userInfo: userInfo)
+        } else {
+        
+            NotificationManager.shared.customNotification(
+                windowScene: windowScene,
+                userInfo: userInfo,
+                content,
+                request
+            ) { modifiedContent in
+               
+            }
+        }*/
+
+        
+       
 
     }
 
@@ -256,90 +302,5 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                userPropertiesSetOnce : ["birthday": "2024-03-01"])
            }
        }
-    
-
-    
-    /*func scheduleLocalNotification(at date: Date, userInfo: [AnyHashable: Any]) {
-        let content = UNMutableNotificationContent()
-        content.title = userInfo["title"] as? String ?? ""
-        content.body = userInfo["message"] as? String ?? ""
-        content.userInfo = userInfo
-        
-        let silent = userInfo["silent"] as? String ?? ""
-        
-        if silent == "true"{
-            content.sound = nil
-        }else{
-            content.sound = UNNotificationSound.default
-        }
-        
-        // Eğer imageUrl varsa attachment ekleme kısmı
-        if let imageUrlString = userInfo["imageUrl"] as? String,
-           let imageURL = URL(string: imageUrlString) {
-            addImageAttachment(from: imageURL, to: content) { updatedContent in
-                self.scheduleNotification(with: updatedContent, at: date)
-            }
-        } else {
-            self.scheduleNotification(with: content, at: date)
-        }
-    }*/
-    
-   /* private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
-        let timeInterval = date.timeIntervalSinceNow
-        if timeInterval <= 0 {
-            // Eğer tarih geçmişte veya 0 ise, bildirimi hemen gönder (trigger nil)
-            let request = UNNotificationRequest(identifier: UUID().uuidString,
-                                                  content: content,
-                                                  trigger: nil)
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("Bildirim hemen gönderilirken hata: \(error)")
-                } else {
-                    print("Bildirim hemen gönderildi.")
-                }
-            }
-        } else {
-            // Aksi halde belirlenen tarihe göre planla
-            let triggerDate = Calendar.current.dateComponents(in: TimeZone.current, from: date)
-            let trigger = UNCalendarNotificationTrigger(dateMatching: triggerDate, repeats: false)
-            let request = UNNotificationRequest(identifier: UUID().uuidString,
-                                                  content: content,
-                                                  trigger: trigger)
-            UNUserNotificationCenter.current().add(request) { error in
-                if let error = error {
-                    print("Local notification planlanırken hata: \(error)")
-                } else {
-                    print("Local notification planlandı: \(date)")
-                }
-            }
-        }
-    }*/
-/* func addImageAttachment(from imageUrl: URL, to content: UNMutableNotificationContent, completion: @escaping (UNMutableNotificationContent) -> Void) {
-        URLSession.shared.downloadTask(with: imageUrl) { localURL, response, error in
-            print("Görsel İndirme Tamamlandı. localURL: \(String(describing: localURL)), error: \(String(describing: error))")
-            
-            if let localURL = localURL {
-                do {
-                    let tempDirectory = FileManager.default.temporaryDirectory
-                    let tempFileURL = tempDirectory
-                        .appendingPathComponent(UUID().uuidString)
-                        .appendingPathExtension("jpg")
-                    
-                    try FileManager.default.moveItem(at: localURL, to: tempFileURL)
-                    
-                    // Attachment seçenekleri, kUTTypeJPEG kullandığımız için JPEG olduğunu belirtiyoruz.
-                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
-                    let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
-                    
-                    content.attachments = [attachment]
-                } catch {
-                    print("Görsel ekleme hatası: \(error)")
-                }
-            } else {
-                print("Görsel indirilemedi")
-            }
-            completion(content)
-        }.resume()
-    }*/
-
+ 
 }

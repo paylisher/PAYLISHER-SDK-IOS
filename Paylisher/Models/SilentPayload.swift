@@ -1,23 +1,20 @@
 //
-//  PushPayload.swift
+//  SilentPayload.swift
 //  Paylisher
 //
-//  Created by Rasim Burak Kaya on 10.03.2025.
+//  Created by Rasim Burak Kaya on 12.05.2025.
 //
 
 import Foundation
 
-
-public class PushPayload {
+public class SilentPayload {
     
-    public static let shared = PushPayload()
+    public static let shared = SilentPayload()
     
-    public init() {
+    public init(){}
+    
+    public func silentPayload(userInfo: [AnyHashable: Any]) -> SilentNotification {
         
-    }
-  
-    public func pushPayload(userInfo: [AnyHashable: Any]) -> PushNotification {
-      
         let title = userInfo["title"] as? String ?? ""
         let message = userInfo["message"] as? String ?? ""
         let imageUrl = userInfo["imageUrl"] as? String ?? ""
@@ -25,11 +22,11 @@ public class PushPayload {
         let silent = userInfo["silent"] as? String ?? ""
         let action = userInfo["action"] as? String ?? ""
         let defaultLang = userInfo["defaultLang"] as? String ?? ""
-
-        let pushNotification = PushNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang)
         
-           return pushNotification
-      
+        let silentNotification = SilentNotification(title: title, message: message, imageUrl: imageUrl, type: type, silent: silent, action: action, defaultLang: defaultLang)
+        
+        return silentNotification
+        
     }
-
+    
 }

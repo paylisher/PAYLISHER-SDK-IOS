@@ -6,6 +6,7 @@
 //
 
 import Foundation
+import Paylisher
 
 public class GeofencePayload {
     
@@ -13,62 +14,71 @@ public class GeofencePayload {
     
     public init(){}
     
-    public func geofencePayload(userInfo: [AnyHashable: Any]) -> GeofenceNotification {
+    public func parseGeofenceNotification(
+        from userInfo: [AnyHashable: Any]) -> GeofenceNotification? {
         
-        let title = userInfo["title"] as? String ?? ""
-        let message = userInfo["message"] as? String ?? ""
-        let imageUrl = userInfo["imageUrl"] as? String ?? ""
-        let type = userInfo["type"] as? String ?? ""
-        let silent = userInfo["silent"] as? String ?? ""
-        let action = userInfo["action"] as? String ?? ""
-        let defaultLang = userInfo["defaultLang"] as? String ?? ""
+        // 1. Cast incoming push payload to [String:Any]
+        guard let stringKeyedInfo = userInfo as? [String: Any] else {
+            print("⚠️ userInfo'u [String:Any] olarak cast edemedim.")
+            return nil
+        }
         
-       let condition: GeofenceCondition = {
-                    if let conditionString = userInfo["condition"] as? String,
-                       let data = conditionString.data(using: .utf8) {
-                        do {
-                            if let conditionDict = try JSONSerialization.jsonObject(with: data, options: []) as? [String: Any],
-                               let displayTime = conditionDict["displayTime"] as? String {
-                                return GeofenceCondition(displayTime: displayTime)
-                            }
-                        } catch {
-                            print("Error parsing condition JSON: \(error)")
+        // 2. Normalize any JSON‐in‐String fields (e.g. "condition", "geofence")
+        var normalizedInfo = [String: Any]()
+        for (key, value) in stringKeyedInfo {
+            switch key {
+            case "condition", "geofence":
+                // If the value is a JSON string, decode it into a dictionary
+                if let jsonString = value as? String,
+                   let data = jsonString.data(using: .utf8) {
+                    do {
+                        if let dict = try JSONSerialization
+                            .jsonObject(with: data, options: []) as? [String: Any] {
+                            normalizedInfo[key] = dict
+                        } else {
+                            print("ℹ️ '\(key)' bir JSON string ama [String:Any] olarak parse edilemedi.")
+                            normalizedInfo[key] = value
                         }
+                    } catch {
+                        print("❌ '\(key)' JSON parse hatası:", error)
+                        normalizedInfo[key] = value
                     }
-                    
-            return GeofenceCondition(displayTime: "")
-                }()
+                } else {
+                    // Already a dictionary (or other type), pass through
+                    normalizedInfo[key] = value
+                }
+            default:
+                // Other keys (title, message, etc.)—pass through unchanged
+                normalizedInfo[key] = value
+            }
+        }
         
-        /*  let geofence: Geofence = {
-              guard let geoJSONString = userInfo["geofence"] as? String,
-                    let data = geoJSONString.data(using: .utf8),
-                    let dict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-                    let trigger = dict["trigger"] as? String,
-                    let lat        = dict["latitude"]  as? String,
-                    let lon        = dict["longitude"] as? String,
-                    let radius     = dict["radius"]    as? String,
-                    let id         = dict["geofenceId"]as? String
-                   
-              else {
-                  
-                  return Geofence(trigger: "",
-                                  latitude: "",
-                                  longitude: "",
-                                  radius: "",
-                                  geofenceId: "")
-              }
-              return Geofence(trigger:    trigger,
-                              latitude:   lat,
-                              longitude:  lon,
-                              radius:     radius,
-                              geofenceId: id)
-          }()*/
-
+        // 3. Serialize normalizedInfo back to Data
+        do {
+            let data = try JSONSerialization.data(withJSONObject: normalizedInfo, options: [])
+            let decoder = JSONDecoder()
+            // 4. Decode into your GeofenceNotification model
+            let notification = try decoder.decode(GeofenceNotification.self, from: data)
+            return notification
+            
+        } catch {
+            print("❌ GeofenceNotification decode error:", error)
+            return nil
+        }
+    }
+    
+    public func geofenceNotification(userInfo: [AnyHashable: Any]) {
         
-        let geofenceNotification = GeofenceNotification(title: title, message: message, imageUrl: imageUrl, type: type, action: action, defaultLang: defaultLang, silent: silent, condition: condition)
+        guard let payload = parseGeofenceNotification(from: userInfo) else {
+            print("Payload parse edilemedi.")
+            return
+        }
         
-        return geofenceNotification
+        
         
     }
+
+        
+    
     
 }

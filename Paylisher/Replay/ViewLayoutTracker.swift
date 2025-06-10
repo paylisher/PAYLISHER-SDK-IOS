@@ -1,48 +1,59 @@
 #if os(iOS)
-    import Foundation
-    import UIKit
+import UIKit
+import ObjectiveC.runtime
 
-    enum ViewLayoutTracker {
-        static var hasChanges = false
-        private static var hasSwizzled = false
+public enum ViewLayoutTracker {
+    public static var hasChanges = false
+    private static var hasSwizzled = false
 
-        static func viewDidLayout(view _: UIView) {
-            hasChanges = true
-        }
-
-        static func clear() {
-            hasChanges = false
-        }
-
-        static func swizzleLayoutSubviews() {
-            if hasSwizzled {
-                return
-            }
-            swizzle(forClass: UIView.self,
-                    original: #selector(UIView.layoutSubviews),
-                    new: #selector(UIView.layoutSubviewsOverride))
-            hasSwizzled = true
-        }
-
-        static func unSwizzleLayoutSubviews() {
-            if !hasSwizzled {
-                return
-            }
-            swizzle(forClass: UIView.self,
-                    original: #selector(UIView.layoutSubviewsOverride),
-                    new: #selector(UIView.layoutSubviews))
-            hasSwizzled = false
-        }
+    public static func viewDidLayout(view _: UIView) {
+        hasChanges = true
     }
 
-    extension UIView {
-        @objc func layoutSubviewsOverride() {
-            guard Thread.isMainThread else {
-                return
-            }
-            layoutSubviewsOverride()
+    public static func clear() {
+        hasChanges = false
+    }
+
+    public static func swizzleLayoutSubviews() {
+        guard !hasSwizzled else { return }
+
+        let originalSelector = #selector(UIView.layoutSubviews)
+        let swizzledSelector = #selector(UIView.swizzled_layoutSubviews)
+
+        guard let originalMethod = class_getInstanceMethod(UIView.self, originalSelector),
+              let swizzledMethod = class_getInstanceMethod(UIView.self, swizzledSelector) else {
+            return
+        }
+
+        method_exchangeImplementations(originalMethod, swizzledMethod)
+        hasSwizzled = true
+        
+    }
+
+    public static func unSwizzleLayoutSubviews() {
+        guard hasSwizzled else { return }
+
+        let originalSelector = #selector(UIView.layoutSubviews)
+        let swizzledSelector = #selector(UIView.swizzled_layoutSubviews)
+
+        guard let originalMethod = class_getInstanceMethod(UIView.self, originalSelector),
+              let swizzledMethod = class_getInstanceMethod(UIView.self, swizzledSelector) else {
+            return
+        }
+
+        method_exchangeImplementations(swizzledMethod, originalMethod)
+        hasSwizzled = false
+    }
+}
+
+extension UIView {
+    @objc func swizzled_layoutSubviews() {
+        self.swizzled_layoutSubviews()
+
+        if Thread.isMainThread {
             ViewLayoutTracker.viewDidLayout(view: self)
         }
     }
-
+}
 #endif
+

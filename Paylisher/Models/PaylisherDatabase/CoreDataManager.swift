@@ -6,7 +6,7 @@
 //
 import Foundation
 import CoreData
-
+import Paylisher
 
 public class CoreDataManager {
     
@@ -198,9 +198,8 @@ public class CoreDataManager {
     
    public func fetchAllNotifications() -> [NotificationEntity] {
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-       
-       // Filter for notifications with status "UNREAD"
-       //fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
+     
+        fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
        //yukarıdaki kod çalışıyor ve UNREAD olanları düşürüyor.
        
        do {
@@ -209,15 +208,57 @@ public class CoreDataManager {
            return []
        }
     }
+    
+    /*func fetchTargetNotifications() -> [NotificationEntity] {
+      return fetchAllNotifications().filter { entity in
+        guard let payload = entity.payload else { return false }
+        return payload.contains("\"target\":")
+      }
+    }*/
+    
+    func fetchTargetNotifications() -> [NotificationEntity] {
+        return fetchAllNotifications().filter { entity in
+            // 1️⃣ payload string’ini al
+            guard let payloadStr = entity.payload,
+                  let topData    = payloadStr.data(using: .utf8),
+                  // 2️⃣ En üst seviye JSON’u parse et
+                  let topJson    = try? JSONSerialization
+                                        .jsonObject(with: topData, options: []),
+                  let topDict    = topJson as? [String:Any]
+            else {
+                return false
+            }
+
+            // 3️⃣ "condition" alanı JSON string olarak saklanmışsa:
+            if let condStr = topDict["condition"] as? String,
+               let condData = condStr.data(using: .utf8),
+               let condJson = try? JSONSerialization
+                                    .jsonObject(with: condData, options: []),
+               let condDict = condJson as? [String:Any],
+               let target   = condDict["target"] as? String,
+               !target.trimmingCharacters(in: .whitespaces).isEmpty {
+                return true
+            }
+
+            // — veya eğer kaydederken "condition" nesnesini doğrudan gömdüysen:
+            if let condDict = topDict["condition"] as? [String:Any],
+               let target   = condDict["target"] as? String,
+               !target.trimmingCharacters(in: .whitespaces).isEmpty {
+                return true
+            }
+
+            return false
+        }
+    }
+
+
 
     
    public func updateNotificationStatus(byMessageID gcmMessageID: String, newStatus: String) {
      
         let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
        fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
-      
-        
-        
+       
         do {
             let notifications = try context.fetch(fetchRequest)
             if let notification = notifications.first {
@@ -242,9 +283,6 @@ public class CoreDataManager {
             return false
         }
     }
-
-
-
     
    public func deleteAllNotifications() {
         
