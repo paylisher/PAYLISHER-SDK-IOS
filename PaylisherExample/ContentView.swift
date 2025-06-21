@@ -110,12 +110,12 @@ struct YeniSayfaView: View {
         }
         .navigationTitle("Yeni Sayfa")
         
-        /*.onAppear {
+        .onAppear {
                    // sayfa göründüğünde targetName’e göre in-app mesajı kontrol et
                    NotificationManager.shared.showTargetInAppNotifications(
                        matching: "Yeni Sayfa"
                    )
-               }*/
+               }
       
     }
 }
@@ -242,7 +242,7 @@ struct ContentView: View {
                         PaylisherSDK.shared.capture("buttonClick", properties: ["name": "Show redacted view", "screen_name": "İlk Ekran"])
                         
                        
-                        //NotificationManager.shared.showTargetNotifications(matching: "Test Ekranı")
+                        NotificationManager.shared.showTargetNotifications(matching: "Test Ekranı")
                         
                         
                         

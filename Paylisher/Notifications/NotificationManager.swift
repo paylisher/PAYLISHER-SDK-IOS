@@ -458,8 +458,8 @@ public class NotificationManager: NSObject{
                 case .inApp:
                     print("FCM customNotification inApp")
                     
-                        nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+        
+                        
  
                     break
                /* case .silent:
@@ -653,7 +653,7 @@ extension NotificationManager: CLLocationManagerDelegate {
    
     
    
-    /*public func showTargetNotifications(matching targetName: String) {
+    public func showTargetNotifications(matching targetName: String) {
             let center   = UNUserNotificationCenter.current()
             let now      = Date()
             let entities = CoreDataManager.shared.fetchTargetNotifications()
@@ -849,5 +849,4 @@ extension NotificationManager: CLLocationManagerDelegate {
         rootVC.present(vc, animated: true, completion: nil)
     }
 
- */
 }

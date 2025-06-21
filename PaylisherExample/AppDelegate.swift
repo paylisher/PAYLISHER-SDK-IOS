@@ -109,8 +109,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
     
     func application(_ application: UIApplication, didRegisterForRemoteNotificationsWithDeviceToken deviceToken: Data) {
-           
-        
         print("FCM application -> didRegisterForRemoteNotificationsWithDeviceToken")
         Messaging.messaging().apnsToken = deviceToken
            
@@ -119,65 +117,22 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       //var processedNotifications = Set<String>()
       func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
           
-         let userInfo = notification.request.content.userInfo
-         
-       //   let notificationID = notification.request.identifier
-          
-          //let request = notification.request
-          
-        /*if processedNotifications.contains(notificationID) {
-              print("Tekrarlanan bildirim algılandı, işlenmiyor.")
-              return
+          let userInfo = notification.request.content.userInfo
+     
+          if let typeString = userInfo["type"] as? String,
+             let type = NotificationType(rawValue: typeString) {
+              if type != .inApp {
+                  completionHandler([.sound, .list, .banner, .badge])
+              } else {
+                  let windowScene = UIApplication.shared.connectedScenes
+                              .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
+                          
+                          NotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+                          PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+              }
           }
-          processedNotifications.insert(notificationID)
-          print("Bildirim ID’si: \(notificationID) - İşleniyor.")*/
-    
-      let mutableContent = UNMutableNotificationContent()
-      mutableContent.title = notification.request.content.title
-      mutableContent.subtitle = notification.request.content.subtitle
-      mutableContent.body = notification.request.content.body
-      mutableContent.sound = notification.request.content.sound
-      mutableContent.badge = notification.request.content.badge
-      mutableContent.userInfo = notification.request.content.userInfo
-      mutableContent.categoryIdentifier = notification.request.content.categoryIdentifier
-      
-      // If you're using iOS 15+, you can copy additional properties
-      if #available(iOS 15.0, *) {
-          mutableContent.interruptionLevel = notification.request.content.interruptionLevel
-          mutableContent.relevanceScore = notification.request.content.relevanceScore
-      }
-      
-      let windowScene = UIApplication.shared.connectedScenes
-          .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene
-      
-          //let windowScene: UIWindowScene? = nil
-       
-          print("FCM -> willPresents")
-      //    print(userInfo)
+
           
-         
-           //Normalde bu eventin bu fonksiyon altında yazılmaması gerekiyor çünkü bu fonksiyon uygulama ön plandayken bildirim geldiğinde aktif oluyor yani uygulama arka plandayken bildirim geldiğinde event gönderilmiyor. Aklında bulunsun, sonra düzelt.
-           NotificationManager.shared.customNotification(
-                  windowScene: windowScene,
-                    userInfo: userInfo,
-                    mutableContent,
-                  notification.request,
-                    { content in
-                 
-                            //   completionHandler([.banner, .sound])
-                   }
-       
-                )
-         /* let type = userInfo["type"] as? String
-          
-          if type != "IN-APP"{
-              completionHandler([.sound, .list, .banner, .badge ])
-          }else{
-              
-          }*/
-              
-          completionHandler([.sound, .list, .banner, .badge ])
-              
        }
     
     func application(_ application: UIApplication,
@@ -210,7 +165,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         
         PaylisherSDK.shared.capture("notificationReceived", properties: ["type": userInfo["type"],"pushId": userInfo["pushId"]])
         
-       /* print("User Info: \(userInfo)")
+        print("User Info: \(userInfo)")
        
         let state = UIApplication.shared.applicationState
         
@@ -239,7 +194,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
         {
            
             NotificationManager.shared.saveToCoreData(type: type, userInfo: userInfo)
-        } else {
+        } /*else {
         
             NotificationManager.shared.customNotification(
                 windowScene: windowScene,
@@ -250,9 +205,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                
             }
         }*/
-
-        
-       
 
     }
 
