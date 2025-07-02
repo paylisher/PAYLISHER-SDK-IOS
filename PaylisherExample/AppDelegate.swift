@@ -21,9 +21,9 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
       //  let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
       //  let PAYLISHER_HOST = "https://analytics.paylisher.com" //"<https://test.paylisher.com>"
-        
-        let PAYLISHER_API_KEY = "phc_vFmOmzIfHMJtUvcTI8qCQu7VDPdKtO8Mz3kic7AIIvj" // "<phc_test>"
-        let PAYLISHER_HOST = "https://datastudio.paylisher.com" //"<https://test.paylisher.com>"
+        //let PAYLISHER_SDK_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE"
+        let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
+        let PAYLISHER_HOST = "https://us.i.posthog.com"
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
