@@ -87,7 +87,8 @@ public class PaylisherCustomInAppNotificationManager {
         
        
         let lang = payload.defaultLang ?? "en"
-      //  let layoutType = payload.layoutType ?? "no-type"
+        let layoutType = payload.layoutType ?? "no-type"
+        let layout = payload.layouts?[0]
        // print("Default Lang:", lang)
        // print("Layout Type:", layoutType)
         
@@ -108,7 +109,7 @@ public class PaylisherCustomInAppNotificationManager {
                 print("horizontalPosition: ", style.horizontalPosition ?? "boş")
                 print("active: ", close.active ?? "")
                 
-                let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
+                let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang, layout: layout!)
 //#if IOS
 //                styleVC.modalPresentationStyle = .overFullScreen
                         
@@ -120,7 +121,15 @@ public class PaylisherCustomInAppNotificationManager {
                    let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                    let rootVC = keyWindow.rootViewController {
                        rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
-                       rootVC.present(styleVC, animated: false)
+                    
+                    switch layoutType {
+                    case "modal":
+                        rootVC.present(styleVC, animated: false)
+                    
+                    default:
+                        rootVC.present(styleVC, animated: false)
+                    }
+                       
                 }
 //#endif
 

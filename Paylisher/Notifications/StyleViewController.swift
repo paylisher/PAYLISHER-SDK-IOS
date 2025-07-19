@@ -16,6 +16,8 @@ class StyleViewController: UIViewController {
     private let extra: CustomInAppPayload.Layout.Extra
     
     private let blocks: CustomInAppPayload.Layout.Blocks
+    
+    private let layout: CustomInAppPayload.Layout
 
     private let containerView = UIView()
     
@@ -25,6 +27,8 @@ class StyleViewController: UIViewController {
     
     //private let arrowImageView = UIImageView()
     
+    private var bgAspectConstraint: NSLayoutConstraint?
+    
     private let closeButton = UIButton(type: .system)
     
     private let defaultLang: String
@@ -33,9 +37,9 @@ class StyleViewController: UIViewController {
             let stackView = UIStackView()
             stackView.axis = .vertical
             stackView.alignment = .fill
-            stackView.distribution = .fill
+        stackView.distribution = .equalSpacing
             stackView.isLayoutMarginsRelativeArrangement = true
-            stackView.layoutMargins = .init(top: 10, left: 10, bottom: 10, right: 10)
+            stackView.layoutMargins = .init(top: 0, left: 0, bottom: 0, right: 0)
             stackView.spacing = 10
             stackView.translatesAutoresizingMaskIntoConstraints = false
             return stackView
@@ -45,12 +49,14 @@ class StyleViewController: UIViewController {
          close: CustomInAppPayload.Layout.Close,
          extra: CustomInAppPayload.Layout.Extra,
          blocks: CustomInAppPayload.Layout.Blocks,
-         defaultLang: String) {
+         defaultLang: String,
+         layout: CustomInAppPayload.Layout) {
         self.style = style
         self.close = close
         self.extra = extra
         self.blocks = blocks
         self.defaultLang = defaultLang
+        self.layout = layout
         super.init(nibName: nil, bundle: nil)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -63,6 +69,14 @@ class StyleViewController: UIViewController {
         closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
 
     }
+    
+    override func viewDidLayoutSubviews() {
+            super.viewDidLayoutSubviews()
+            // stackView’e en az bir alt eleman eklendiyse
+            if !mainStackView.arrangedSubviews.isEmpty {
+                bgAspectConstraint?.priority = .defaultHigh   // 750
+            }
+        }
   
     override func viewWillAppear(_ animated: Bool) {
         applyTransition()
@@ -111,10 +125,10 @@ class StyleViewController: UIViewController {
         NSLayoutConstraint.activate([
             
             //containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 50),
-            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 32),
-            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -32),
+            containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
+            containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
             //containerView.bottomAnchor.constraint(lessThanOrEqualTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -50),
-            containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
+            //containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200),
             //containerView.heightAnchor.constraint(equalTo: stackView.heightAnchor),
             //centerYConstraint,
    
@@ -128,7 +142,12 @@ class StyleViewController: UIViewController {
             mainStackView.topAnchor.constraint(equalTo: containerView.topAnchor),
             mainStackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             mainStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            mainStackView.bottomAnchor.constraint(lessThanOrEqualTo: containerView.bottomAnchor)
+            {
+                   let c = mainStackView.bottomAnchor.constraint(
+                           lessThanOrEqualTo: containerView.bottomAnchor)
+                   c.priority = .defaultHigh        // 750
+                   return c
+               }()
             //closeButton.rightAnchor.constraint(equalTo: containerView.rightAnchor, constant: -8)
         ])
         applyStyle()
@@ -163,8 +182,17 @@ class StyleViewController: UIViewController {
         
        if let bgImageStr = style.bgImage, !bgImageStr.isEmpty {
             addBackgroundImage(urlString: bgImageStr)
-        }
+       } /*else if blocks.order?.isEmpty == true {
+           // Görsel yok, içerik de yoksa min 150 px
+           containerView.heightAnchor
+               .constraint(greaterThanOrEqualToConstant: 150)
+               .isActive = true
+       }*/
         
+       else{
+           containerView.heightAnchor.constraint(greaterThanOrEqualToConstant: 150).isActive = true
+       }
+       
         if style.verticalPosition == "bottom" {
             
             //containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 450).isActive = true
@@ -331,7 +359,8 @@ class StyleViewController: UIViewController {
             bgImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             bgImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
-            bgImageView.heightAnchor.constraint(greaterThanOrEqualToConstant: 200)
+            //bgImageView.heightAnchor.constraint(equalTo: containerView.heightAnchor)
+
         ])
         
         if let url = URL(string: urlString) {
@@ -339,9 +368,25 @@ class StyleViewController: UIViewController {
                 if let data = data, let image = UIImage(data: data) {
                     DispatchQueue.main.async {
                         bgImageView.image = image
+                      
+                        let ratio = image.size.height / image.size.width
+
+                                            // Önceki kısıt varsa pasifleştir
+                                            self.bgAspectConstraint?.isActive = false
+
+                                            // Yeni kısıt
+                                            let c = bgImageView.heightAnchor
+                                                .constraint(equalTo: bgImageView.widthAnchor,
+                                                            multiplier: ratio)
+
+                                            // İçerik yokken zorunlu, içerik geldikçe gevşek
+                                            c.priority = self.mainStackView.arrangedSubviews.isEmpty
+                                                ? .required     // 1000
+                                                : .defaultHigh  // 750
+                                            c.isActive = true
+                                            self.bgAspectConstraint = c
                         
-                        let aspectRatio = image.size.height / image.size.width
-                        bgImageView.heightAnchor.constraint(equalTo: bgImageView.widthAnchor, multiplier: aspectRatio).isActive = true
+                      
                         
                     }
                 }
@@ -425,7 +470,7 @@ class StyleViewController: UIViewController {
     
     private func applyBlocks() {
         
-        let align = blocks.align
+       /* let align = blocks.align
         
         let language = defaultLang
         
@@ -442,8 +487,10 @@ class StyleViewController: UIViewController {
                 case "single-vertical":
                     if let first = buttons.first{
                         let firstButton = addButtonVertical(first)
-                        let f = addButtonVertical(first)
+                        //let f = addButtonVertical(first)
                         //let g = addButtonVertical(first)
+                        //let d = addButtonVertical(first)
+                        
                     }
                 case "double-vertical":
                     if let first = buttons.first,
@@ -479,7 +526,7 @@ class StyleViewController: UIViewController {
             else if case .spacer(let spacerBlock) = block {
                 let spacer = spacerBlock
                 
-                addSpacer(spacerBlock: spacer)
+                 addSpacer(spacerBlock: spacer)
             }
             
             else if case .text(let textBlock) = block {
@@ -487,19 +534,95 @@ class StyleViewController: UIViewController {
                  let text = textBlock
                 
                   addText(textBlock: text)
-                  //addText(textBlock: text)
-                  //addText(textBlock: text)
+                  addText(textBlock: text)
+                 
 
             }
        else if case .image(let imageBlock) = block {
                 
                 let image = imageBlock
                 
-                //addImage(imageBlock: image)
+                addImage(imageBlock: image)
             }
 
-        }
-  
+        }*/
+        
+        guard let unsortedBlocks = blocks.order else { return }
+
+        // ① order’a göre küçükten büyüğe sırala
+        let sortedBlocks = unsortedBlocks.sorted(by: { $0.orderValue < $1.orderValue })
+
+            // ② Mevcut mantığın aynısını, ama artık sıralı dizide gezerek
+            for block in sortedBlocks {
+
+                switch block {
+
+                case .buttonGroup(let buttonGroupBlock):
+                    guard let buttonGroupType = buttonGroupBlock.buttonGroupType else { continue }
+                    
+                    guard let buttons = buttonGroupBlock.buttons else { continue }
+      
+                    switch buttonGroupType {
+                    case "single-vertical":
+                        if let first = buttons.first{
+                           let firstButton = addButtonVertical(first)
+                           //let f = addButtonVertical(first)
+                            //let g = addButtonVertical(first)
+                            //let d = addButtonVertical(first)
+                            //let c = addButtonVertical(first)
+                           // let v = addButtonVertical(first)
+                           
+                            break
+                            
+                        }
+                    case "double-vertical":
+                        if let first = buttons.first,
+                           let last = buttons.last{
+                            let firstButton = addButtonVertical(first)
+                            let lastButton = addButtonVertical(last)
+                            break
+                        }
+                    case "double-horizontal":
+                        if let first = buttons.first,
+                            let last = buttons.last{
+                           
+                            let firstButton = addButtonHorizontal(firstButtonBlock: first, secondButtonBlock: last)
+                            //let lastButton = addButtonHorizontal(firstButtonBlock: first, secondButtonBlock: last)
+                            break
+                        }
+                    case "single-compact-vertical":
+                        if let first = buttons.first{
+                            let firstButton = addButtonVertical(first)
+                            break
+                        }
+                    case "double-compact-vertical":
+                        if let first = buttons.first,
+                           let last = buttons.last{
+                            let firstButton = addButtonVertical(first)
+                            let lastButton = addButtonVertical(last)
+                            break
+                        }
+                        
+                    default:
+                        return
+                    }
+
+                case .spacer(let spacerBlock):
+                    _ = addSpacer(spacerBlock: spacerBlock)
+                    break
+
+                case .text(let textBlock):
+                    _ = addText(textBlock: textBlock)
+                   // _ = addText(textBlock: textBlock)
+                   // _ = addText(textBlock: textBlock)
+                    break
+
+                case .image(let imageBlock):
+                    _ = addImage(imageBlock: imageBlock)
+                    break
+                }
+            }
+       
     }
     
     private func addImage(imageBlock: CustomInAppPayload.Layout.Blocks.ImageBlock) -> UIImageView {
@@ -514,6 +637,8 @@ class StyleViewController: UIViewController {
                     DispatchQueue.main.async {
                         image.image = imagee
                         
+                        let ratio = imagee.size.height / imagee.size.width
+                        image.heightAnchor.constraint(equalTo: image.widthAnchor, multiplier: ratio).isActive = true
                     }
                 }
             }.resume()
@@ -534,13 +659,15 @@ class StyleViewController: UIViewController {
         wrapper.translatesAutoresizingMaskIntoConstraints = false
         mainStackView.addArrangedSubview(wrapper)
         wrapper.addSubview(image)
+
         
         NSLayoutConstraint.activate([
             image.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: CGFloat(margin ?? 0)),
             image.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: CGFloat(-(margin ?? 0))),
             image.topAnchor.constraint(equalTo: wrapper.topAnchor),
             image.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
-            image.heightAnchor.constraint(equalToConstant: 200)
+            
+         
         ])
         
         
@@ -559,6 +686,8 @@ class StyleViewController: UIViewController {
         
         let verticalSpacing = Double(filteredVerticalSpacing) ?? 0
         
+        let fillAvailableSpacing = spacerBlock.fillAvailableSpacing
+        
         let wrapper = UIView()
         wrapper.translatesAutoresizingMaskIntoConstraints = false
         
@@ -573,8 +702,14 @@ class StyleViewController: UIViewController {
             spacer.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
             spacer.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
             spacer.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
-            spacer.heightAnchor.constraint(equalToConstant: verticalSpacing)
+            
         ])
+        
+        if fillAvailableSpacing == true {
+            spacer.heightAnchor.constraint(equalToConstant: 0).isActive = true
+        }else{
+            spacer.heightAnchor.constraint(equalToConstant: verticalSpacing).isActive = true
+        }
         
         return spacer
     }
@@ -627,32 +762,34 @@ class StyleViewController: UIViewController {
             //textLabel.leadingAnchor.constraint(equalTo: stackView.leadingAnchor, constant: CGFloat(10 + horizontalMargin)).isActive = true
             //textLabel.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: 0).isActive = true
             textLabel.textAlignment = .left
-            textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: CGFloat(horizontalMargin)).isActive = true
+            textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: CGFloat(10 + horizontalMargin)).isActive = true
             textLabel.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor).isActive = true
-            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
             
         case "center":
-            textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 100).isActive = true
-            textLabel.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -100).isActive = true
+            //textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 100).isActive = true
+            //textLabel.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -100).isActive = true
+            textLabel.centerXAnchor.constraint(equalTo: wrapper.centerXAnchor).isActive = true
             textLabel.textAlignment = .center
-            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
             
             
         case "right":
             //textLabel.leadingAnchor.constraint(equalTo: stackView.leadingAnchor, constant: CGFloat(250 - horizontalMargin)).isActive = true
             //textLabel.trailingAnchor.constraint(equalTo: stackView.trailingAnchor, constant: 0).isActive = true
             textLabel.textAlignment = .right
-            textLabel.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: CGFloat(horizontalMargin)).isActive = true
+            textLabel.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: CGFloat(-10-horizontalMargin)).isActive = true
             textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor).isActive = true
-            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor,constant: 10).isActive = true
+            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
             
         default:
-            textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 100).isActive = true
+            textLabel.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10).isActive = true
             textLabel.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: 0).isActive = true
-            
+            textLabel.topAnchor.constraint(equalTo: wrapper.topAnchor,constant: 10).isActive = true
+            textLabel.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
         }
 
         return textLabel
@@ -744,8 +881,8 @@ class StyleViewController: UIViewController {
                NSLayoutConstraint.activate([
                 button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: margin),
                 button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -margin),
-                button.topAnchor.constraint(equalTo: wrapper.topAnchor),
-                button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
+                button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10),
+                button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10),
                 button.heightAnchor.constraint(equalToConstant: height)
                 
                ])
@@ -758,20 +895,20 @@ class StyleViewController: UIViewController {
                     case "centered":
                         button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -100).isActive = true
                         button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 100).isActive = true
-                        button.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+                        button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
                         button.heightAnchor.constraint(equalToConstant: height).isActive = true
                     case "left":
-                        button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor).isActive = true
+                        button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10).isActive = true
                         button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -200).isActive = true
-                        button.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+                        button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
                         button.heightAnchor.constraint(equalToConstant: height).isActive = true
                     case "right":
                         button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 200).isActive = true
-                        button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor).isActive = true
-                        button.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+                        button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -10).isActive = true
+                        button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
                         button.heightAnchor.constraint(equalToConstant: height).isActive = true
                        
                     default:
@@ -790,20 +927,20 @@ class StyleViewController: UIViewController {
                     case "centered":
                         button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 75).isActive = true
                         button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -75).isActive = true
-                        button.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+                        button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
                         button.heightAnchor.constraint(equalToConstant: height).isActive = true
                     case "left":
-                        button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor).isActive = true
+                        button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10).isActive = true
                         button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -150).isActive = true
-                        button.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+                        button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
                         button.heightAnchor.constraint(equalToConstant: height).isActive = true
                     case "right":
                         button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 150).isActive = true
-                        button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor).isActive = true
-                        button.topAnchor.constraint(equalTo: wrapper.topAnchor).isActive = true
-                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor).isActive = true
+                        button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -10).isActive = true
+                        button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10).isActive = true
+                        button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10).isActive = true
                         button.heightAnchor.constraint(equalToConstant: height).isActive = true
                         
                     default:
@@ -1030,8 +1167,8 @@ class StyleViewController: UIViewController {
   
             horizontalStack.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: 10),
             horizontalStack.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -10),
-            horizontalStack.topAnchor.constraint(equalTo: wrapper.topAnchor),
-            horizontalStack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
+            horizontalStack.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 10),
+            horizontalStack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -10),
          
          firstButton.heightAnchor.constraint(equalToConstant: firstHeight),
          secondButton.heightAnchor.constraint(equalToConstant: secondHeight),

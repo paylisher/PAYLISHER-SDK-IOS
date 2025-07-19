@@ -431,3 +431,13 @@ public struct CustomInAppPayload: Codable {
     }
 }
 
+extension CustomInAppPayload.Layout.Blocks.Block {
+  var orderValue: Int {
+    switch self {
+    case .image(let img):       return img.order ?? 0
+    case .spacer(let sp):       return sp.order ?? 1
+    case .text(let txt):        return txt.order ?? 3
+    case .buttonGroup(let btn): return btn.order ?? 2
+    }
+  }
+}
