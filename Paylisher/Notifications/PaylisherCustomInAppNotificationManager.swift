@@ -84,7 +84,7 @@ public class PaylisherCustomInAppNotificationManager {
             print("Payload parse edilemedi.")
             return
         }
-        
+        let layoutType = payload.layoutType?.lowercased() ?? "modal"
        
         let lang = payload.defaultLang ?? "en"
       //  let layoutType = payload.layoutType ?? "no-type"
@@ -109,6 +109,10 @@ public class PaylisherCustomInAppNotificationManager {
                 print("active: ", close.active ?? "")
                 
                 let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
+                let bannerVC = BannerViewController(style:style,close:close,extra:extra,blocks:blocks,defaultLang:lang)
+                let fullModalVC=fullScreenModalViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
+                //let modalVc=ModalViewController()
+                
 //#if IOS
 //                styleVC.modalPresentationStyle = .overFullScreen
                         
@@ -120,7 +124,18 @@ public class PaylisherCustomInAppNotificationManager {
                    let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                    let rootVC = keyWindow.rootViewController {
                        rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
-                       rootVC.present(styleVC, animated: false)
+                    switch layoutType{
+                    case "modal":
+                        fullModalVC.modalPresentationStyle = .fullScreen
+                        rootVC.present(fullModalVC, animated: false)
+                        //moadalVC.presemt(modalVC, animated: false)
+                    case "banner":
+                        bannerVC.modalPresentationStyle = .overFullScreen
+                        rootVC.present(bannerVC, animated: false)
+                    default:
+                        break
+                    }
+                       
                 }
 //#endif
 

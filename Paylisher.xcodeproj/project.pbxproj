@@ -28,6 +28,10 @@
 		3AE3FB49299391DF00AFFC18 /* PaylisherStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB48299391DF00AFFC18 /* PaylisherStorage.swift */; };
 		3AE3FB4B2993A68500AFFC18 /* PaylisherStorageTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB4A2993A68500AFFC18 /* PaylisherStorageTest.swift */; };
 		3AE3FB4E2993D1D600AFFC18 /* PaylisherStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */; };
+		3ED6827A2E24EEF4008B6E89 /* fullScreenModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED682792E24EEF2008B6E89 /* fullScreenModalViewController.swift */; };
+		3ED6827B2E24EEF4008B6E89 /* fullScreenModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3ED682792E24EEF2008B6E89 /* fullScreenModalViewController.swift */; };
+		3EDA8E5B2E1E50B500936EB5 /* BannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EDA8E5A2E1E50AB00936EB5 /* BannerViewController.swift */; };
+		3EDA8E5C2E1E50B500936EB5 /* BannerViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3EDA8E5A2E1E50AB00936EB5 /* BannerViewController.swift */; };
 		690B2DF32C205B5600AE3B45 /* TimeBasedEpochGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690B2DF22C205B5600AE3B45 /* TimeBasedEpochGenerator.swift */; };
 		690FF05F2AE7E2D400A0B06B /* Data+Gzip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF05E2AE7E2D400A0B06B /* Data+Gzip.swift */; };
 		690FF0AF2AEB9C1400A0B06B /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF0AE2AEB9C1400A0B06B /* DateUtils.swift */; };
@@ -363,6 +367,8 @@
 		3AE3FB48299391DF00AFFC18 /* PaylisherStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherStorage.swift; sourceTree = "<group>"; };
 		3AE3FB4A2993A68500AFFC18 /* PaylisherStorageTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherStorageTest.swift; sourceTree = "<group>"; };
 		3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherStorageManager.swift; sourceTree = "<group>"; };
+		3ED682792E24EEF2008B6E89 /* fullScreenModalViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = fullScreenModalViewController.swift; sourceTree = "<group>"; };
+		3EDA8E5A2E1E50AB00936EB5 /* BannerViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BannerViewController.swift; sourceTree = "<group>"; };
 		690B2DF22C205B5600AE3B45 /* TimeBasedEpochGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeBasedEpochGenerator.swift; sourceTree = "<group>"; };
 		690FF02F2AE7C5BA00A0B06B /* PaylisherExampleWithPods.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PaylisherExampleWithPods.xcodeproj; path = PaylisherExampleWithPods/PaylisherExampleWithPods.xcodeproj; sourceTree = "<group>"; };
 		690FF05E2AE7E2D400A0B06B /* Data+Gzip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Gzip.swift"; sourceTree = "<group>"; };
@@ -919,6 +925,8 @@
 		FAB9936C2D75BFB400A232A2 /* Notifications */ = {
 			isa = PBXGroup;
 			children = (
+				3ED682792E24EEF2008B6E89 /* fullScreenModalViewController.swift */,
+				3EDA8E5A2E1E50AB00936EB5 /* BannerViewController.swift */,
 				FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */,
 				FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */,
 				FAE918C72D672FB000105499 /* StyleViewController.swift */,
@@ -1299,6 +1307,8 @@
 				FAC6E4E92DB2528100CD4D5E /* PaylisherInAppModalViewController.swift in Sources */,
 				3AA34D17296D9993003398F4 /* AppDelegate.swift in Sources */,
 				FAC6E4DC2DB2520C00CD4D5E /* PaylisherActionBaseNotification.swift in Sources */,
+				3ED6827B2E24EEF4008B6E89 /* fullScreenModalViewController.swift in Sources */,
+				3EDA8E5C2E1E50B500936EB5 /* BannerViewController.swift in Sources */,
 				FAC6E4EA2DB2528600CD4D5E /* NotificationManager.swift in Sources */,
 				FAC6E4E12DB2522B00CD4D5E /* GeofencePayload.swift in Sources */,
 				FAC6E4E72DB2527500CD4D5E /* CustomInAppPayload.swift in Sources */,
@@ -1344,6 +1354,7 @@
 				69779BEC2AE68E6900D7A48E /* UIViewController.swift in Sources */,
 				3A0F108929C9BD76002C0084 /* Errors.swift in Sources */,
 				3AE3FB37299162EA00AFFC18 /* PaylisherApi.swift in Sources */,
+				3ED6827A2E24EEF4008B6E89 /* fullScreenModalViewController.swift in Sources */,
 				FA58D30C2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld in Sources */,
 				6926DA8E2ADD2876005760D2 /* PaylisherContext.swift in Sources */,
 				690FF0AF2AEB9C1400A0B06B /* DateUtils.swift in Sources */,
@@ -1385,6 +1396,7 @@
 				69EE82BC2BA9C53000EB9542 /* PaylisherSessionReplayConfig.swift in Sources */,
 				FA58D3122D5B4672009A34DB /* NotificationType.swift in Sources */,
 				69EE82CE2BAAC76000EB9542 /* ViewTreeSnapshotStatus.swift in Sources */,
+				3EDA8E5B2E1E50B500936EB5 /* BannerViewController.swift in Sources */,
 				69ED1AD42C90A0F100FE7A91 /* URLSessionExtension.swift in Sources */,
 				69ED1A9F2C8F451B00FE7A91 /* PaylisherPersonProfiles.swift in Sources */,
 				69EE82BA2BA9C50400EB9542 /* PaylisherReplayIntegration.swift in Sources */,
