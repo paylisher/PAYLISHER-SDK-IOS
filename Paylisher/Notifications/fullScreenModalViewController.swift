@@ -373,7 +373,9 @@ class fullScreenModalViewController: UIViewController {
     }
    
     private func applyBlocks() {
-        blocks.order?.forEach { block in
+        let sortedBlocks = blocks.order?.sorted(by: { $0.orderValue < $1.orderValue }) ?? []
+
+        for block in sortedBlocks {
             switch block {
             case .image(let imageBlock):
                 applyImageBlock(imageBlock)
@@ -565,7 +567,6 @@ class fullScreenModalViewController: UIViewController {
         } else if action.lowercased().starts(with: "copy:") {
             let textToCopy = action.replacingOccurrences(of: "copy:", with: "").trimmingCharacters(in: .whitespaces)
             UIPasteboard.general.string = textToCopy
-            print("📋 Kopyalandı: \(textToCopy)")
         } else if action.lowercased().starts(with: "http") {
             if let url = URL(string: action) {
                 UIApplication.shared.open(url)
@@ -576,6 +577,7 @@ class fullScreenModalViewController: UIViewController {
             }
         } else {
             print("⚠️ Desteklenmeyen action geldi: \(action)")
+            print("Desteklenmeyen action geldi: \(action)")
         }
     }
     private func applyTransition() {
