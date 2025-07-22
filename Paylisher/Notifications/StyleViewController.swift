@@ -27,6 +27,16 @@ class StyleViewController: UIViewController {
     
     //private let arrowImageView = UIImageView()
     
+    private var alignTopC   : NSLayoutConstraint!
+    
+    private var alignCenterC: NSLayoutConstraint!
+    
+    private var alignBottomC: NSLayoutConstraint!
+    
+    private var topGTEC     : NSLayoutConstraint!
+    
+    private var stretchBottomC : NSLayoutConstraint!
+    
     private var bgAspectConstraint: NSLayoutConstraint?
     
     private let closeButton = UIButton(type: .system)
@@ -105,6 +115,20 @@ class StyleViewController: UIViewController {
         containerView.insertSubview(mainStackView, at: 1)
         
         containerView.addSubview(closeButton)
+        
+        alignTopC = mainStackView.topAnchor.constraint(equalTo: containerView.topAnchor)
+
+        alignCenterC = mainStackView.centerYAnchor.constraint(equalTo: containerView.centerYAnchor)
+
+        
+        topGTEC = mainStackView.topAnchor.constraint(greaterThanOrEqualTo: containerView.topAnchor)
+
+        alignBottomC = mainStackView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
+
+        
+        stretchBottomC = mainStackView.bottomAnchor.constraint(
+                            lessThanOrEqualTo: containerView.bottomAnchor)
+        stretchBottomC.priority = .defaultHigh
  
         NSLayoutConstraint.activate([
 
@@ -113,15 +137,9 @@ class StyleViewController: UIViewController {
             
             closeButton.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 8),
             
-            mainStackView.topAnchor.constraint(equalTo: containerView.topAnchor),
             mainStackView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             mainStackView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            {
-                let constraint = mainStackView.bottomAnchor.constraint(
-                           lessThanOrEqualTo: containerView.bottomAnchor)
-                constraint.priority = .defaultHigh // 750
-                return constraint
-               }()
+            stretchBottomC
         ])
         applyStyle()
         applyClose()
@@ -409,6 +427,22 @@ class StyleViewController: UIViewController {
     }
     
     private func applyBlocks() {
+        
+        let align = blocks.align ?? "top"
+
+           
+            [alignTopC, alignCenterC, alignBottomC, topGTEC].forEach { $0?.isActive = false }
+
+            switch align {
+            case "center":
+                alignCenterC.isActive = true
+                topGTEC.isActive     = true
+            case "bottom":
+                alignBottomC.isActive = true
+                topGTEC.isActive      = true
+            default:
+                alignTopC.isActive = true
+            }
 
         guard let unsortedBlocks = blocks.order else { return }
 
@@ -469,7 +503,7 @@ class StyleViewController: UIViewController {
                     }
 
                 case .spacer(let spacerBlock):
-                    _ = addSpacer(spacerBlock: spacerBlock)
+                    //_ = addSpacer(spacerBlock: spacerBlock)
                     break
 
                 case .text(let textBlock):
@@ -479,7 +513,7 @@ class StyleViewController: UIViewController {
                     break
 
                 case .image(let imageBlock):
-                    _ = addImage(imageBlock: imageBlock)
+                    //_ = addImage(imageBlock: imageBlock)
                     break
                 }
             }
@@ -662,6 +696,25 @@ class StyleViewController: UIViewController {
         let fontSize = buttonBlock.fontSize
         let italic = buttonBlock.italic
         let underscore = buttonBlock.underscore
+        
+        let action = buttonBlock.action ?? ""
+        
+        button.addAction(UIAction { [weak self] _ in
+            
+            if action == "dismiss" {
+                self?.didTapClose()
+            } else {
+                if let url = URL(string: action),
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                self?.didTapClose()
+            }
+            
+           
+            }, for: .touchUpInside)
+            
+            
         
         if let fontModel = FontModel(family: fontFamily, weight: fontWeight, size: fontSize, italic: italic, underline: underscore) {
             
@@ -848,6 +901,40 @@ class StyleViewController: UIViewController {
         let secondButtonFontSize = secondButtonBlock.fontSize
         let secondButtonItalic = secondButtonBlock.italic
         let secondButtonUnderscore = secondButtonBlock.underscore
+        
+        let firstButtonAction = firstButtonBlock.action ?? ""
+        
+        firstButton.addAction(UIAction { [weak self] _ in
+            
+            if firstButtonAction == "dismiss" {
+                self?.didTapClose()
+            } else {
+                if let url = URL(string: firstButtonAction),
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                self?.didTapClose()
+            }
+            
+        }, for: .touchUpInside)
+        
+        let secondButtonAction = secondButtonBlock.action ?? ""
+        
+        secondButton.addAction(UIAction { [weak self] _ in
+            
+            if secondButtonAction == "dismiss" {
+                self?.didTapClose()
+            } else {
+                if let url = URL(string: secondButtonAction),
+                       UIApplication.shared.canOpenURL(url) {
+                        UIApplication.shared.open(url)
+                    }
+                self?.didTapClose()
+            }
+            
+        }, for: .touchUpInside)
+        
+        
         
         if let firstFontModel = FontModel(family: firstButtonFontFamily  , weight: firstButtonFontWeight, size: firstButtonFontSize, italic: firstButtonItalic, underline: firstButtonUnderscore) {
             
@@ -1067,6 +1154,7 @@ class StyleViewController: UIViewController {
             dismiss(animated: true)
             return
         }
+    
         
         UIView.animate(withDuration: 0.1, animations: {
             switch transitionType {
@@ -1087,4 +1175,6 @@ class StyleViewController: UIViewController {
             self.dismiss(animated: false, completion: nil)
         })
     }
+    
+    
 }

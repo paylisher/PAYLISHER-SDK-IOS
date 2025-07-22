@@ -27,15 +27,17 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
-        config.captureScreenViews = true
-        config.captureApplicationLifecycleEvents = true
+        config.captureScreenViews = false
+        config.captureApplicationLifecycleEvents = false
         config.flushAt = 1
         config.debug = true
+        config.optOut = true
         config.sendFeatureFlagEvent = true
         config.sessionReplay = true
         config.sessionReplayConfig.screenshotMode = true
         config.sessionReplayConfig.maskAllTextInputs = false
         config.sessionReplayConfig.maskAllImages = false
+        
        
         PaylisherSDK.shared.setup(config)
         
