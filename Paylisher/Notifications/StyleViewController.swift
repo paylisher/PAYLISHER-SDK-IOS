@@ -699,23 +699,25 @@ class StyleViewController: UIViewController {
         
         let action = buttonBlock.action ?? ""
         
-        button.addAction(UIAction { [weak self] _ in
-            
-            if action == "dismiss" {
-                self?.didTapClose()
-            } else {
-                if let url = URL(string: action),
-                       UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url)
-                    }
-                self?.didTapClose()
-            }
-            
-           
-            }, for: .touchUpInside)
-            
-            
-        
+        if #available(iOS 14.0, *) {
+            button.addAction(UIAction { [weak self] _ in
+                
+                if action == "dismiss" {
+                    self?.didTapClose()
+                } else {
+                    if let url = URL(string: action),
+                           UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    self?.didTapClose()
+                }
+                
+               
+                }, for: .touchUpInside)
+        } else {
+            button.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+        }
+
         if let fontModel = FontModel(family: fontFamily, weight: fontWeight, size: fontSize, italic: italic, underline: underscore) {
             
             let attrTitle = fontModel.attributedString(title)
@@ -904,38 +906,47 @@ class StyleViewController: UIViewController {
         
         let firstButtonAction = firstButtonBlock.action ?? ""
         
-        firstButton.addAction(UIAction { [weak self] _ in
+        if #available(iOS 14.0, *) {
+            firstButton.addAction(UIAction { [weak self] _ in
+                
+                if firstButtonAction == "dismiss" {
+                    self?.didTapClose()
+                } else {
+                    if let url = URL(string: firstButtonAction),
+                           UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    self?.didTapClose()
+                }
+                
+            }, for: .touchUpInside)
             
-            if firstButtonAction == "dismiss" {
-                self?.didTapClose()
-            } else {
-                if let url = URL(string: firstButtonAction),
-                       UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url)
-                    }
-                self?.didTapClose()
-            }
-            
-        }, for: .touchUpInside)
+        } else {
+            firstButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+        }
+        
+       
         
         let secondButtonAction = secondButtonBlock.action ?? ""
         
-        secondButton.addAction(UIAction { [weak self] _ in
-            
-            if secondButtonAction == "dismiss" {
-                self?.didTapClose()
-            } else {
-                if let url = URL(string: secondButtonAction),
-                       UIApplication.shared.canOpenURL(url) {
-                        UIApplication.shared.open(url)
-                    }
-                self?.didTapClose()
-            }
-            
-        }, for: .touchUpInside)
-        
-        
-        
+        if #available(iOS 14.0, *) {
+            secondButton.addAction(UIAction { [weak self] _ in
+                
+                if secondButtonAction == "dismiss" {
+                    self?.didTapClose()
+                } else {
+                    if let url = URL(string: secondButtonAction),
+                           UIApplication.shared.canOpenURL(url) {
+                            UIApplication.shared.open(url)
+                        }
+                    self?.didTapClose()
+                }
+                
+            }, for: .touchUpInside)
+        } else {
+            secondButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
+        }
+ 
         if let firstFontModel = FontModel(family: firstButtonFontFamily  , weight: firstButtonFontWeight, size: firstButtonFontSize, italic: firstButtonItalic, underline: firstButtonUnderscore) {
             
             let firstAttrTitle = firstFontModel.attributedString(firstButtonTitle)
