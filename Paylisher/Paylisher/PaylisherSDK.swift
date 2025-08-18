@@ -466,7 +466,7 @@ let maxRetryDelay = 30.0
 
         let isIdentified = storageManager.isIdentified()
 
-        if distinctId != oldDistinctId, !isIdentified {
+        if !isIdentified { // eski hali şöyleydi: if distinctId != oldDistinctId, !isIdentified
             // We keep the AnonymousId to be used by decide calls and identify to link the previousId
             //storageManager.setAnonymousId(oldDistinctId)
             storageManager.setDistinctId(distinctId)
