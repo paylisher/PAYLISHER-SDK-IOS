@@ -468,14 +468,14 @@ let maxRetryDelay = 30.0
 
         if distinctId != oldDistinctId, !isIdentified {
             // We keep the AnonymousId to be used by decide calls and identify to link the previousId
-            storageManager.setAnonymousId(oldDistinctId)
+            //storageManager.setAnonymousId(oldDistinctId)
             storageManager.setDistinctId(distinctId)
 
             storageManager.setIdentified(true)
 
             let properties = buildProperties(distinctId: distinctId, properties: [
                 "distinct_id": distinctId,
-                "$anon_distinct_id": oldDistinctId,
+                //"$anon_distinct_id": oldDistinctId,
             ], userProperties: sanitizeDicionary(userProperties), userPropertiesSetOnce: sanitizeDicionary(userPropertiesSetOnce))
             let sanitizedProperties = sanitizeProperties(properties)
 

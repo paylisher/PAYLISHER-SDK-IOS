@@ -22,16 +22,20 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
       //  let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
       //  let PAYLISHER_HOST = "https://analytics.paylisher.com" //"<https://test.paylisher.com>"
         //let PAYLISHER_SDK_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE"
-        let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
-        let PAYLISHER_HOST = "https://us.i.posthog.com"
+        //let PAYLISHER_API_KEY = "phc_JwUJI7MmnWguE6e211Ah0WMtedBQAmK25LupnwWQELE" // "<phc_test>"
+        //let PAYLISHER_HOST = "https://us.i.posthog.com"
+        
+        let PAYLISHER_API_KEY = "phc_M4WHCWj0mfE49eX03vu0LZ313ALGAYupKGLA4AaFa4K"
+        let PAYLISHER_HOST = "https://ds.paylisher.com"
+
 
         let config = PaylisherConfig(apiKey: PAYLISHER_API_KEY, host: PAYLISHER_HOST)
         
-        config.captureScreenViews = false
-        config.captureApplicationLifecycleEvents = false
-        config.flushAt = 1
+        config.captureScreenViews = true
+        config.captureApplicationLifecycleEvents = true
+        //config.flushAt = 1
         config.debug = true
-        config.optOut = true
+        //config.optOut = true
         config.sendFeatureFlagEvent = true
         config.sessionReplay = true
         config.sessionReplayConfig.screenshotMode = true
