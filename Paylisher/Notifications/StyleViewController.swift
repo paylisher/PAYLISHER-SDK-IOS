@@ -39,6 +39,8 @@ class StyleViewController: UIViewController {
     
     private var bgAspectConstraint: NSLayoutConstraint?
     
+    private var buttonAction: String?
+
     private let closeButton = UIButton(type: .system)
     
     private let defaultLang: String
@@ -697,26 +699,17 @@ class StyleViewController: UIViewController {
         let italic = buttonBlock.italic
         let underscore = buttonBlock.underscore
         
-        let action = buttonBlock.action ?? ""
+        var action = buttonBlock.action ?? ""
         
         if #available(iOS 14.0, *) {
-            button.addAction(UIAction { [weak self] _ in
-                
-                if action == "dismiss" {
-                    self?.didTapClose()
-                } else {
-                    if let url = URL(string: action),
-                           UIApplication.shared.canOpenURL(url) {
-                            UIApplication.shared.open(url)
-                        }
-                    self?.didTapClose()
-                }
-                
-               
+                button.addAction(UIAction { [weak self] _ in
+                    self?.handleButtonAction(action)
                 }, for: .touchUpInside)
-        } else {
-            button.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
-        }
+            } else {
+                button.accessibilityIdentifier = action
+                button.addTarget(self, action: #selector(handleButtonTap(_:)), for: .touchUpInside)
+            }
+        
 
         if let fontModel = FontModel(family: fontFamily, weight: fontWeight, size: fontSize, italic: italic, underline: underscore) {
             
@@ -908,44 +901,23 @@ class StyleViewController: UIViewController {
         
         if #available(iOS 14.0, *) {
             firstButton.addAction(UIAction { [weak self] _ in
-                
-                if firstButtonAction == "dismiss" {
-                    self?.didTapClose()
-                } else {
-                    if let url = URL(string: firstButtonAction),
-                           UIApplication.shared.canOpenURL(url) {
-                            UIApplication.shared.open(url)
-                        }
-                    self?.didTapClose()
-                }
-                
-            }, for: .touchUpInside)
-            
-        } else {
-            firstButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
-        }
-        
-       
+                    self?.handleButtonAction(firstButtonAction)
+                }, for: .touchUpInside)
+            } else {
+                firstButton.accessibilityIdentifier = firstButtonAction
+                firstButton.addTarget(self, action: #selector(handleButtonTap(_:)), for: .touchUpInside)
+            }
         
         let secondButtonAction = secondButtonBlock.action ?? ""
         
         if #available(iOS 14.0, *) {
             secondButton.addAction(UIAction { [weak self] _ in
-                
-                if secondButtonAction == "dismiss" {
-                    self?.didTapClose()
-                } else {
-                    if let url = URL(string: secondButtonAction),
-                           UIApplication.shared.canOpenURL(url) {
-                            UIApplication.shared.open(url)
-                        }
-                    self?.didTapClose()
-                }
-                
-            }, for: .touchUpInside)
-        } else {
-            secondButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
-        }
+                    self?.handleButtonAction(secondButtonAction)
+                }, for: .touchUpInside)
+            } else {
+                secondButton.accessibilityIdentifier = secondButtonAction
+                secondButton.addTarget(self, action: #selector(handleButtonTap(_:)), for: .touchUpInside)
+            }
  
         if let firstFontModel = FontModel(family: firstButtonFontFamily  , weight: firstButtonFontWeight, size: firstButtonFontSize, italic: firstButtonItalic, underline: firstButtonUnderscore) {
             
@@ -1165,8 +1137,7 @@ class StyleViewController: UIViewController {
             dismiss(animated: true)
             return
         }
-    
-        
+   
         UIView.animate(withDuration: 0.1, animations: {
             switch transitionType {
             case "right-to-left":
@@ -1186,6 +1157,28 @@ class StyleViewController: UIViewController {
             self.dismiss(animated: false, completion: nil)
         })
     }
-    
+   
+    private func handleButtonAction(_ action: String) {
+        if action == "dismiss" {
+            didTapClose()
+        } else {
+            if let url = URL(string: action),
+               UIApplication.shared.canOpenURL(url) {
+                UIApplication.shared.open(url)
+            }
+            didTapClose()
+        }
+    }
+
+    @objc private func handleButtonTap(_ sender: UIButton) {
+        
+        if let action = getActionForButton(sender) {
+            handleButtonAction(action)
+        }
+    }
+
+    private func getActionForButton(_ button: UIButton) -> String? {
+        return button.accessibilityIdentifier
+    }
     
 }
