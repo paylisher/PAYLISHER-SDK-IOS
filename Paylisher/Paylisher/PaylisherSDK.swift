@@ -1037,11 +1037,18 @@ let maxRetryDelay = 30.0
 
             var props: [String: Any] = [:]
             var event: String
-            if previousVersionCode == nil {
+            if previousVersionCode == nil && previousVersion == nil {
                 // installed
                 event = "Application Installed"
             } else {
                 event = "Application Updated"
+                
+                let versionChanged = previousVersion != versionName
+                let buildChanged = previousVersionCode != versionCode
+                
+                if !versionChanged && !buildChanged {
+                    return
+                }
 
                 // Do not send version updates if its the same
                 if previousVersionCode == versionCode {
@@ -1051,7 +1058,10 @@ let maxRetryDelay = 30.0
                 if previousVersion != nil {
                     props["previous_version"] = previousVersion
                 }
-                props["previous_build"] = previousVersionCode
+                if previousVersionCode != nil {
+                    props["previous_build"] = previousVersionCode
+                }
+                
             }
 
             var syncDefaults = false
