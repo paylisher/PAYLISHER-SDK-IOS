@@ -9,7 +9,7 @@ Paylisher is a custom analytics and session replay SDK providing event tracking,
   s.homepage         = 'https://github.com/paylisher/PAYLISHER-SDK-IOS'
   s.license          = { :type => 'MIT', :file => 'LICENSE' }
   s.author           = { 'Paylisher' => 'info@paylisher.com' }
-  s.source           = { :git => 'https://github.com/paylisher/PAYLISHER-SDK-IOS.git', :branch => 'develop_yu' }
+  s.source           = { :git => 'https://github.com/paylisher/PAYLISHER-SDK-IOS.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '13.0'
   
