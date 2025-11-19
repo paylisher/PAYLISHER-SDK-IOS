@@ -13,7 +13,7 @@ Paylisher is a custom analytics and session replay SDK providing event tracking,
 
   s.ios.deployment_target = '13.0'
   
-  s.source_files = 'PaylisherSDK/**/*.{swift,h,m}'
+  s.source_files = 'Paylisher/**/*.{swift,h,m}'
 
   # Eğer XCFramework kullanırsan burayı açacaksın:
   # s.vendored_frameworks = 'PaylisherFramework/PaylisherFramework.xcframework'
