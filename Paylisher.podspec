@@ -12,7 +12,7 @@ Paylisher is a custom analytics and session replay SDK providing event tracking,
   s.source           = { :git => 'https://github.com/paylisher/PAYLISHER-SDK-IOS.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '13.0'
-  
+  s.static_framework = true  
   s.source_files = 'Paylisher/**/*.{swift,h,m}'
 
   # Eğer XCFramework kullanırsan burayı açacaksın:
