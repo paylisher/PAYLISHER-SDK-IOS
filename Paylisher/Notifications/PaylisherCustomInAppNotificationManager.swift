@@ -85,216 +85,153 @@ public class PaylisherCustomInAppNotificationManager {
             return
         }
         
-       
         let lang = payload.defaultLang ?? "en"
-        let layoutType = payload.layoutType ?? "no-type"
-        let layout = payload.layouts?[0]
-       // print("Default Lang:", lang)
-       // print("Layout Type:", layoutType)
         
+        // layouts boş veya nil ise, custom layout yok demektir - erken çık
+        guard let layouts = payload.layouts, !layouts.isEmpty else {
+            print("layouts boş veya nil - custom in-app layout yok, native kullanılıyor.")
+            return
+        }
         
-        if let layouts = payload.layouts, !layouts.isEmpty {
-            let firstLayout = layouts[0]
-    
-            print("--------------Style---------------")
-            
-            if let style = firstLayout.style, let close = firstLayout.close, let extra = firstLayout.extra, let blocks = firstLayout.blocks{
-                print("navigationalArrows: ", style.navigationalArrows ?? "")
-                print("radius: ", style.radius ?? "")
-                print("bgColor: ", style.bgColor ?? "")
-                print("bgImage: ", style.bgImage ?? "")
-                print("bgImageMask: ", style.bgImageMask ?? "")
-                print("bgImageColor: ", style.bgImageColor ?? "")
-                print("verticalPosition: ", style.verticalPosition ?? "")
-                print("horizontalPosition: ", style.horizontalPosition ?? "boş")
-                print("active: ", close.active ?? "")
-                
-                let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang, layout: layout!)
-//#if IOS
-//                styleVC.modalPresentationStyle = .overFullScreen
+        let firstLayout = layouts[0]
+        
+        // Tüm gerekli bileşenler var mı kontrol et
+        guard let style = firstLayout.style,
+              let close = firstLayout.close,
+              let extra = firstLayout.extra,
+              let blocks = firstLayout.blocks else {
+            print("Layout bileşenleri eksik - style, close, extra veya blocks nil")
+            return
+        }
+        
+        print("--------------Style---------------")
+        print("navigationalArrows: ", style.navigationalArrows ?? "")
+        print("radius: ", style.radius ?? "")
+        print("bgColor: ", style.bgColor ?? "")
+        print("bgImage: ", style.bgImage ?? "")
+        print("bgImageMask: ", style.bgImageMask ?? "")
+        print("bgImageColor: ", style.bgImageColor ?? "")
+        print("verticalPosition: ", style.verticalPosition ?? "")
+        print("horizontalPosition: ", style.horizontalPosition ?? "boş")
+        print("active: ", close.active ?? "")
+        
+        // layout parametresini ekledik
+        let styleVC = StyleViewController(
+            style: style,
+            close: close,
+            extra: extra,
+            blocks: blocks,
+            defaultLang: lang,
+            layout: firstLayout
+        )
+        
+        if windowScene != nil,
+           let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
+           let rootVC = keyWindow.rootViewController {
+            rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
+            rootVC.present(styleVC, animated: false)
+        }
+        
+        print("----------------------------------")
+        print("--------------Close---------------")
+        
+        print("type: ", close.type ?? "")
+        print("position: ", close.position ?? "")
+        print("iconColor: ", close.icon?.color ?? "")
+        print("iconStyle: ", close.icon?.style ?? "")
+        print("textLabel: ", close.text?.label?[lang] ?? "")
+        print("textFontSize: ", close.text?.fontSize ?? "")
+        print("textColor: ", close.text?.color ?? "")
+        
+        print("----------------------------------")
+        print("--------------Extra---------------")
+        
+        print("transition: ", extra.transition ?? "")
+        print("bannerAction: ", extra.banner?.action ?? "")
+        print("bannerDuration: ", extra.banner?.duration ?? "")
+        print("overlayAction: ", extra.overlay?.action ?? "")
+        print("overlayColor: ", extra.overlay?.color ?? "")
+        
+        print("----------------------------------")
+        print("--------------Blocks---------------")
+        
+        print("blocksLayer:", blocks.align ?? "")
+        
+        if let blockArray = blocks.order {
+            for block in blockArray {
+                switch block {
+                case .image(let imageBlock):
+                    
+                    print("--------------Image Block---------------")
+                    print("typeImage: ", imageBlock.type ?? "")
+                    print("orderImage: ", imageBlock.order ?? "")
+                    print("urlImage: ", imageBlock.url ?? "")
+                    print("altImage: ", imageBlock.alt ?? "")
+                    print("linkImage: ", imageBlock.link ?? "boş")
+                    print("radiusImage: ", imageBlock.radius ?? "")
+                    print("marginImage: ", imageBlock.margin ?? "")
+                    
+                    
+                case .spacer(let spacerBlock):
+                    
+                    print("----------------------------------")
+                    print("--------------Spacer Block---------------")
+                    print("typeSpacer: ", spacerBlock.type ?? "")
+                    print("orderSpacer: ", spacerBlock.order ?? "")
+                    print("verticalSpacingSpacer: ", spacerBlock.verticalSpacing ?? "")
+                    print("fillAvailableSpacingSpacer: ", spacerBlock.fillAvailableSpacing ?? "")
+                    
+                    
+                case .text(let textBlock):
+                    print("----------------------------------")
+                    print("--------------Text Block---------------")
+                    print("typeText: ", textBlock.type ?? "")
+                    print("orderText: ", textBlock.order ?? "")
+                    print("contentText: ", textBlock.content?[lang] ?? "")
+                    print("actionText: ", textBlock.action ?? "")
+                    print("fontFamilyText: ", textBlock.fontFamily ?? "")
+                    print("fontWeightText: ", textBlock.fontWeight ?? "")
+                    print("fontSizeText: ", textBlock.fontSize ?? "")
+                    print("underscoreText: ", textBlock.underscore ?? "")
+                    print("italicText: ", textBlock.italic ?? "")
+                    print("colorText: ", textBlock.color ?? "")
+                    print("textAlignmentText: ", textBlock.textAlignment ?? "")
+                    print("horizontalMarginText: ", textBlock.horizontalMargin ?? "")
+                    
+                    
+                case .buttonGroup(let buttonGroupBlock):
+                    print("----------------------------------")
+                    print("--------------ButtonGroup Block---------------")
+                    print("typeButtonGroup: ", buttonGroupBlock.type ?? "")
+                    print("orderButtonGroup: ", buttonGroupBlock.order ?? "")
+                    print("buttonGroupTypeButtonGroup: ", buttonGroupBlock.buttonGroupType ?? "")
+                    
+                    if let buttonsArray = buttonGroupBlock.buttons {
                         
-//                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
-//                    rootVC.present(styleVC, animated: false)
-//                }
-                
-                if windowScene != nil,
-                   let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
-                   let rootVC = keyWindow.rootViewController {
-                       rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
-                    
-                    switch layoutType {
-                    case "modal":
-                        rootVC.present(styleVC, animated: false)
-                    
-                    default:
-                        rootVC.present(styleVC, animated: false)
-                    }
-                       
-                }
-//#endif
-
-            }
-            
-            
-            
-            print("----------------------------------")
-            print("--------------Close---------------")
-            
-            if let close = firstLayout.close {
-               // print("active: ", close.active ?? "")
-                print("type: ", close.type ?? "")
-                print("position: ", close.position ?? "")
-                print("iconColor: ", close.icon?.color ?? "")
-                print("iconStyle: ", close.icon?.style ?? "")
-                print("textLabel: ", close.text?.label![lang] ?? "")
-                print("textFontSize: ", close.text?.fontSize ?? "")
-                print("textColor: ", close.text?.color ?? "")
-                
-            }
-            
-            print("----------------------------------")
-            print("--------------Extra---------------")
-            
-            if let extra = firstLayout.extra {
-                
-                print("transition: ", extra.transition ?? "")
-                print("bannerAction: ", extra.banner?.action ?? "")
-                print("bannerDuration: ", extra.banner?.duration ?? "")
-                print("overlayAction: ", extra.overlay?.action ?? "")
-                print("overlayColor: ", extra.overlay?.color ?? "")
-                
-            }
-            
-            print("----------------------------------")
-            print("--------------Blocks---------------")
-            
-            if let blocks = firstLayout.blocks {
-                print("blocksLayer:", blocks.align ?? "")
-                
-                if let blockArray = blocks.order {
-                    for block in blockArray {
-                        switch block {
-                        case .image(let imageBlock):
+                        for button in buttonsArray {
                             
-                            print("--------------Image Block---------------")
-                            print("typeImage: ", imageBlock.type ?? "")
-                            print("orderImage: ", imageBlock.order ?? "")
-                            print("urlImage: ", imageBlock.url ?? "")
-                            print("altImage: ", imageBlock.alt ?? "")
-                            print("linkImage: ", imageBlock.link ?? "boş")
-                            print("radiusImage: ", imageBlock.radius ?? "")
-                            print("marginImage: ", imageBlock.margin ?? "")
-                            
-                            
-                        case .spacer(let spacerBlock):
-                            
+                            print("labelButtonGroup: ", button.label?[lang] ?? "")
+                            print("actionButtonGroup: ", button.action ?? "")
+                            print("fontFamilyButtonGroup: ", button.fontFamily ?? "")
+                            print("fontWeightButtonGroup: ", button.fontWeight ?? "")
+                            print("fontSizeButtonGroup: ", button.fontSize ?? "")
+                            print("underscoreButtonGroup: ", button.underscore ?? "")
+                            print("italicButtonGroup: ", button.italic ?? "")
+                            print("textColorButtonGroup: ", button.textColor ?? "")
+                            print("backgroundColorButtonGroup: ", button.backgroundColor ?? "")
+                            print("borderColorButtonGroup: ", button.borderColor ?? "")
+                            print("borderRadiusButtonGroup: ", button.borderRadius ?? "")
+                            print("horizontalSizeButtonGroup: ", button.horizontalSize ?? "")
+                            print("verticalSizeButtonGroup: ", button.verticalSize ?? "")
+                            print("buttonPositionButtonGroup: ", button.buttonPosition ?? "")
+                            print("marginButtonGroup: ", button.margin ?? "")
                             print("----------------------------------")
-                            print("--------------Spacer Block---------------")
-                            print("typeSpacer: ", spacerBlock.type ?? "")
-                            print("orderSpacer: ", spacerBlock.order ?? "")
-                            print("verticalSpacingSpacer: ", spacerBlock.verticalSpacing ?? "")
-                            print("fillAvailableSpacingSpacer: ", spacerBlock.fillAvailableSpacing ?? "")
-                            
-                            
-                        case .text(let textBlock):
-                            print("----------------------------------")
-                            print("--------------Text Block---------------")
-                            print("typeText: ", textBlock.type ?? "")
-                            print("orderText: ", textBlock.order ?? "")
-                            print("contentText: ", textBlock.content![lang]!)
-                            print("actionText: ", textBlock.action ?? "")
-                            print("fontFamilyText: ", textBlock.fontFamily ?? "")
-                            print("fontWeightText: ", textBlock.fontWeight ?? "")
-                            print("fontSizeText: ", textBlock.fontSize ?? "")
-                            print("underscoreText: ", textBlock.underscore ?? "")
-                            print("italicText: ", textBlock.italic ?? "")
-                            print("colorText: ", textBlock.color ?? "")
-                            print("textAlignmentText: ", textBlock.textAlignment ?? "")
-                            print("horizontalMarginText: ", textBlock.horizontalMargin ?? "")
-                            
-                            
-                        case .buttonGroup(let buttonGroupBlock):
-                            print("----------------------------------")
-                            print("--------------ButtonGroup Block---------------")
-                            print("typeButtonGroup: ", buttonGroupBlock.type ?? "")
-                            print("orderButtonGroup: ", buttonGroupBlock.order ?? "")
-                            print("buttonGroupTypeButtonGroup: ", buttonGroupBlock.buttonGroupType ?? "")
-                            
-                            if let buttonsArray = buttonGroupBlock.buttons{
-                                
-                                for button in buttonsArray {
-                                    
-                                    print("labelButtonGroup: ", button.label?[lang])
-                                    print("actionButtonGroup: ", button.action ?? "")
-                                    print("fontFamilyButtonGroup: ", button.fontFamily ?? "")
-                                    print("fontWeightButtonGroup: ", button.fontWeight ?? "")
-                                    print("fontSizeButtonGroup: ", button.fontSize ?? "")
-                                    print("underscoreButtonGroup: ", button.underscore ?? "")
-                                    print("italicButtonGroup: ", button.italic ?? "")
-                                    print("textColorButtonGroup: ", button.textColor ?? "")
-                                    print("backgroundColorButtonGroup: ", button.backgroundColor ?? "")
-                                    print("borderColorButtonGroup: ", button.borderColor ?? "")
-                                    print("borderRadiusButtonGroup: ", button.borderRadius ?? "")
-                                    print("horizontalSizeButtonGroup: ", button.horizontalSize ?? "")
-                                    print("verticalSizeButtonGroup: ", button.verticalSize ?? "")
-                                    print("buttonPositionButtonGroup: ", button.buttonPosition ?? "")
-                                    print("marginButtonGroup: ", button.margin ?? "")
-                                    print("----------------------------------")
-                                }
-                            }
                         }
                     }
                 }
             }
-
-            
         }
     }
-
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
-    
     
     
    /* public func customInAppFunction(userInfo: [AnyHashable: Any]) {

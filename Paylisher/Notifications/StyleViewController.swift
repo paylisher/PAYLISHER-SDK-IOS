@@ -289,31 +289,21 @@ class StyleViewController: UIViewController {
         
         let lang = defaultLang
         
-        var title = close.text?.label![lang]
-               if let dict = textData?.label {
-                   title = dict[lang] ?? dict["en"] ?? "Close"
-               }
-               
-               closeButton.setTitle(title, for: .normal)
+        var title = "Close"
+        if let dict = textData?.label {
+            title = dict[lang] ?? dict["en"] ?? "Close"
+        }
+        
+        closeButton.setTitle(title, for: .normal)
         
         if let colorHex = textData?.color, let color = UIColor(hex: colorHex) {
-                    closeButton.setTitleColor(color, for: .normal)
-                }
-                
-                if let fontSizeStr = textData?.fontSize{
-                    
-                    let filteredFontSize = fontSizeStr.filter { char in
-                        
-                        return char.isNumber || char == "."
-                    }
-                    
-                    let fontSizeFloat = Float(filteredFontSize) ?? 0
-                    
-                    let fontSizeVal = CGFloat(fontSizeFloat)
-                    
-                    closeButton.titleLabel?.font = UIFont.systemFont(ofSize: fontSizeVal)
-                }
+            closeButton.setTitleColor(color, for: .normal)
+        }
         
+        if let fontSizeStr = textData?.fontSize,
+           let fontSizeInt = Int(fontSizeStr) {
+            closeButton.titleLabel?.font = UIFont.systemFont(ofSize: CGFloat(fontSizeInt))
+        }
     }
     
     private func addBackgroundImage(urlString: String) {
@@ -376,20 +366,17 @@ class StyleViewController: UIViewController {
     private func applyOverlay() {
         
         if extra.overlay?.action == "close" {
-            
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapClose))
             overlayView.isUserInteractionEnabled = true
             overlayView.addGestureRecognizer(tapGesture)
         }
         
-        if let overlayColorHex = (extra.overlay?.color){
-            
-            let color = UIColor(hex: overlayColorHex)
-            
-            overlayView.backgroundColor = color?.withAlphaComponent(0.1)
-            
+        if let overlayColorHex = extra.overlay?.color, let color = UIColor(hex: overlayColorHex) {
+            overlayView.backgroundColor = color.withAlphaComponent(0.5)
+        } else {
+            overlayView.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         }
-     }
+    }
     
     private func applyTransition() {
         guard let transitionType = extra.transition else {
