@@ -429,22 +429,17 @@ public class NotificationManager: NSObject{
     
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
         
-//        print("customNotification userInfo \(userInfo)" )
         // Check the source condition first
         if let source = userInfo["source"] as? String, source == "Paylisher" {
             
-//            print("customNotification source string: \(source)")
-            
             // Get the type as String first, then convert it
             if let typeString = userInfo["type"] as? String {
-//                print("customNotification type string: \(typeString)")
                 let notificationType = NotificationType(rawValue: typeString)
                 
-                print("customNotification type string: \(notificationType)")
+                print("customNotification type string: \(String(describing: notificationType))")
                 switch notificationType {
                 case .push:
                     print("FCM customNotification push")
-                    // Handle push notification
                     pushNotification(userInfo, content, request, completion)
                     break
                 case .actionBased:
@@ -458,20 +453,28 @@ public class NotificationManager: NSObject{
                 case .inApp:
                     print("FCM customNotification inApp")
                     
-        
-                        
- 
+                    let layoutType = userInfo["layoutType"] as? String ?? "native"
+                    
+                    if layoutType == "native" {
+                        // Native in-app göster
+                        nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+                    } else {
+                        // Custom layout in-app göster
+                        PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+                    }
+                    
+                    completion(content)
                     break
-               /* case .silent:
-                    print("FCM customNotification silent")
-                    silentNotification(userInfo, content, request, completion)*/
+                    /* case .silent:
+                         print("FCM customNotification silent")
+                         silentNotification(userInfo, content, request, completion)*/
                 case .none:
                     break
                 }
             }
         }
-
     }
+    
     
     public func customNotification(
         windowScene: UIWindowScene?,
