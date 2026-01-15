@@ -481,30 +481,55 @@ import UIKit
     }
     
     // MARK: - Pending Management
-    
-    private func setPendingDeepLink(_ deepLink: PaylisherDeepLink) {
+
+    /// Set a deep link as pending for later processing
+    ///
+    /// Use this method when you receive a deep link but cannot navigate immediately
+    /// (e.g., TabBar not ready, onboarding in progress). Later, call
+    /// `completePendingDeepLink()` when ready to navigate.
+    ///
+    /// **Use Case for Deferred Deep Links:**
+    /// When a deferred deep link is detected on first launch, but the app needs to
+    /// show onboarding screens first (e.g., UserInfoPage1, UserInfoPage2, etc.),
+    /// store it as pending and complete after onboarding.
+    ///
+    /// Example:
+    /// ```swift
+    /// func paylisherDidReceiveDeepLink(_ deepLink: PaylisherDeepLink, requiresAuth: Bool) {
+    ///     if !isTabBarReady {
+    ///         // Store for later - will navigate after onboarding
+    ///         PaylisherDeepLinkManager.shared.setPendingDeepLink(deepLink)
+    ///         return
+    ///     }
+    ///     // Navigate immediately
+    ///     navigateToDestination(deepLink.destination)
+    /// }
+    /// ```
+    ///
+    /// - Parameter deepLink: The deep link to store as pending
+    @objc public func setPendingDeepLink(_ deepLink: PaylisherDeepLink) {
         // Clear any existing
         clearPendingDeepLink()
-        
+
         // Set new pending
         pendingDeepLink = deepLink
-        
+
         // Start timeout timer
         pendingTimer = Timer.scheduledTimer(withTimeInterval: config.pendingDeepLinkTimeout,
                                             repeats: false) { [weak self] _ in
             guard let self = self else { return }
             self.log("Pending deep link timed out")
-            
+
             // Capture timeout event
             if self.config.captureDeepLinkEvents {
                 self.captureDeepLinkTimeoutEvent(deepLink)
             }
-            
+
             self.pendingDeepLink = nil
             self.pendingTimer = nil
             self.authCompletionCallback = nil
         }
-        
+
         log("Pending deep link set: \(deepLink.destination)")
     }
     

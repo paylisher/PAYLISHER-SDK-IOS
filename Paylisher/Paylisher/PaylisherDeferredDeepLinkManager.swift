@@ -357,6 +357,9 @@ public class PaylisherDeferredDeepLinkManager {
 
     /**
      * Automatically handles deferred deep link by passing it to DeepLinkManager.
+     *
+     * ⚠️ IMPORTANT: If DeepLinkManager cannot handle the deeplink immediately
+     * (e.g., TabBar not ready), it will store it as pending for later processing.
      */
     private func autoHandleDeferredDeepLink(_ deepLink: PaylisherDeepLink) {
         DispatchQueue.main.async { [weak self] in
@@ -368,7 +371,19 @@ public class PaylisherDeferredDeepLinkManager {
                 }
 
                 // Let DeepLinkManager handle it (campaign resolution, auth, etc.)
-                _ = PaylisherDeepLinkManager.shared.handleURL(deepLink.url)
+                let handled = PaylisherDeepLinkManager.shared.handleURL(deepLink.url)
+
+                // ✅ FIX: If DeepLinkManager handled the URL, check if it became pending
+                // This ensures deferred deeplinks that can't be navigated immediately
+                // (e.g., TabBar not ready) are stored as pending for later retrieval
+                if handled && self.config.debugLogging {
+                    if PaylisherDeepLinkManager.shared.hasPendingDeepLink() {
+                        hedgeLog("[PaylisherDeferredDeepLink] ⚠️ Deeplink stored as pending - TabBar likely not ready yet")
+                        hedgeLog("[PaylisherDeferredDeepLink] 💡 Call completePendingDeepLink() when ready to navigate")
+                    } else {
+                        hedgeLog("[PaylisherDeferredDeepLink] ✅ Deeplink handled successfully")
+                    }
+                }
             } else {
                 hedgeLog("[PaylisherDeferredDeepLink] DeepLinkManager not configured, cannot auto-handle")
             }
