@@ -237,46 +237,74 @@ public class NotificationManager {
     }*/
     
     public func customNotification(windowScene: UIWindowScene?, userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void){
-        
-//        print("customNotification userInfo \(userInfo)" )
+
+        let gcmMessageID = userInfo["gcm.message_id"] as? String ?? "no-id"
+
+        print("🔔 [NotificationManager] ================================")
+        print("🔔 [NotificationManager] customNotification called")
+        print("🔔 [NotificationManager] gcm.message_id: \(gcmMessageID)")
+        print("🔔 [NotificationManager] windowScene: \(windowScene == nil ? "nil ⚠️" : "exists ✅")")
+        print("🔔 [NotificationManager] source: \(userInfo["source"] as? String ?? "nil")")
+        print("🔔 [NotificationManager] type: \(userInfo["type"] as? String ?? "nil")")
+        print("🔔 [NotificationManager] content.title: \(content.title)")
+        print("🔔 [NotificationManager] content.body: \(content.body)")
+        print("🔔 [NotificationManager] ================================")
+
         // Check the source condition first
         if let source = userInfo["source"] as? String, source == "Paylisher" {
-            
-//            print("customNotification source string: \(source)")
-            
+
             // Get the type as String first, then convert it
             if let typeString = userInfo["type"] as? String {
-//                print("customNotification type string: \(typeString)")
                 let notificationType = NotificationType(rawValue: typeString)
-                
-                print("customNotification type string: \(notificationType)")
+
+                print("🔔 [NotificationManager] Resolved NotificationType: \(String(describing: notificationType))")
+
                 switch notificationType {
                 case .push:
-                    print("FCM customNotification push")
-                    // Handle push notification
+                    print("🔔 [NotificationManager] → Routing to pushNotification()")
                     pushNotification(userInfo, content, request, completion)
                     break
                 case .actionBased:
-                    print("FCM customNotification action based")
+                    print("🔔 [NotificationManager] → Routing to actionBasedNotification()")
                     actionBasedNotification(userInfo, content, request, completion)
                     break
                 case .geofence:
-                    print("FCM customNotification geofence")
+                    print("🔔 [NotificationManager] → Routing to geofenceNotification()")
                     geofenceNotification(userInfo, content, request, completion)
                     break
                 case .inApp:
-                    print("FCM customNotification inApp")
-                    
-                        PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
- 
+                    print("🔔 [NotificationManager] → IN-APP message detected!")
+                    print("🔔 [NotificationManager]   windowScene is nil: \(windowScene == nil)")
+                    if windowScene == nil {
+                        print("⚠️ [NotificationManager] windowScene is nil - in-app modals CANNOT be presented!")
+                        print("⚠️ [NotificationManager] This is likely called from NotificationService Extension (background)")
+                        print("⚠️ [NotificationManager] completion() will NOT be called for inApp → system may show raw push banner")
+                    } else {
+                        print("✅ [NotificationManager] windowScene exists - attempting to show in-app modal")
+                    }
+
+                    print("🔔 [NotificationManager]   Calling nativeInAppNotification...")
+                    PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+
+                    print("🔔 [NotificationManager]   Calling parseInAppPayload...")
+                    PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
+
+                    print("🔔 [NotificationManager]   Calling customInAppFunction...")
+                    PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+
+                    print("⚠️ [NotificationManager] NOTE: completion() is NOT called for inApp type!")
+
                     break
-           
+
                 case .none:
+                    print("⚠️ [NotificationManager] Unknown notification type: '\(typeString)' - no handler!")
                     break
                 }
+            } else {
+                print("⚠️ [NotificationManager] No 'type' field in userInfo!")
             }
+        } else {
+            print("⚠️ [NotificationManager] source is not 'Paylisher': \(userInfo["source"] as? String ?? "nil")")
         }
 
     }

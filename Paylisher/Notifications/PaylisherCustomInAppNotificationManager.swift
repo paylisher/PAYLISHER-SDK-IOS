@@ -20,9 +20,17 @@ public class PaylisherCustomInAppNotificationManager {
     }
     
    public func parseInAppPayload(from userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) -> CustomInAppPayload? {
-       
+
+        let gcmMessageID = (userInfo as? [String: Any])?["gcm.message_id"] as? String ?? "no-id"
+        print("🎨 [CustomInApp] ================================")
+        print("🎨 [CustomInApp] parseInAppPayload called")
+        print("🎨 [CustomInApp] gcm.message_id: \(gcmMessageID)")
+        print("🎨 [CustomInApp] windowScene: \(windowScene == nil ? "nil ⚠️" : "exists ✅")")
+        print("🎨 [CustomInApp] 'layouts' key exists: \(userInfo["layouts"] != nil)")
+        print("🎨 [CustomInApp] userInfo keys: \((userInfo as? [String: Any])?.keys.sorted() ?? [])")
+
         guard let stringKeyedInfo = userInfo as? [String: Any] else {
-            print("userInfo'yu [String:Any] olarak cast edemedim.")
+            print("🎨 [CustomInApp] Guard failed: userInfo'yu [String:Any] olarak cast edemedim.")
             return nil
         }
         
@@ -79,11 +87,15 @@ public class PaylisherCustomInAppNotificationManager {
     }
 
     public func customInAppFunction(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) {
-        
+
+        print("🎨 [CustomInApp] customInAppFunction called")
+        print("🎨 [CustomInApp] windowScene: \(windowScene == nil ? "nil ⚠️" : "exists ✅")")
+
         guard let payload = parseInAppPayload(from: userInfo, windowScene: windowScene) else {
-            print("Payload parse edilemedi.")
+            print("🎨 [CustomInApp] Payload parse edilemedi - returning early")
             return
         }
+        print("🎨 [CustomInApp] Payload parsed successfully")
         
        
         let lang = payload.defaultLang ?? "en"
@@ -111,20 +123,29 @@ public class PaylisherCustomInAppNotificationManager {
                 print("active: ", close.active ?? "")
                 
                 let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
-//#if IOS
-//                styleVC.modalPresentationStyle = .overFullScreen
-                        
-//                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
-//                    rootVC.present(styleVC, animated: false)
-//                }
-                
+
+                print("🎨 [CustomInApp] Attempting to present StyleViewController...")
+                print("🎨 [CustomInApp] windowScene: \(windowScene == nil ? "nil ⚠️" : "exists ✅")")
+
                 if windowScene != nil,
                    let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                    let rootVC = keyWindow.rootViewController {
-                       rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
-                       rootVC.present(styleVC, animated: false)
+                    print("✅ [CustomInApp] rootVC found: \(type(of: rootVC))")
+                    print("✅ [CustomInApp] Presenting StyleViewController NOW")
+                    rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
+                    rootVC.present(styleVC, animated: false) {
+                        print("✅ [CustomInApp] StyleViewController presented successfully!")
+                    }
+                } else {
+                    print("❌ [CustomInApp] FAILED to present StyleViewController!")
+                    if windowScene == nil {
+                        print("❌ [CustomInApp]   Reason: windowScene is nil")
+                    } else if windowScene?.windows.first(where: { $0.isKeyWindow }) == nil {
+                        print("❌ [CustomInApp]   Reason: No key window found")
+                    } else {
+                        print("❌ [CustomInApp]   Reason: No rootViewController on key window")
+                    }
                 }
-//#endif
 
             }
             
