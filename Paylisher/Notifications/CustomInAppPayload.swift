@@ -227,23 +227,25 @@ public struct CustomInAppPayload: Codable {
             
             
             enum Block: Codable {
-                
+
                 case text(TextBlock)
-                
+
                 case image(ImageBlock)
-                
+
                 case spacer(SpacerBlock)
-                
+
                 case buttonGroup(ButtonGroupBlock)
-                
+
+                case button(ButtonGroupBlock.ButtonBlock)
+
                 private enum CodingKeys: String, CodingKey {
                     case type
                 }
-                
+
                 init(from decoder: Decoder) throws {
                     let container = try decoder.container(keyedBy: CodingKeys.self)
                     let blockType = try container.decode(String.self, forKey: .type)
-                    
+
                     switch blockType {
                     case "text":
                         self = .text(try TextBlock(from: decoder))
@@ -253,6 +255,8 @@ public struct CustomInAppPayload: Codable {
                         self = .spacer(try SpacerBlock(from: decoder))
                     case "buttonGroup":
                         self = .buttonGroup(try ButtonGroupBlock(from: decoder))
+                    case "button":
+                        self = .button(try ButtonGroupBlock.ButtonBlock(from: decoder))
                     default:
                         throw DecodingError.dataCorruptedError(
                             forKey: .type,
@@ -261,7 +265,7 @@ public struct CustomInAppPayload: Codable {
                         )
                     }
                 }
-                
+
                 func encode(to encoder: Encoder) throws {
                     switch self {
                     case .text(let textBlock):
@@ -272,6 +276,8 @@ public struct CustomInAppPayload: Codable {
                         try spacerBlock.encode(to: encoder)
                     case .buttonGroup(let buttonGroupBlock):
                         try buttonGroupBlock.encode(to: encoder)
+                    case .button(let buttonBlock):
+                        try buttonBlock.encode(to: encoder)
                     }
                 }
             }
