@@ -256,6 +256,12 @@ public class PaylisherCustomInAppNotificationManager {
                                     print("----------------------------------")
                                 }
                             }
+
+                        case .button(let buttonBlock):
+                            print("----------------------------------")
+                            print("--------------Button Block---------------")
+                            print("labelButton: ", buttonBlock.label?[lang] ?? "")
+                            print("actionButton: ", buttonBlock.action ?? "")
                         }
                     }
                 }
