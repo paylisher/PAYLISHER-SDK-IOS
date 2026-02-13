@@ -265,12 +265,65 @@ public class NotificationManager {
                     geofenceNotification(userInfo, content, request, completion)
                     break
                 case .inApp:
-                    print("FCM customNotification inApp")
-                    
-                        PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
- 
+                    // ─── [PAYLISHER-INAPP] Giriş logu ───────────────────────────────────
+                    print("\n╔══════════════════════════════════════════════════════════╗")
+                    print("║          [PAYLISHER-INAPP] IN-APP MESAJ ALINDI           ║")
+                    print("╚══════════════════════════════════════════════════════════╝")
+                    print("[PAYLISHER-INAPP] Zaman: \(Date())")
+
+                    // Ham userInfo'nun tüm key-value'larını yaz
+                    print("\n[PAYLISHER-INAPP] ── Ham userInfo ──────────────────────────")
+                    for (key, value) in userInfo {
+                        print("  \(key): \(value)")
+                    }
+
+                    // layouts alanını güzel JSON olarak bas
+                    if let layoutsRaw = userInfo["layouts"] {
+                        print("\n[PAYLISHER-INAPP] ── layouts alanı (raw) ──────────────────")
+                        print("  Tip: \(type(of: layoutsRaw))")
+                        if let layoutsStr = layoutsRaw as? String,
+                           let data = layoutsStr.data(using: .utf8),
+                           let json = try? JSONSerialization.jsonObject(with: data),
+                           let pretty = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+                           let prettyStr = String(data: pretty, encoding: .utf8) {
+                            print("[PAYLISHER-INAPP] layouts JSON:\n\(prettyStr)")
+                        } else if let layoutsArr = layoutsRaw as? [[String: Any]],
+                                  let pretty = try? JSONSerialization.data(withJSONObject: layoutsArr, options: .prettyPrinted),
+                                  let prettyStr = String(data: pretty, encoding: .utf8) {
+                            print("[PAYLISHER-INAPP] layouts JSON:\n\(prettyStr)")
+                        } else {
+                            print("[PAYLISHER-INAPP] layouts parse edilemedi, raw: \(layoutsRaw)")
+                        }
+                    } else {
+                        print("\n[PAYLISHER-INAPP] ⚠️ userInfo içinde 'layouts' anahtarı YOK")
+                    }
+
+                    // native alanını bas
+                    if let nativeRaw = userInfo["native"] {
+                        print("\n[PAYLISHER-INAPP] ── native alanı ────────────────────────")
+                        if let nativeStr = nativeRaw as? String,
+                           let data = nativeStr.data(using: .utf8),
+                           let json = try? JSONSerialization.jsonObject(with: data),
+                           let pretty = try? JSONSerialization.data(withJSONObject: json, options: .prettyPrinted),
+                           let prettyStr = String(data: pretty, encoding: .utf8) {
+                            print("[PAYLISHER-INAPP] native JSON:\n\(prettyStr)")
+                        } else {
+                            print("[PAYLISHER-INAPP] native raw: \(nativeRaw)")
+                        }
+                    }
+
+                    print("\n[PAYLISHER-INAPP] ── Routing ───────────────────────────────")
+                    print("[PAYLISHER-INAPP] layoutType: \(userInfo["layoutType"] ?? "YOK")")
+                    print("[PAYLISHER-INAPP] defaultLang: \(userInfo["defaultLang"] ?? "YOK")")
+                    print("[PAYLISHER-INAPP] source: \(userInfo["source"] ?? "YOK")")
+                    print("[PAYLISHER-INAPP] gcm.message_id: \(userInfo["gcm.message_id"] ?? "YOK")")
+                    print("[PAYLISHER-INAPP] Native inApp manager çağrılıyor...")
+                    PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+                    print("[PAYLISHER-INAPP] Custom inApp parsePayload çağrılıyor...")
+                    PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
+                    print("[PAYLISHER-INAPP] Custom inApp function çağrılıyor...")
+                    PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+                    print("[PAYLISHER-INAPP] ── İşlem tamamlandı ─────────────────────\n")
                     break
            
                 case .none:

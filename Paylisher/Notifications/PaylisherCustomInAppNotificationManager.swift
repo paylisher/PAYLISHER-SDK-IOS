@@ -20,70 +20,138 @@ public class PaylisherCustomInAppNotificationManager {
     }
     
    public func parseInAppPayload(from userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) -> CustomInAppPayload? {
-       
+
+        print("\n[PAYLISHER-INAPP] ── parseInAppPayload başladı ────────────────")
+
         guard let stringKeyedInfo = userInfo as? [String: Any] else {
-            print("userInfo'yu [String:Any] olarak cast edemedim.")
+            print("[PAYLISHER-INAPP] ❌ HATA: userInfo'yu [String:Any] olarak cast edemedim.")
+            print("[PAYLISHER-INAPP]    userInfo tipleri: \(userInfo.map { "\($0.key): \(type(of: $0.value))" })")
             return nil
         }
-        
-        
+
+        print("[PAYLISHER-INAPP] ✅ userInfo cast başarılı. Toplam key sayısı: \(stringKeyedInfo.count)")
+
         var normalizedInfo = [String: Any]()
-        
+
         for (key, value) in stringKeyedInfo {
-            
+
             if key == "layouts" {
-            
+                print("[PAYLISHER-INAPP] 'layouts' anahtarı bulundu. Değer tipi: \(type(of: value))")
+
                 if let layoutsString = value as? String {
-                    
+                    print("[PAYLISHER-INAPP] layouts String olarak geldi, JSON parse ediliyor...")
+                    print("[PAYLISHER-INAPP] layouts ham string (ilk 500 karakter): \(String(layoutsString.prefix(500)))")
+
                     if let data = layoutsString.data(using: .utf8) {
                         do {
-                          
                             if let arrayObject = try JSONSerialization.jsonObject(with: data, options: []) as? [[String: Any]] {
                                 normalizedInfo[key] = arrayObject
+                                print("[PAYLISHER-INAPP] ✅ layouts String → [[String:Any]] dönüşümü başarılı. Layout sayısı: \(arrayObject.count)")
+                                // Her layout'un block sayısını logla
+                                for (i, layout) in arrayObject.enumerated() {
+                                    if let blocks = layout["blocks"] as? [String: Any],
+                                       let order = blocks["order"] as? [[String: Any]] {
+                                        print("[PAYLISHER-INAPP]   Layout[\(i)] → \(order.count) blok, tipleri: \(order.compactMap { $0["type"] as? String })")
+                                    } else {
+                                        print("[PAYLISHER-INAPP]   Layout[\(i)] → blocks.order parse edilemedi")
+                                    }
+                                }
                             } else {
-                                
-                                print("layouts string, fakat array'e parse edilemedi")
-                                
+                                print("[PAYLISHER-INAPP] ⚠️ UYARI: layouts string, [[String:Any]] array'e parse edilemedi. Ham değer korunuyor.")
                                 normalizedInfo[key] = value
                             }
                         } catch {
-                            print("layouts'u parse ederken hata:", error)
+                            print("[PAYLISHER-INAPP] ❌ HATA: layouts JSON parse hatası: \(error)")
                             normalizedInfo[key] = value
                         }
                     } else {
-                        
+                        print("[PAYLISHER-INAPP] ❌ HATA: layouts string'i Data'ya çeviremedim.")
                         normalizedInfo[key] = value
                     }
-                }
-                
-                else {
+                } else if let layoutsArray = value as? [[String: Any]] {
+                    // Zaten array gelmiş
+                    normalizedInfo[key] = layoutsArray
+                    print("[PAYLISHER-INAPP] ✅ layouts zaten [[String:Any]] olarak geldi. Layout sayısı: \(layoutsArray.count)")
+                } else {
+                    print("[PAYLISHER-INAPP] ⚠️ UYARI: layouts beklenmeyen tipte: \(type(of: value)). Ham değer korunuyor.")
                     normalizedInfo[key] = value
                 }
             } else {
-                
                 normalizedInfo[key] = value
             }
         }
-        
-        
+
+        print("\n[PAYLISHER-INAPP] ── Normalize edilmiş payload JSON decode ediliyor ──")
+
         do {
             let data = try JSONSerialization.data(withJSONObject: normalizedInfo, options: [])
-            
+
+            // Tüm normalize payload'u güzel JSON olarak logla
+            if let prettyData = try? JSONSerialization.data(withJSONObject: normalizedInfo, options: .prettyPrinted),
+               let prettyStr = String(data: prettyData, encoding: .utf8) {
+                print("[PAYLISHER-INAPP] Normalize edilmiş payload (pretty JSON):\n\(prettyStr)")
+            }
+
             let decoder = JSONDecoder()
             let payload = try decoder.decode(CustomInAppPayload.self, from: data)
+
+            print("\n[PAYLISHER-INAPP] ✅ CustomInAppPayload decode BAŞARILI")
+            print("[PAYLISHER-INAPP]   defaultLang : \(payload.defaultLang ?? "nil")")
+            print("[PAYLISHER-INAPP]   layoutType  : \(payload.layoutType ?? "nil")")
+            print("[PAYLISHER-INAPP]   layout sayısı: \(payload.layouts?.count ?? 0)")
+            if let layouts = payload.layouts {
+                for (i, layout) in layouts.enumerated() {
+                    let blockCount = layout.blocks?.order?.count ?? 0
+                    let blockTypes = layout.blocks?.order?.map { block -> String in
+                        switch block {
+                        case .image: return "image"
+                        case .text: return "text"
+                        case .spacer: return "spacer"
+                        case .buttonGroup: return "buttonGroup"
+                        }
+                    } ?? []
+                    print("[PAYLISHER-INAPP]   Layout[\(i)]: \(blockCount) blok → \(blockTypes)")
+                }
+            }
+
             return payload
         } catch {
-            print("InAppPayload decode error:", error)
+            print("\n[PAYLISHER-INAPP] ❌ HATA: CustomInAppPayload decode BAŞARISIZ")
+            print("[PAYLISHER-INAPP]   Hata detayı: \(error)")
+            if let decodingError = error as? DecodingError {
+                switch decodingError {
+                case .keyNotFound(let key, let context):
+                    print("[PAYLISHER-INAPP]   Eksik key: '\(key.stringValue)' – \(context.debugDescription)")
+                case .typeMismatch(let type, let context):
+                    print("[PAYLISHER-INAPP]   Tip uyuşmazlığı: beklenen \(type) – \(context.debugDescription)")
+                    print("[PAYLISHER-INAPP]   CodingPath: \(context.codingPath.map { $0.stringValue }.joined(separator: " → "))")
+                case .valueNotFound(let type, let context):
+                    print("[PAYLISHER-INAPP]   Değer bulunamadı: \(type) – \(context.debugDescription)")
+                case .dataCorrupted(let context):
+                    print("[PAYLISHER-INAPP]   Bozuk veri: \(context.debugDescription)")
+                @unknown default:
+                    print("[PAYLISHER-INAPP]   Bilinmeyen decode hatası: \(decodingError)")
+                }
+            }
             return nil
         }
     }
 
     public func customInAppFunction(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) {
-        
+
+        print("\n[PAYLISHER-INAPP] ── customInAppFunction başladı ──────────────")
+
         guard let payload = parseInAppPayload(from: userInfo, windowScene: windowScene) else {
-            print("Payload parse edilemedi.")
+            print("[PAYLISHER-INAPP] ❌ HATA: Payload parse edilemedi. customInAppFunction durduruluyor.")
+            print("[PAYLISHER-INAPP]    Olası nedenler:")
+            print("[PAYLISHER-INAPP]    1) 'layouts' alanı eksik veya yanlış formatta")
+            print("[PAYLISHER-INAPP]    2) Block tipleri yanlış ('button' yerine 'buttonGroup' olmalı)")
+            print("[PAYLISHER-INAPP]    3) Alan adları uyuşmuyor (örn. 'imageUrl' yerine 'url' bekleniyor)")
+            print("[PAYLISHER-INAPP]    4) Stil alanları content altında değil root'ta olmalı")
             return
         }
+
+        print("[PAYLISHER-INAPP] ✅ Payload parse edildi. UI oluşturuluyor...")
         
        
         let lang = payload.defaultLang ?? "en"
@@ -121,8 +189,17 @@ public class PaylisherCustomInAppNotificationManager {
                 if windowScene != nil,
                    let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                    let rootVC = keyWindow.rootViewController {
+                       print("[PAYLISHER-INAPP] ✅ windowScene bulundu. StyleViewController sunuluyor...")
+                       print("[PAYLISHER-INAPP]   rootVC: \(type(of: rootVC))")
                        rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
                        rootVC.present(styleVC, animated: false)
+                       print("[PAYLISHER-INAPP] ✅ present() çağrıldı.")
+                } else {
+                    print("[PAYLISHER-INAPP] ❌ HATA: windowScene veya rootViewController bulunamadı.")
+                    print("[PAYLISHER-INAPP]   windowScene nil mi? \(windowScene == nil)")
+                    if let ws = windowScene {
+                        print("[PAYLISHER-INAPP]   keyWindow bulundu mu? \(ws.windows.first(where: { $0.isKeyWindow }) != nil)")
+                    }
                 }
 //#endif
 
