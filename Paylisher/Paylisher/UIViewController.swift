@@ -43,7 +43,14 @@
         }
 
         static func getViewControllerName(_ viewController: UIViewController) -> String? {
-            var title: String? = String(describing: viewController.classForCoder).replacingOccurrences(of: "ViewController", with: "")
+            let className = String(describing: viewController.classForCoder)
+            
+            // Check for mapped screen name first
+            if let mappedName = PaylisherScreenMapper.shared.screenName(for: className) {
+                return mappedName
+            }
+            
+            var title: String? = className.replacingOccurrences(of: "ViewController", with: "")
 
             if title?.isEmpty == true {
                 title = viewController.title ?? nil
