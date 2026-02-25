@@ -678,8 +678,18 @@ import UIKit
             properties[key] = value
         }
 
-        // deeplink_key is managed as a session-level super property by the app
-        // via register()/unregister(). No person profile write needed.
+        // ⭐ AUTOMATIC SESSION PROPERTY: Set deeplink_key as session property
+        // This enables User Path filtering in Paylisher analytics
+        // The session property persists for the entire session, allowing:
+        // - Session-level filtering by campaign key
+        // - Proper user journey tracking starting from deeplink
+        // - No need for manual $set_once in app code
+        if let keyName = deepLink.campaignKeyName {
+            properties["$set_once"] = [
+                "deeplink_key": keyName
+            ]
+            log("Setting session property: deeplink_key = \(keyName)")
+        }
 
         // Capture event via Paylisher SDK
         PaylisherSDK.shared.capture("Deep Link Opened", properties: properties)

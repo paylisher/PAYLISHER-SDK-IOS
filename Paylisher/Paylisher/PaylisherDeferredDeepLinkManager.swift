@@ -452,8 +452,21 @@ public class PaylisherDeferredDeepLinkManager {
         // Add additional properties from config
         properties.merge(config.additionalEventProperties) { (_, new) in new }
 
-        // deeplink_key is managed as a session-level super property by the app
-        // via register()/unregister(). No person profile write needed.
+        // ⭐ AUTOMATIC SESSION PROPERTY: Set deeplink_key as session property
+        // This enables User Path filtering in Paylisher analytics
+        // The session property persists for the entire session, allowing:
+        // - Session-level filtering by campaign key
+        // - Proper user journey tracking starting from deferred deeplink
+        // - Attribution of all session events to the campaign
+        if let campaignKey = response.campaignKey, !campaignKey.isEmpty {
+            properties["$set_once"] = [
+                "deeplink_key": campaignKey
+            ]
+
+            if config.debugLogging {
+                hedgeLog("[PaylisherDeferredDeepLink] Setting session property: deeplink_key = \(campaignKey)")
+            }
+        }
 
         // Capture event
         PaylisherSDK.shared.capture(
