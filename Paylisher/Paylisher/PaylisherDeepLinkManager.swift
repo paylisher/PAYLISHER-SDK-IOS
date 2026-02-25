@@ -77,26 +77,67 @@ import UIKit
         super.init()
     }
     
-    /// Whether this is a short link from link.usepublisher.com that requires backend resolution
+    /// Short link domain'leri (test + prod)
+    private static let shortLinkHosts: Set<String> = [
+        "link.usepublisher.com",  // test
+        "link.paylisher.com"      // prod
+    ]
+
+    /// Whether this is a short link that requires backend resolution
     @objc public var isShortLink: Bool {
-        return url.host == "link.usepublisher.com"
+        guard let host = url.host else { return false }
+        return PaylisherDeepLink.shortLinkHosts.contains(host)
     }
 
-    /// The effective navigation destination.
-    /// For short links (link.usepublisher.com), returns the host from the resolved iosUrl (e.g. "profile").
-    /// Falls back to the raw `destination` when campaignData is not yet available.
+    /// The effective navigation destination after campaign resolution.
+    ///
+    /// Priority:
+    ///   1. `scheme`        – custom scheme URL   (e.g. "diyetim://profile"               → "profile")
+    ///   2. `iosUrl`        – custom scheme URL   (e.g. "diyetim://profile"               → "profile")
+    ///   3. `iosUniversalUrl` – iOS Universal Link (e.g. "https://studio.paylisher.com/profile" → "profile")
+    ///   4. `iosUrl`        – universal/web URL   (last path component)
+    ///   5. raw `destination` (fallback)
     @objc public var resolvedDestination: String {
-        if let iosUrl = campaignData?.iosUrl,
-           !iosUrl.isEmpty,
-           let resolved = URL(string: iosUrl) {
-            if resolved.scheme == "https" || resolved.scheme == "http" {
-                let path = resolved.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
-                return path.isEmpty ? destination : path
+        guard let data = campaignData else { return destination }
+
+        // Helper: URL'den navigation route'unu çıkar
+        func route(from urlString: String) -> String? {
+            guard !urlString.isEmpty, let parsed = URL(string: urlString) else { return nil }
+            if parsed.scheme != "https" && parsed.scheme != "http" {
+                // Custom scheme → host = route  (diyetim://profile → "profile")
+                return parsed.host.flatMap { $0.isEmpty ? nil : $0 }
             } else {
-                // Custom scheme URL: use host as route (e.g. "diyetim://profile" → "profile")
-                return resolved.host ?? destination
+                // Universal/web link → son path component  (https://x.com/profile → "profile")
+                let parts = parsed.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                    .components(separatedBy: "/")
+                    .filter { !$0.isEmpty }
+                return parts.last
             }
         }
+
+        // 1. scheme alanı (custom scheme öncelikli)
+        if let s = data.scheme, let r = route(from: s),
+           URL(string: s)?.scheme != "https", URL(string: s)?.scheme != "http" {
+            return r
+        }
+
+        // 2. iosUrl – custom scheme
+        if let u = data.iosUrl, let parsed = URL(string: u),
+           parsed.scheme != "https" && parsed.scheme != "http",
+           let r = route(from: u) {
+            return r
+        }
+
+        // 3. iosUniversalUrl
+        if let u = data.iosUniversalUrl, let r = route(from: u) {
+            return r
+        }
+
+        // 4. iosUrl – universal/web link
+        if let u = data.iosUrl, let r = route(from: u) {
+            return r
+        }
+
         return destination
     }
 
@@ -533,8 +574,8 @@ import UIKit
         // 3️⃣ Single path component
         if pathParts.count == 1 {
             let potentialKey = pathParts[0]
-            // Short link domain (e.g. https://link.usepublisher.com/nARvW): accept any non-empty key
-            if let host = url.host, host == "link.usepublisher.com" {
+            // Short link domain (test: link.usepublisher.com, prod: link.paylisher.com): accept any non-empty key
+            if let host = url.host, PaylisherDeepLink.shortLinkHosts.contains(host) {
                 return potentialKey
             }
             // General case: require at least 4 characters to avoid false positives
