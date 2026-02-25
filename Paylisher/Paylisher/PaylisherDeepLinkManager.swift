@@ -229,7 +229,19 @@ import UIKit
         }
         
         log("Handling URL: \(url.absoluteString)")
-        
+
+        // Bridge page: short link domain'den gelen /bridge ile biten URL'ler tarayıcıda açılmalı.
+        // Bu URL'ler landing page'dir; içindeki "Uygulamayı Aç" butonu scheme/universal link'i tetikler.
+        if let host = url.host,
+           PaylisherDeepLink.shortLinkHosts.contains(host),
+           url.pathComponents.last == "bridge" {
+            log("Bridge URL detected, opening in Safari: \(url.absoluteString)")
+            DispatchQueue.main.async {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            }
+            return false
+        }
+
         // Parse the URL
         guard let deepLink = parseURL(url) else {
             log("Failed to parse URL: \(url.absoluteString)")
