@@ -92,11 +92,11 @@ import UIKit
     /// The effective navigation destination after campaign resolution.
     ///
     /// Priority:
-    ///   1. `scheme`        – custom scheme URL   (e.g. "diyetim://profile"               → "profile")
-    ///   2. `iosUrl`        – custom scheme URL   (e.g. "diyetim://profile"               → "profile")
-    ///   3. `iosUniversalUrl` – iOS Universal Link (e.g. "https://studio.paylisher.com/profile" → "profile")
-    ///   4. `iosUrl`        – universal/web URL   (last path component)
-    ///   5. raw `destination` (fallback)
+    ///   1. `scheme`          – custom scheme URL   (e.g. "diyetim://profile"                   → "profile")
+    ///   2. `iosUniversalUrl` – iOS Universal Link  (e.g. "https://studio.paylisher.com/profile" → "profile")
+    ///   3. raw `destination` (fallback)
+    ///
+    /// Note: `iosUrl` is the App Store link — not used for in-app navigation.
     @objc public var resolvedDestination: String {
         guard let data = campaignData else { return destination }
 
@@ -107,7 +107,7 @@ import UIKit
                 // Custom scheme → host = route  (diyetim://profile → "profile")
                 return parsed.host.flatMap { $0.isEmpty ? nil : $0 }
             } else {
-                // Universal/web link → son path component  (https://x.com/profile → "profile")
+                // Universal link → son path component  (https://studio.paylisher.com/profile → "profile")
                 let parts = parsed.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
                     .components(separatedBy: "/")
                     .filter { !$0.isEmpty }
@@ -115,28 +115,11 @@ import UIKit
             }
         }
 
-        // 1. scheme alanı (custom scheme öncelikli)
-        if let s = data.scheme, let r = route(from: s),
-           URL(string: s)?.scheme != "https", URL(string: s)?.scheme != "http" {
-            return r
-        }
+        // 1. scheme alanı (custom scheme, örn: diyetim://profile)
+        if let s = data.scheme, let r = route(from: s) { return r }
 
-        // 2. iosUrl – custom scheme
-        if let u = data.iosUrl, let parsed = URL(string: u),
-           parsed.scheme != "https" && parsed.scheme != "http",
-           let r = route(from: u) {
-            return r
-        }
-
-        // 3. iosUniversalUrl
-        if let u = data.iosUniversalUrl, let r = route(from: u) {
-            return r
-        }
-
-        // 4. iosUrl – universal/web link
-        if let u = data.iosUrl, let r = route(from: u) {
-            return r
-        }
+        // 2. iosUniversalUrl (örn: https://studio.paylisher.com/profile)
+        if let u = data.iosUniversalUrl, let r = route(from: u) { return r }
 
         return destination
     }
