@@ -77,8 +77,31 @@ import UIKit
         super.init()
     }
     
+    /// Whether this is a short link from link.usepublisher.com that requires backend resolution
+    @objc public var isShortLink: Bool {
+        return url.host == "link.usepublisher.com"
+    }
+
+    /// The effective navigation destination.
+    /// For short links (link.usepublisher.com), returns the host from the resolved iosUrl (e.g. "profile").
+    /// Falls back to the raw `destination` when campaignData is not yet available.
+    @objc public var resolvedDestination: String {
+        if let iosUrl = campaignData?.iosUrl,
+           !iosUrl.isEmpty,
+           let resolved = URL(string: iosUrl) {
+            if resolved.scheme == "https" || resolved.scheme == "http" {
+                let path = resolved.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                return path.isEmpty ? destination : path
+            } else {
+                // Custom scheme URL: use host as route (e.g. "diyetim://profile" → "profile")
+                return resolved.host ?? destination
+            }
+        }
+        return destination
+    }
+
     public override var description: String {
-        return "PaylisherDeepLink(destination: \(destination), scheme: \(scheme), params: \(parameters))"
+        return "PaylisherDeepLink(destination: \(destination), resolvedDestination: \(resolvedDestination), scheme: \(scheme), params: \(parameters))"
     }
 }
 
@@ -219,7 +242,36 @@ import UIKit
             log("Journey ID set: \(jid)")
         }
 
-        // ✅ CAMPAIGN RESOLUTION: Fetch campaign data if keyName present
+        // ✅ SHORT LINK: resolve FIRST, then notify handler (so app gets real destination)
+        if let keyName = deepLink.campaignKeyName, deepLink.isShortLink {
+            Task {
+                await resolveCampaign(for: deepLink, keyName: keyName)
+
+                if self.config.captureDeepLinkEvents {
+                    self.captureDeepLinkEvent(deepLink)
+                }
+
+                // Notify handler AFTER resolution so campaignData is available
+                let requiresAuth = self.isAuthRequired(for: deepLink)
+                self.log("Short link resolved - iosUrl: \(deepLink.campaignData?.iosUrl ?? "nil"), notifying handler")
+
+                await MainActor.run {
+                    if self.config.autoHandleDeepLinks && requiresAuth {
+                        self.setPendingDeepLink(deepLink)
+                        if let authHandler = self.handler?.paylisherDeepLinkRequiresAuth {
+                            authHandler(deepLink) { [weak self] success in
+                                if success { self?.completePendingDeepLink() }
+                                else { self?.clearPendingDeepLink() }
+                            }
+                        }
+                    }
+                    self.handler?.paylisherDidReceiveDeepLink(deepLink, requiresAuth: requiresAuth)
+                }
+            }
+            return
+        }
+
+        // ✅ REGULAR DEEP LINK: resolve async in background, notify handler immediately
         if let keyName = deepLink.campaignKeyName {
             Task {
                 await resolveCampaign(for: deepLink, keyName: keyName)
@@ -240,13 +292,13 @@ import UIKit
         let requiresAuth = isAuthRequired(for: deepLink)
 
         log("Deep link parsed - destination: \(deepLink.destination), requiresAuth: \(requiresAuth), jid: \(deepLink.jid ?? "none")")
-        
+
         // Auto handle if enabled
         if config.autoHandleDeepLinks {
             if requiresAuth {
                 // Store as pending and request auth
                 setPendingDeepLink(deepLink)
-                
+
                 // Notify handler about auth requirement
                 if let authHandler = handler?.paylisherDeepLinkRequiresAuth {
                     authHandler(deepLink) { [weak self] success in
@@ -259,7 +311,7 @@ import UIKit
                 }
             }
         }
-        
+
         // Always notify handler
         handler?.paylisherDidReceiveDeepLink(deepLink, requiresAuth: requiresAuth)
     }
@@ -476,10 +528,15 @@ import UIKit
             }
         }
 
-        // 3️⃣ Single path component (e.g., paylisher://X7kdi5Yq9lTVOv46uHYtV)
+        // 3️⃣ Single path component
         if pathParts.count == 1 {
             let potentialKey = pathParts[0]
-            if potentialKey.count >= 10 {
+            // Short link domain (e.g. https://link.usepublisher.com/nARvW): accept any non-empty key
+            if let host = url.host, host == "link.usepublisher.com" {
+                return potentialKey
+            }
+            // General case: require at least 4 characters to avoid false positives
+            if potentialKey.count >= 4 {
                 return potentialKey
             }
         }
