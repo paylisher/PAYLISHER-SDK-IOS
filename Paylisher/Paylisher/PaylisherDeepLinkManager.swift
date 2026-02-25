@@ -78,7 +78,7 @@ import UIKit
     }
     
     /// Short link domain'leri (test + prod)
-    private static let shortLinkHosts: Set<String> = [
+    fileprivate static let shortLinkHosts: Set<String> = [
         "link.usepublisher.com",  // test
         "link.paylisher.com"      // prod
     ]
