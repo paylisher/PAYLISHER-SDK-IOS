@@ -458,7 +458,9 @@ import UIKit
         do {
             log("Resolving campaign: \(keyName)")
 
-            let campaignData = try await PaylisherCampaignAPI.resolve(keyName: keyName)
+            // Short link ise (link.usepublisher.com / link.paylisher.com) aynı domain üzerinden resolve et
+            let shortLinkHost: String? = deepLink.isShortLink ? deepLink.url.host : nil
+            let campaignData = try await PaylisherCampaignAPI.resolve(keyName: keyName, shortLinkHost: shortLinkHost)
             deepLink.campaignData = campaignData
 
             log("Campaign resolved successfully: \(campaignData.title ?? "Unknown")")
