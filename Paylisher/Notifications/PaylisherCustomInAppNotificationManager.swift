@@ -7,16 +7,76 @@
 
 import Foundation
 import UIKit
+import CryptoKit
 
 //@available(iOSApplicationExtension, unavailable)
 public class PaylisherCustomInAppNotificationManager {
     
     public static let shared = PaylisherCustomInAppNotificationManager()
+    private let inAppShownCacheKey = "com.paylisher.ios.inapp.shown"
+    private let inAppShownTTLSeconds: TimeInterval = 24 * 60 * 60
     
     
     
     private init() {
         
+    }
+
+    private func normalizedPushId(_ payload: CustomInAppPayload) -> String? {
+        let trimmed = payload.pushId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    private func fallbackInAppFingerprint(_ payload: CustomInAppPayload) -> String {
+        let displayTimePart = payload.condition?.displayTime ?? 0
+        let typePart = payload.layoutType ?? "modal"
+        if let firstLayout = payload.layouts?.first,
+           let data = try? JSONEncoder().encode(firstLayout) {
+            let digest = SHA256.hash(data: data)
+            let hash = digest.map { String(format: "%02x", $0) }.joined()
+            return "fallback:\(typePart):\(displayTimePart):\(hash)"
+        }
+        return "fallback:\(typePart):\(displayTimePart):\(payload.defaultLang ?? "en")"
+    }
+
+    private func dedupeKey(for payload: CustomInAppPayload) -> String {
+        if let pushId = normalizedPushId(payload) {
+            let displayTimePart = payload.condition?.displayTime ?? 0
+            return "pushId:\(pushId):display:\(displayTimePart)"
+        }
+        return fallbackInAppFingerprint(payload)
+    }
+
+    private func loadShownInAppCache() -> [String: TimeInterval] {
+        let now = Date().timeIntervalSince1970
+        let raw = UserDefaults.standard.dictionary(forKey: inAppShownCacheKey) as? [String: TimeInterval] ?? [:]
+        let filtered = raw.filter { $0.value > now }
+        if filtered.count != raw.count {
+            UserDefaults.standard.set(filtered, forKey: inAppShownCacheKey)
+        }
+        return filtered
+    }
+
+    private func dedupeExpiryTimestamp(for payload: CustomInAppPayload, now: TimeInterval) -> TimeInterval {
+        let ttlExpiry = now + inAppShownTTLSeconds
+        if let expireMs = payload.condition?.expireDate, expireMs > 0 {
+            let expireSeconds = TimeInterval(expireMs) / 1000.0
+            return min(ttlExpiry, expireSeconds)
+        }
+        return ttlExpiry
+    }
+
+    private func shouldPresentInApp(_ payload: CustomInAppPayload) -> Bool {
+        let key = dedupeKey(for: payload)
+        let now = Date().timeIntervalSince1970
+        var cache = loadShownInAppCache()
+        if let expiresAt = cache[key], expiresAt > now {
+            print("[Paylisher] skip duplicate in-app key=\(key)")
+            return false
+        }
+        cache[key] = dedupeExpiryTimestamp(for: payload, now: now)
+        UserDefaults.standard.set(cache, forKey: inAppShownCacheKey)
+        return true
     }
     
    public func parseInAppPayload(from userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) -> CustomInAppPayload? {
@@ -59,8 +119,15 @@ public class PaylisherCustomInAppNotificationManager {
                 else {
                     normalizedInfo[key] = value
                 }
+            } else if key == "condition" {
+                if let conditionString = value as? String,
+                   let data = conditionString.data(using: .utf8),
+                   let conditionObject = try? JSONSerialization.jsonObject(with: data, options: []) as? [String: Any] {
+                    normalizedInfo[key] = conditionObject
+                } else if let conditionObject = value as? [String: Any] {
+                    normalizedInfo[key] = conditionObject
+                }
             } else {
-                
                 normalizedInfo[key] = value
             }
         }
@@ -84,21 +151,19 @@ public class PaylisherCustomInAppNotificationManager {
             print("Payload parse edilemedi.")
             return
         }
-        
-       
+
+        // Delegate all routing & presentation to showCustomInApp
+        showCustomInApp(payload, windowScene: windowScene)
+
         let lang = payload.defaultLang ?? "en"
-      //  let layoutType = payload.layoutType ?? "no-type"
-       // print("Default Lang:", lang)
-       // print("Layout Type:", layoutType)
-        
-        
+        let layoutType = payload.layoutType ?? "modal"
+        print("📐 [Paylisher] Layout Type:", layoutType)
+
         if let layouts = payload.layouts, !layouts.isEmpty {
             let firstLayout = layouts[0]
-            
-            
-            
+
             print("--------------Style---------------")
-            
+
             if let style = firstLayout.style, let close = firstLayout.close, let extra = firstLayout.extra, let blocks = firstLayout.blocks {
                 print("navigationalArrows: ", style.navigationalArrows ?? "")
                 print("radius: ", style.radius ?? "")
@@ -109,23 +174,7 @@ public class PaylisherCustomInAppNotificationManager {
                 print("verticalPosition: ", style.verticalPosition ?? "")
                 print("horizontalPosition: ", style.horizontalPosition ?? "boş")
                 print("active: ", close.active ?? "")
-                
-                let styleVC = StyleViewController(style: style, close: close, extra: extra, blocks: blocks, defaultLang: lang)
-//#if IOS
-//                styleVC.modalPresentationStyle = .overFullScreen
-                        
-//                if let rootVC = UIApplication.shared.windows.first?.rootViewController {
-//                    rootVC.present(styleVC, animated: false)
-//                }
-                
-                if windowScene != nil,
-                   let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
-                   let rootVC = keyWindow.rootViewController {
-                       rootVC.modalPresentationStyle = UIModalPresentationStyle.overFullScreen
-                       rootVC.present(styleVC, animated: false)
-                }
-//#endif
-
+                let _ = (style, close, extra, blocks) // suppress unused-variable warning
             }
             
             
@@ -139,7 +188,7 @@ public class PaylisherCustomInAppNotificationManager {
                 print("position: ", close.position ?? "")
                 print("iconColor: ", close.icon?.color ?? "")
                 print("iconStyle: ", close.icon?.style ?? "")
-                print("textLabel: ", close.text?.label![lang] ?? "")
+                print("textLabel: ", close.text?.label?[lang] ?? "")
                 print("textFontSize: ", close.text?.fontSize ?? "")
                 print("textColor: ", close.text?.color ?? "")
                 
@@ -194,7 +243,7 @@ public class PaylisherCustomInAppNotificationManager {
                             print("--------------Text Block---------------")
                             print("typeText: ", textBlock.type ?? "")
                             print("orderText: ", textBlock.order ?? "")
-                            print("contentText: ", textBlock.content![lang]!)
+                            print("contentText: ", textBlock.content?[lang] ?? textBlock.content?.values.first ?? "")
                             print("actionText: ", textBlock.action ?? "")
                             print("fontFamilyText: ", textBlock.fontFamily ?? "")
                             print("fontWeightText: ", textBlock.fontWeight ?? "")
@@ -212,12 +261,12 @@ public class PaylisherCustomInAppNotificationManager {
                             print("typeButtonGroup: ", buttonGroupBlock.type ?? "")
                             print("orderButtonGroup: ", buttonGroupBlock.order ?? "")
                             print("buttonGroupTypeButtonGroup: ", buttonGroupBlock.buttonGroupType ?? "")
-                            
+
                             if let buttonsArray = buttonGroupBlock.buttons{
-                                
+
                                 for button in buttonsArray {
-                                    
-                                    print("labelButtonGroup: ", button.label![lang]!)
+
+                                    print("labelButtonGroup: ", button.label?[lang] ?? button.label?.values.first ?? "")
                                     print("actionButtonGroup: ", button.action ?? "")
                                     print("fontFamilyButtonGroup: ", button.fontFamily ?? "")
                                     print("fontWeightButtonGroup: ", button.fontWeight ?? "")
@@ -235,6 +284,31 @@ public class PaylisherCustomInAppNotificationManager {
                                     print("----------------------------------")
                                 }
                             }
+
+                        case .button(let buttonBlock):
+                            print("----------------------------------")
+                            print("--------------Button Block---------------")
+                            print("labelButton: ", buttonBlock.label?[lang] ?? "")
+                            print("actionButton: ", buttonBlock.action ?? "")
+                            print("fontFamilyButton: ", buttonBlock.fontFamily ?? "")
+                            print("fontWeightButton: ", buttonBlock.fontWeight ?? "")
+                            print("fontSizeButton: ", buttonBlock.fontSize ?? "")
+                            print("underscoreButton: ", buttonBlock.underscore ?? "")
+                            print("italicButton: ", buttonBlock.italic ?? "")
+                            print("textColorButton: ", buttonBlock.textColor ?? "")
+                            print("backgroundColorButton: ", buttonBlock.backgroundColor ?? "")
+                            print("borderColorButton: ", buttonBlock.borderColor ?? "")
+                            print("borderRadiusButton: ", buttonBlock.borderRadius ?? "")
+                            print("horizontalSizeButton: ", buttonBlock.horizontalSize ?? "")
+                            print("verticalSizeButton: ", buttonBlock.verticalSize ?? "")
+                            print("buttonPositionButton: ", buttonBlock.buttonPosition ?? "")
+                            print("marginButton: ", buttonBlock.margin ?? "")
+                            print("----------------------------------")
+
+                        case .unknown(let typeName):
+                            print("----------------------------------")
+                            print("⚠️ Unknown block type: \(typeName) - skipped")
+                            print("----------------------------------")
                         }
                     }
                 }
@@ -290,6 +364,62 @@ public class PaylisherCustomInAppNotificationManager {
     
     
     
+    /// Direct show method — accepts a pre-built CustomInAppPayload without JSON parsing.
+    /// Mirrors Android's InAppMessageHelper.showCustomInAppMessage* API for programmatic use.
+    public func showCustomInApp(_ payload: CustomInAppPayload, windowScene: UIWindowScene?) {
+        guard shouldPresentInApp(payload) else { return }
+
+        let lang       = payload.defaultLang ?? "en"
+        let layoutType = payload.layoutType ?? "modal"
+
+        guard let layouts = payload.layouts, !layouts.isEmpty else {
+            print("[Paylisher] showCustomInApp: payload has no layouts")
+            return
+        }
+
+        let vcToPresent: UIViewController
+
+        switch layoutType {
+        case "modal-carousel":
+            let carouselVC = CarouselInAppViewController(
+                layouts: layouts, defaultLang: lang, isFullscreen: false
+            )
+            carouselVC.modalPresentationStyle = .overFullScreen
+            vcToPresent = carouselVC
+
+        case "fullscreen-carousel":
+            let carouselVC = CarouselInAppViewController(
+                layouts: layouts, defaultLang: lang, isFullscreen: true
+            )
+            carouselVC.modalPresentationStyle = .overFullScreen
+            vcToPresent = carouselVC
+
+        default:
+            guard let firstLayout = layouts.first,
+                  let style  = firstLayout.style,
+                  let close  = firstLayout.close,
+                  let extra  = firstLayout.extra,
+                  let blocks = firstLayout.blocks else {
+                print("[Paylisher] showCustomInApp: payload missing required layout fields")
+                return
+            }
+            let styleVC = StyleViewController(
+                style: style, close: close, extra: extra,
+                blocks: blocks, defaultLang: lang, layoutType: layoutType
+            )
+            styleVC.modalPresentationStyle = .overFullScreen
+            vcToPresent = styleVC
+        }
+
+        DispatchQueue.main.async {
+            let scene = windowScene ?? (UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
+            guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
+                  let rootVC = keyWindow.rootViewController else { return }
+            rootVC.present(vcToPresent, animated: false)
+        }
+    }
+
    /* public func customInAppFunction(userInfo: [AnyHashable: Any]) {
 
         if let layoutString = userInfo["layouts"] as? String {

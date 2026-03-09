@@ -10,11 +10,64 @@ import Foundation
 
 public struct CustomInAppPayload: Codable {
    
+    let pushId: String?
+    let condition: Condition?
+
     let defaultLang: String?
    
     let layoutType: String?
    
     let layouts: [Layout]?
+
+    struct Condition: Codable {
+        let target: String?
+        let displayTime: Int64?
+        let expireDate: Int64?
+        let delay: Int?
+
+        private enum CodingKeys: String, CodingKey {
+            case target
+            case displayTime
+            case expireDate
+            case delay
+        }
+
+        init(from decoder: Decoder) throws {
+            let container = try decoder.container(keyedBy: CodingKeys.self)
+            self.target = try? container.decode(String.self, forKey: .target)
+            self.displayTime = Self.decodeInt64(container, forKey: .displayTime)
+            self.expireDate = Self.decodeInt64(container, forKey: .expireDate)
+            self.delay = Self.decodeInt(container, forKey: .delay)
+        }
+
+        private static func decodeInt64(
+            _ container: KeyedDecodingContainer<CodingKeys>,
+            forKey key: CodingKeys
+        ) -> Int64? {
+            if let raw = try? container.decode(String.self, forKey: key),
+               let value = Int64(raw) {
+                return value
+            }
+            if let value = try? container.decode(Int64.self, forKey: key) {
+                return value
+            }
+            if let value = try? container.decode(Int.self, forKey: key) {
+                return Int64(value)
+            }
+            return nil
+        }
+
+        private static func decodeInt(
+            _ container: KeyedDecodingContainer<CodingKeys>,
+            forKey key: CodingKeys
+        ) -> Int? {
+            if let raw = try? container.decode(String.self, forKey: key),
+               let value = Int(raw) {
+                return value
+            }
+            return try? container.decode(Int.self, forKey: key)
+        }
+    }
     
     
     struct Layout: Codable {
@@ -49,8 +102,10 @@ public struct CustomInAppPayload: Codable {
                 let container = try decoder.container(keyedBy: CodingKeys.self)
                 
                 // navigationalArrows
-                if let arrowsStr = try? container.decode(String.self, forKey: .navigationalArrows) {
-                    self.navigationalArrows = (arrowsStr == "true")
+                if let arrowsBool = try? container.decode(Bool.self, forKey: .navigationalArrows) {
+                    self.navigationalArrows = arrowsBool
+                } else if let arrowsStr = try? container.decode(String.self, forKey: .navigationalArrows) {
+                    self.navigationalArrows = (arrowsStr.lowercased() == "true")
                 } else {
                     self.navigationalArrows = false
                 }
@@ -227,23 +282,27 @@ public struct CustomInAppPayload: Codable {
             
             
             enum Block: Codable {
-                
+
                 case text(TextBlock)
-                
+
                 case image(ImageBlock)
-                
+
                 case spacer(SpacerBlock)
-                
+
                 case buttonGroup(ButtonGroupBlock)
-                
+
+                case button(ButtonGroupBlock.ButtonBlock)
+
+                case unknown(String)
+
                 private enum CodingKeys: String, CodingKey {
                     case type
                 }
-                
+
                 init(from decoder: Decoder) throws {
                     let container = try decoder.container(keyedBy: CodingKeys.self)
                     let blockType = try container.decode(String.self, forKey: .type)
-                    
+
                     switch blockType {
                     case "text":
                         self = .text(try TextBlock(from: decoder))
@@ -253,15 +312,14 @@ public struct CustomInAppPayload: Codable {
                         self = .spacer(try SpacerBlock(from: decoder))
                     case "buttonGroup":
                         self = .buttonGroup(try ButtonGroupBlock(from: decoder))
+                    case "button":
+                        self = .button(try ButtonGroupBlock.ButtonBlock(from: decoder))
                     default:
-                        throw DecodingError.dataCorruptedError(
-                            forKey: .type,
-                            in: container,
-                            debugDescription: "Unknown block type: \(blockType)"
-                        )
+                        print("⚠️ [Paylisher] Unknown block type: \(blockType) - skipping")
+                        self = .unknown(blockType)
                     }
                 }
-                
+
                 func encode(to encoder: Encoder) throws {
                     switch self {
                     case .text(let textBlock):
@@ -272,6 +330,10 @@ public struct CustomInAppPayload: Codable {
                         try spacerBlock.encode(to: encoder)
                     case .buttonGroup(let buttonGroupBlock):
                         try buttonGroupBlock.encode(to: encoder)
+                    case .button(let buttonBlock):
+                        try buttonBlock.encode(to: encoder)
+                    case .unknown:
+                        break
                     }
                 }
             }
@@ -528,4 +590,3 @@ public struct CustomInAppPayload: Codable {
         }
     }
 }
-

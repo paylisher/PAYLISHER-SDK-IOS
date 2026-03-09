@@ -76,6 +76,11 @@ let maxRetryDelay = 30.0
         #endif
     }
 
+    /// SDK Version
+    @objc(sdkVersion) public static func version() -> String {
+        return "1.6.0"
+    }
+
     @objc public func debug(_ enabled: Bool = true) {
         if !isEnabled() {
             return
@@ -161,15 +166,201 @@ let maxRetryDelay = 30.0
             if config.preloadFeatureFlags {
                 reloadFeatureFlags()
             }
-            
+
+            // Setup deferred deep link manager if configured
+            if let deferredConfig = config.deferredDeepLinkConfig, deferredConfig.enabled {
+                PaylisherDeferredDeepLinkManager.setup(
+                    config: deferredConfig,
+                    apiKey: config.apiKey,
+                    sdkVersion: PaylisherSDK.version()
+                )
+                hedgeLog("[PaylisherSDK] Deferred Deep Link Manager initialized")
+            }
+
+            // Configure Heartbeat Manager for silent push / uninstall detection
+            PaylisherHeartbeatManager.shared.configure(
+                config: config,
+                api: theApi,
+                storage: theStorage
+            )
+            if config.enableHeartbeat {
+                hedgeLog("[PaylisherSDK] Heartbeat Manager configured (endpoint: \(config.heartbeatEndpoint))")
+            }
+
             // Configure Firebase
             // FirebaseApp.configure();
             // Set the global uncaught exception handler
             ErrorHandlerRegistrar.setupGlobalErrorHandler()
         }
     }
- 
-    
+
+    // ============================================
+    // MARK: - Push Token & Heartbeat
+    // ============================================
+
+    /// Register FCM token for heartbeat / uninstall detection tracking.
+    ///
+    /// Call this from your `MessagingDelegate`'s
+    /// `messaging(_:didReceiveRegistrationToken:)` callback,
+    /// or after obtaining the token via `Messaging.messaging().token`.
+    ///
+    /// Since backend uses Firebase Admin SDK to send push notifications,
+    /// we need the **FCM token** (not the raw APNs device token).
+    ///
+    /// Thread-safe. The token is persisted across app restarts.
+    /// Also captures a `$fcm_token_registered` event for token lifecycle tracking.
+    ///
+    /// - Parameter fcmToken: FCM registration token string.
+    @objc public func registerFCMToken(_ fcmToken: String) {
+        if !isEnabled() {
+            return
+        }
+
+        if fcmToken.isEmpty {
+            hedgeLog("[PaylisherSDK] registerFCMToken called with empty token. Ignoring.")
+            return
+        }
+
+        PaylisherHeartbeatManager.shared.setFCMToken(fcmToken)
+
+        // Capture token registration event for lifecycle tracking
+        capture("$fcm_token_registered", properties: [
+            "platform": "ios",
+            "token_length": fcmToken.count,
+        ])
+    }
+
+    /// Handle a silent push notification for heartbeat / uninstall detection.
+    ///
+    /// Call this from your AppDelegate's
+    /// `application(_:didReceiveRemoteNotification:fetchCompletionHandler:)` method.
+    ///
+    /// If the push is a Paylisher heartbeat, the SDK processes it internally
+    /// and calls `completionHandler` when done. If not, it returns `false`
+    /// and you should handle the push yourself.
+    ///
+    /// **Apple Compliance**: The `completionHandler` is guaranteed to be called
+    /// within 25 seconds (Apple's limit is ~30s). A timeout guard ensures
+    /// the handler is never leaked.
+    ///
+    /// **Thread Safety**: All internal state is protected by locks.
+    ///
+    /// - Parameters:
+    ///   - userInfo: The push notification payload.
+    ///   - completionHandler: The background fetch completion handler.
+    /// - Returns: `true` if the push was handled by Paylisher SDK.
+    @objc @discardableResult
+    public func handleSilentPush(
+        _ userInfo: [AnyHashable: Any],
+        completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) -> Bool {
+        if !isEnabled() {
+            return false
+        }
+
+        guard config.enableHeartbeat else {
+            return false
+        }
+
+        guard PaylisherHeartbeatManager.shared.isPaylisherHeartbeat(userInfo) else {
+            return false
+        }
+
+        hedgeLog("[PaylisherSDK] Silent heartbeat push received. Processing...")
+        PaylisherHeartbeatManager.shared.processHeartbeat(userInfo, completionHandler: completionHandler)
+        return true
+    }
+
+    // ============================================
+    // MARK: - Deep Links (embedded in PaylisherSDK)
+    // ============================================
+
+    /// Handle incoming deep link URL
+    /// - Parameter url: The URL to handle
+    /// - Returns: True if URL was handled successfully
+    @objc @discardableResult
+    public func handleDeepLink(_ url: URL) -> Bool {
+        return PaylisherDeepLinkManager.shared.handleURL(url)
+    }
+
+    #if os(iOS)
+    /// Handle URL contexts from SceneDelegate (iOS 13+)
+    /// - Parameter urlContexts: URL contexts from scene delegate
+    @available(iOS 13.0, *)
+    @objc public func handleURLContexts(_ urlContexts: Set<UIOpenURLContext>) {
+        PaylisherDeepLinkManager.shared.handleURLContexts(urlContexts)
+    }
+    #endif
+
+    /// Handle Universal Link from NSUserActivity
+    /// - Parameter userActivity: The user activity containing the URL
+    /// - Returns: True if handled, false otherwise
+    @objc @discardableResult
+    public func handleUserActivity(_ userActivity: NSUserActivity) -> Bool {
+        return PaylisherDeepLinkManager.shared.handleUserActivity(userActivity)
+    }
+
+    // MARK: - Deep Link Configuration
+
+    /// Configure deep link handling
+    /// - Parameter config: Deep link configuration
+    @objc public func configureDeepLinks(_ config: PaylisherDeepLinkConfig) {
+        PaylisherDeepLinkManager.shared.config = config
+        PaylisherDeepLinkManager.shared.initialize()
+    }
+
+    /// Configure deep link handling with auth-required destinations
+    /// - Parameter destinations: List of destinations requiring authentication
+    @objc public func configureDeepLinks(authRequired destinations: [String]) {
+        PaylisherDeepLinkManager.shared.setupWithAuthDestinations(destinations)
+    }
+
+    /// Set deep link handler
+    /// - Parameter handler: Object conforming to PaylisherDeepLinkHandler protocol
+    @objc public func setDeepLinkHandler(_ handler: PaylisherDeepLinkHandler) {
+        PaylisherDeepLinkManager.shared.handler = handler
+        PaylisherDeepLinkManager.shared.initialize()
+    }
+
+    // MARK: - Pending Deep Link
+
+    /// Check if there's a pending deep link
+    @objc public var hasPendingDeepLink: Bool {
+        return PaylisherDeepLinkManager.shared.hasPendingDeepLink()
+    }
+
+    /// Get pending deep link destination
+    @objc public var pendingDeepLinkDestination: String? {
+        return PaylisherDeepLinkManager.shared.getPendingDestination()
+    }
+
+    /// Complete pending deep link after authentication
+    @objc public func completePendingDeepLink() {
+        PaylisherDeepLinkManager.shared.completePendingDeepLink()
+    }
+
+    /// Clear pending deep link
+    @objc public func clearPendingDeepLink() {
+        PaylisherDeepLinkManager.shared.clearPendingDeepLink()
+    }
+
+    /// Cancel pending deep link (captures "Deep Link Cancelled" event)
+    @objc public func cancelPendingDeepLink() {
+        PaylisherDeepLinkManager.shared.cancelPendingDeepLink()
+    }
+
+    // MARK: - Deep Link Info
+
+    /// Get last processed deep link
+    @objc public var lastDeepLink: PaylisherDeepLink? {
+        return PaylisherDeepLinkManager.shared.lastDeepLink
+    }
+
+    /// Get current pending deep link
+    @objc public var pendingDeepLink: PaylisherDeepLink? {
+        return PaylisherDeepLinkManager.shared.pendingDeepLink
+    }
+
     @objc public func getDistinctId() -> String {
         if !isEnabled() {
             return ""
@@ -333,6 +524,19 @@ let maxRetryDelay = 30.0
             #endif
         }
 
+        // ✅ JOURNEY TRACKING: Add jid (Journey ID) if available
+        if let jid = PaylisherJourneyContext.shared.getJourneyId() {
+            props["jid"] = jid
+
+            // Add journey metadata
+            if let source = PaylisherJourneyContext.shared.getJourneySource() {
+                props["journey_source"] = source
+            }
+            if let ageHours = PaylisherJourneyContext.shared.getJourneyAgeHours() {
+                props["journey_age_hours"] = ageHours
+            }
+        }
+
         // only Session Replay needs distinct_id also in the props
         // remove after https://github.com/Paylisher/paylisher/pull/18954 gets merged
         let propDistinctId = props["distinct_id"] as? String
@@ -367,6 +571,12 @@ let maxRetryDelay = 30.0
             self.resetViews()
         }
         PaylisherSessionManager.shared.startSession()
+
+        // ✅ JOURNEY TRACKING: Clear jid on reset (logout)
+        PaylisherJourneyContext.shared.clearJourneyId()
+
+        // Reset heartbeat state (token will be re-registered on next app launch)
+        PaylisherHeartbeatManager.shared.reset()
 
         // reload flags as anon user
         reloadFeatureFlags()
@@ -1145,6 +1355,83 @@ let maxRetryDelay = 30.0
             return config.sessionReplay && isSessionActive() && (featureFlags?.isSessionReplayFlagActive() ?? false)
         }
     #endif
+
+    // MARK: - Deferred Deep Link
+
+    /**
+     * Checks for a deferred deep link match.
+     *
+     * This should be called in application:didFinishLaunchingWithOptions: to check
+     * if the app install should be attributed to a previous deep link click.
+     *
+     * Example:
+     * ```swift
+     * func application(_ application: UIApplication,
+     *                  didFinishLaunchingWithOptions launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+     *     // Setup SDK
+     *     PaylisherSDK.shared.setup(config)
+     *
+     *     // Check for deferred deep link
+     *     PaylisherSDK.shared.checkDeferredDeepLink(
+     *         onSuccess: { deepLink in
+     *             print("Deferred match: \(deepLink.url)")
+     *             // Auto-handled if autoHandleDeepLink = true
+     *         },
+     *         onNoMatch: {
+     *             print("No deferred match")
+     *         },
+     *         onError: { error in
+     *             print("Error: \(error)")
+     *         }
+     *     )
+     *
+     *     return true
+     * }
+     * ```
+     *
+     * @param onSuccess Called when a match is found. Receives the deferred deep link.
+     * @param onNoMatch Called when no match is found (normal first install).
+     * @param onError Called when an error occurs.
+     */
+    @objc public func checkDeferredDeepLink(
+        onSuccess: @escaping (PaylisherDeepLink) -> Void,
+        onNoMatch: @escaping () -> Void,
+        onError: @escaping (Error) -> Void
+    ) {
+        guard let deferredConfig = config.deferredDeepLinkConfig else {
+            hedgeLog("[PaylisherSDK] Deferred deep link not configured")
+            onNoMatch()
+            return
+        }
+
+        guard deferredConfig.enabled else {
+            hedgeLog("[PaylisherSDK] Deferred deep link disabled in config")
+            onNoMatch()
+            return
+        }
+
+        PaylisherDeferredDeepLinkManager.check(
+            config: deferredConfig,
+            apiKey: config.apiKey,
+            sdkVersion: PaylisherSDK.version(),
+            onSuccess: onSuccess,
+            onNoMatch: onNoMatch,
+            onError: onError
+        )
+    }
+
+    /**
+     * Resets deferred deep link check state (for testing only).
+     *
+     * ⚠️ WARNING: This is for testing purposes only!
+     */
+    public func resetDeferredDeepLinkForTesting() {
+        guard PaylisherDeferredDeepLinkManager.isSetup() else {
+            return
+        }
+
+        PaylisherDeferredDeepLinkManager.getInstance().resetForTesting()
+    }
 }
 
 // swiftlint:enable file_length cyclomatic_complexity

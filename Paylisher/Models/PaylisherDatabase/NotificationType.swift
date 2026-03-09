@@ -26,6 +26,7 @@ public enum NotificationType {
     case actionBased
     case geofence
     case inApp
+    case silentHeartbeat
 
     
     init?(rawValue: String) {
@@ -38,7 +39,8 @@ public enum NotificationType {
             self = .actionBased
         case "GEOFENCE":
             self = .geofence
-      
+        case "SILENT_HEARTBEAT":
+            self = .silentHeartbeat
         default:
             return nil
         }

@@ -7,10 +7,12 @@
 	<key>CFBundleURLTypes</key>
 	<array>
 		<dict>
-			<key>CFBundleURLSchemes</key>
-			<array>
-				<string>myapp</string>
-			</array>
+            <key>CFBundleURLName</key>
+            <string>com.paylisher.PaylisherExample</string>
+            <key>CFBundleURLSchemes</key>
+            <array>
+            <string>myapp</string>
+            </array>
 		</dict>
 	</array>
 	<key>FirebaseAppDelegateProxyEnabled</key>

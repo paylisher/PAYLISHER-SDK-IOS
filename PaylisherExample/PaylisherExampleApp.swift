@@ -15,6 +15,14 @@ struct PaylisherExampleApp: App {
         WindowGroup {
             ContentView()
                 .paylisherScreenView() // will infer the class name (ContentView)
+            
+            // NOT: Deep link handling ContentView içindeki .onOpenURL ile yapılıyor
+            // SDK kullanımı:
+            // 1. AppDelegate'de PaylisherSDK.shared.configureDeepLinks() çağrılıyor
+            // 2. AppDelegate PaylisherDeepLinkHandler protocol'ünü implement ediyor
+            // 3. ContentView'da .onOpenURL içinde PaylisherSDK.shared.handleDeepLink(url) çağrılıyor
+            // 4. SDK otomatik olarak "Deep Link Opened" eventi gönderiyor
+            // 5. AppDelegate'deki handler çağrılıyor ve navigation yapılıyor
         }
     }
 }
