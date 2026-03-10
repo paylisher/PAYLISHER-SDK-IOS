@@ -50,6 +50,26 @@
                 return mappedName
             }
             
+            // Handle SwiftUI's hosting controllers
+            let isSwiftUI = className.hasPrefix("UIHostingController") || className.hasPrefix("PresentationHostingController")
+            if isSwiftUI {
+                // 1. Try to get the title set via .navigationTitle() or UIViewController.title
+                if let viewTitle = viewController.title, !viewTitle.isEmpty {
+                    return viewTitle
+                }
+                if let navTitle = viewController.navigationItem.title, !navTitle.isEmpty {
+                    return navTitle
+                }
+                
+                // 2. Extract the innermost custom SwiftUI View name
+                if let cleanedName = extractSwiftUIViewName(from: className) {
+                    return cleanedName
+                }
+                
+                // If it's pure AnyView or unparseable, don't send a messy event
+                return nil
+            }
+            
             var title: String? = className.replacingOccurrences(of: "ViewController", with: "")
 
             if title?.isEmpty == true {
@@ -57,6 +77,32 @@
             }
 
             return title
+        }
+
+        static func extractSwiftUIViewName(from className: String) -> String? {
+            var name = className
+            if let range = name.range(of: "<") {
+                name = String(name[range.upperBound...])
+            }
+            if name.hasSuffix(">") {
+                name = String(name.dropLast())
+            }
+            
+            // Apple wrappers and modifiers we want to ignore
+            let appleWrappers: Set<String> = [
+                "ModifiedContent", "AnyView", "TupleView", "Optional",
+                "NavigationView", "VStack", "HStack", "ZStack",
+                "ScrollView", "List", "Group", "GeometryReader"
+            ]
+            
+            let components = name.components(separatedBy: CharacterSet.alphanumerics.inverted)
+            for component in components {
+                // Find the first meaningful custom struct name
+                if !component.isEmpty && !appleWrappers.contains(component) && !component.hasSuffix("Modifier") {
+                    return component.replacingOccurrences(of: "View", with: "")
+                }
+            }
+            return nil
         }
 
         private func captureScreenView(_ window: UIWindow?) {
