@@ -217,4 +217,79 @@ class PaylisherApi {
             }
         }.resume()
     }
+
+    // MARK: - Heartbeat
+
+    /// Send heartbeat acknowledgment to the backend.
+    ///
+    /// Uses a minimal JSON payload (no gzip) for fast round-trip.
+    /// The endpoint path is configurable via `PaylisherConfig.heartbeatEndpoint`.
+    ///
+    /// - Parameters:
+    ///   - distinctId: The current user's distinct ID
+    ///   - deviceToken: The APNs device token (hex string), if available
+    ///   - appState: Current application state (foreground/background/inactive)
+    ///   - completion: Called with (success: Bool, error: Error?)
+    func heartbeat(
+        distinctId: String,
+        deviceToken: String?,
+        appState: String,
+        completion: @escaping (Bool, Error?) -> Void
+    ) {
+        guard let url = URL(string: config.heartbeatEndpoint, relativeTo: config.host) else {
+            hedgeLog("Malformed heartbeat URL error.")
+            return completion(false, nil)
+        }
+
+        let sessionConfiguration = sessionConfig()
+        let request = getURL(url)
+
+        var toSend: [String: Any] = [
+            "api_key": self.config.apiKey,
+            "distinct_id": distinctId,
+            "timestamp": toISO8601String(Date()),
+            "platform": "ios",
+            "sdk_version": paylisherVersion,
+            "app_state": appState,
+        ]
+
+        if let deviceToken = deviceToken {
+            toSend["device_token"] = deviceToken
+        }
+
+        var data: Data?
+
+        do {
+            data = try JSONSerialization.data(withJSONObject: toSend)
+        } catch {
+            hedgeLog("Error parsing the heartbeat body: \(error)")
+            return completion(false, error)
+        }
+
+        URLSession(configuration: sessionConfiguration).uploadTask(with: request, from: data!) { data, response, error in
+            if let error = error {
+                hedgeLog("Error calling the heartbeat API: \(error.localizedDescription)")
+                return completion(false, error)
+            }
+
+            guard let httpResponse = response as? HTTPURLResponse else {
+                hedgeLog("Heartbeat: No HTTP response received.")
+                return completion(false, nil)
+            }
+
+            if 200 ... 299 ~= httpResponse.statusCode {
+                hedgeLog("Heartbeat ack sent successfully (HTTP \(httpResponse.statusCode)).")
+                completion(true, nil)
+            } else {
+                let bodyString: String
+                if let data = data {
+                    bodyString = String(data: data, encoding: .utf8) ?? "unreadable"
+                } else {
+                    bodyString = "empty"
+                }
+                hedgeLog("Heartbeat API error: HTTP \(httpResponse.statusCode), body: \(bodyString)")
+                completion(false, InternalPaylisherError(description: "Heartbeat failed with HTTP \(httpResponse.statusCode)"))
+            }
+        }.resume()
+    }
 }

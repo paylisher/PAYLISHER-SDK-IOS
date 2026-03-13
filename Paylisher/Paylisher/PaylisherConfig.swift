@@ -46,6 +46,17 @@ import UIKit
     /// Do not modify it, this flag is read and updated by the SDK via feature flags
     @objc public var snapshotEndpoint: String = "/s/"
 
+    // MARK: - Heartbeat / Silent Push
+    
+    /// Enable silent push heartbeat for uninstall detection.
+    /// When enabled, SDK will respond to silent heartbeat pushes with an alive signal.
+    /// Default: true
+    @objc public var enableHeartbeat: Bool = true
+    
+    /// Backend endpoint path for heartbeat acknowledgment.
+    /// Default: "/heartbeat"
+    @objc public var heartbeatEndpoint: String = "/heartbeat"
+    
     /// Deferred Deep Link Configuration
     /// Enable this to track install attribution via deferred deep links
     /// Default: nil (disabled)

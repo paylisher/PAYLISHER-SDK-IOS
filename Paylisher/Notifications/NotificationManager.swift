@@ -272,6 +272,11 @@ public class NotificationManager {
                         PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
  
                     break
+                case .silentHeartbeat:
+                    // Silent heartbeat: no notification shown, only backend ack
+                    // Processing is handled by PaylisherHeartbeatManager via PaylisherSDK.handleSilentPush()
+                    print("FCM customNotification silentHeartbeat - handled silently")
+                    break
            
                 case .none:
                     break

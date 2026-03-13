@@ -42,9 +42,9 @@ public class PaylisherNativeInAppNotificationManager {
         
         let actionText = nativeDict["actionText"] as? String ?? ""
         
-        let localizedTitle = titleDict[defaultLang] ?? titleDict.values.first ?? "No Title"
-        
-        let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? "No Body"
+        let localizedTitle = titleDict[defaultLang] ?? titleDict.values.first ?? ""
+
+        let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? ""
         
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         

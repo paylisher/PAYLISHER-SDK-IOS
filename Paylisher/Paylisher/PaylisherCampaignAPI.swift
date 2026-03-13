@@ -11,12 +11,22 @@ import Foundation
 public enum PaylisherCampaignAPI {
 
     /// Campaign keyName'e göre deeplink bilgilerini backend'den çeker
-    /// - Parameter keyName: Campaign key (örn: "X7kdi5Yq9lTVOv46uHYtV")
+    /// - Parameters:
+    ///   - keyName: Campaign key (örn: "nARvW" veya "X7kdi5Yq9lTVOv46uHYtV")
+    ///   - shortLinkHost: Short link domain (örn: "link.usepublisher.com").
+    ///     Verilirse o domain üzerinden /resolve/{key} çağrılır.
+    ///     Verilmezse api.paylisher.com/campaign/resolve/{key} kullanılır.
     /// - Returns: Resolve edilmiş deeplink payload
     /// - Throws: Network veya decode hataları
-    public static func resolve(keyName: String) async throws -> PaylisherResolvedDeepLinkPayload {
-        // Backend endpoint - JSON dönen public resolve API
-        let urlString = "https://api.paylisher.com/campaign/resolve/\(keyName)"
+    public static func resolve(keyName: String, shortLinkHost: String? = nil) async throws -> PaylisherResolvedDeepLinkPayload {
+        // Short link domain varsa: https://<host>/resolve/<key>
+        // Yoksa: https://api.paylisher.com/campaign/resolve/<key>
+        let urlString: String
+        if let host = shortLinkHost {
+            urlString = "https://\(host)/resolve/\(keyName)"
+        } else {
+            urlString = "https://api.paylisher.com/campaign/resolve/\(keyName)"
+        }
 
         guard let url = URL(string: urlString) else {
             throw PaylisherCampaignAPIError.invalidURL

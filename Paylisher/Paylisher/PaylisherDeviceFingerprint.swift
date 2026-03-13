@@ -45,13 +45,13 @@ internal class PaylisherDeviceFingerprint {
      * Algorithm (MUST match backend exactly):
      * 1. Device model (UIDevice.current.model) - e.g., "iPhone", "iPad"
      * 2. OS version (UIDevice.current.systemVersion) - e.g., "17.2"
-     * 3. Screen resolution (normalized) - e.g., "390x844" (min x max for orientation stability)
+     * 3. Screen width (orientation-safe physical pixels) - e.g., "1170" (min(widthPx, heightPx))
      * 4. Timezone (TimeZone.current.identifier) - e.g., "Europe/Istanbul"
      * 5. Language code (Locale.current.languageCode) - e.g., "tr" (NOT "tr_TR")
      *
      * Components are joined with "|" separator, then SHA-256 hashed to lowercase hex.
      *
-     * Example raw string: "iPhone|17.2|390x844|Europe/Istanbul|tr"
+     * Example raw string: "iPhone|17.2|1170|Europe/Istanbul|tr"
      * Example hash: "a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd"
      *
      * @return 64-character lowercase hex SHA-256 fingerprint string
@@ -79,18 +79,20 @@ internal class PaylisherDeviceFingerprint {
         components.append(osVersion)
         print("💿 [2/5] OS Version: \(osVersion)")
 
-        // 3. Screen resolution (normalized for orientation)
+        // 3. Screen width (orientation-safe, physical pixels)
+        // Uses bounds * scale to match web bridge's screen.width * devicePixelRatio.
+        // Height is excluded: browser screen.height * DPR differs from native heightPixels
+        // by ~2px due to status bar / nav bar calculation differences.
         let bounds = UIScreen.main.bounds
-        let width = bounds.width
-        let height = bounds.height
-        print("📐 [3/5] Screen Raw Dimensions: width=\(width), height=\(height)")
+        let scale = UIScreen.main.scale
+        let widthPx = Int(bounds.width * scale)
+        let heightPx = Int(bounds.height * scale)
+        print("📐 [3/5] Screen Raw Dimensions: widthPt=\(bounds.width), heightPt=\(bounds.height), scale=\(scale)")
 
-        // Normalize: always use min x max to handle orientation changes
-        let minDimension = Int(min(width, height))
-        let maxDimension = Int(max(width, height))
-        let screenResolution = "\(minDimension)x\(maxDimension)"
-        components.append(screenResolution)
-        print("📐 [3/5] Screen Resolution (normalized): \(screenResolution)")
+        // Normalize: always use min(widthPx, heightPx) to handle orientation changes
+        let screenWidth = String(min(widthPx, heightPx))
+        components.append(screenWidth)
+        print("📐 [3/5] Screen Width (orientation-safe): \(screenWidth)")
 
         // 4. Timezone identifier (e.g., "Europe/Istanbul")
         let timezone = TimeZone.current.identifier

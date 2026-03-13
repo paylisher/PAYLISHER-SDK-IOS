@@ -34,6 +34,8 @@ class PaylisherStorage {
         case sessionReplay = "paylisher.sessionReplay"
         case isIdentified = "paylisher.isIdentified"
         case personProcessingEnabled = "paylisher.enabledPersonProcessing"
+        case deviceToken = "paylisher.deviceToken"
+        case lastHeartbeatTimestamp = "paylisher.lastHeartbeatTimestamp"
     }
 
     private let config: PaylisherConfig
@@ -171,6 +173,8 @@ class PaylisherStorage {
         deleteSafely(url(forKey: .sessionReplay))
         deleteSafely(url(forKey: .isIdentified))
         deleteSafely(url(forKey: .personProcessingEnabled))
+        deleteSafely(url(forKey: .deviceToken))
+        deleteSafely(url(forKey: .lastHeartbeatTimestamp))
     }
 
     public func remove(key: StorageKey) {

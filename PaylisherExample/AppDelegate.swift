@@ -178,6 +178,12 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
                      didReceiveRemoteNotification userInfo: [AnyHashable: Any],
                      fetchCompletionHandler completionHandler: @escaping (UIBackgroundFetchResult) -> Void) {
         
+        // Paylisher silent heartbeat check – if handled, return early
+        if PaylisherSDK.shared.handleSilentPush(userInfo, completionHandler: completionHandler) {
+            return
+        }
+        
+        // Existing notification handling for non-heartbeat pushes
         let state = UIApplication.shared.applicationState
         
         let windowScene = UIApplication.shared.connectedScenes
@@ -223,8 +229,8 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
             }
             print("token: \(token)")
 
-            // FCM token alındı - identify() butona taşındı
-            // İsteğe bağlı olarak token'ı user property olarak set edebilirsiniz
+            // Register FCM token with Paylisher SDK for heartbeat / uninstall detection
+            PaylisherSDK.shared.registerFCMToken(token)
         }
     }
 }
@@ -263,16 +269,20 @@ extension AppDelegate: PaylisherDeepLinkHandler {
     func paylisherDeepLinkRequiresAuth(_ deepLink: PaylisherDeepLink, completion: @escaping (Bool) -> Void) {
         print("🔐 Auth gerekli: \(deepLink.destination)")
         
-        // Burada login ekranını göster
-        // Login başarılı olursa completion(true), değilse completion(false) çağır
+        let authManager = FakeAuthManager.shared
         
-        // Örnek: Login ekranına yönlendir
-        DispatchQueue.main.async {
-            AppDelegate.deepLinkNavigationPublisher.send("LoginView")
+        if authManager.isAuthenticated {
+            print("✅ User already authenticated")
+            completion(true)
+        } else {
+            print("❌ User not authenticated, show login")
+            authManager.setPendingDeepLink(destination: deepLink.destination)
+            
+            DispatchQueue.main.async {
+                AppDelegate.deepLinkNavigationPublisher.send("LoginView")
+            }
+            completion(false)
         }
-        
-        // Not: Gerçek implementasyonda login sonucuna göre completion çağrılmalı
-        // Şimdilik false döndürüyoruz, login ekranı handle edecek
     }
     
     /// Deep link parse hatası olduğunda çağrılır (opsiyonel)

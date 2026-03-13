@@ -230,11 +230,15 @@ public final class PaylisherDeepLinkTracker {
         }
 
         // 3️⃣ Eğer path sadece tek bir component ise ve campaign/c yoksa, direkt onu al
-        // Örnek: paylisher://X7kdi5Yq9lTVOv46uHYtV
         if pathParts.count == 1 {
             let potentialKey = pathParts[0]
-            // En az 10 karakter olsun (keyName'ler genelde uzun)
-            if potentialKey.count >= 10 {
+            // Short link domain (test: link.usepublisher.com, prod: link.paylisher.com): uzunluk kontrolü olmadan kabul et
+            let shortLinkHosts: Set<String> = ["link.usepublisher.com", "link.paylisher.com"]
+            if let host = url.host, shortLinkHosts.contains(host) {
+                return potentialKey
+            }
+            // Genel durum: en az 4 karakter (kısa key'leri de yakala)
+            if potentialKey.count >= 4 {
                 return potentialKey
             }
         }

@@ -77,8 +77,55 @@ import UIKit
         super.init()
     }
     
+    /// Short link domain'leri (test + prod)
+    fileprivate static let shortLinkHosts: Set<String> = [
+        "link.usepublisher.com",  // test
+        "link.paylisher.com"      // prod
+    ]
+
+    /// Whether this is a short link that requires backend resolution
+    @objc public var isShortLink: Bool {
+        guard let host = url.host else { return false }
+        return PaylisherDeepLink.shortLinkHosts.contains(host)
+    }
+
+    /// The effective navigation destination after campaign resolution.
+    ///
+    /// Priority:
+    ///   1. `scheme`          – custom scheme URL   (e.g. "diyetim://profile"                   → "profile")
+    ///   2. `iosUniversalUrl` – iOS Universal Link  (e.g. "https://studio.paylisher.com/profile" → "profile")
+    ///   3. raw `destination` (fallback)
+    ///
+    /// Note: `iosUrl` is the App Store link — not used for in-app navigation.
+    @objc public var resolvedDestination: String {
+        guard let data = campaignData else { return destination }
+
+        // Helper: URL'den navigation route'unu çıkar
+        func route(from urlString: String) -> String? {
+            guard !urlString.isEmpty, let parsed = URL(string: urlString) else { return nil }
+            if parsed.scheme != "https" && parsed.scheme != "http" {
+                // Custom scheme → host = route  (diyetim://profile → "profile")
+                return parsed.host.flatMap { $0.isEmpty ? nil : $0 }
+            } else {
+                // Universal link → son path component  (https://studio.paylisher.com/profile → "profile")
+                let parts = parsed.path.trimmingCharacters(in: CharacterSet(charactersIn: "/"))
+                    .components(separatedBy: "/")
+                    .filter { !$0.isEmpty }
+                return parts.last
+            }
+        }
+
+        // 1. scheme alanı (custom scheme, örn: diyetim://profile)
+        if let s = data.scheme, let r = route(from: s) { return r }
+
+        // 2. iosUniversalUrl (örn: https://studio.paylisher.com/profile)
+        if let u = data.iosUniversalUrl, let r = route(from: u) { return r }
+
+        return destination
+    }
+
     public override var description: String {
-        return "PaylisherDeepLink(destination: \(destination), scheme: \(scheme), params: \(parameters))"
+        return "PaylisherDeepLink(destination: \(destination), resolvedDestination: \(resolvedDestination), scheme: \(scheme), params: \(parameters))"
     }
 }
 
@@ -182,7 +229,19 @@ import UIKit
         }
         
         log("Handling URL: \(url.absoluteString)")
-        
+
+        // Bridge page: short link domain'den gelen /bridge ile biten URL'ler tarayıcıda açılmalı.
+        // Bu URL'ler landing page'dir; içindeki "Uygulamayı Aç" butonu scheme/universal link'i tetikler.
+        if let host = url.host,
+           PaylisherDeepLink.shortLinkHosts.contains(host),
+           url.pathComponents.last == "bridge" {
+            log("Bridge URL detected, opening in Safari: \(url.absoluteString)")
+            DispatchQueue.main.async {
+                UIApplication.shared.open(url, options: [:], completionHandler: nil)
+            }
+            return false
+        }
+
         // Parse the URL
         guard let deepLink = parseURL(url) else {
             log("Failed to parse URL: \(url.absoluteString)")
@@ -219,7 +278,36 @@ import UIKit
             log("Journey ID set: \(jid)")
         }
 
-        // ✅ CAMPAIGN RESOLUTION: Fetch campaign data if keyName present
+        // ✅ SHORT LINK: resolve FIRST, then notify handler (so app gets real destination)
+        if let keyName = deepLink.campaignKeyName, deepLink.isShortLink {
+            Task {
+                await resolveCampaign(for: deepLink, keyName: keyName)
+
+                if self.config.captureDeepLinkEvents {
+                    self.captureDeepLinkEvent(deepLink)
+                }
+
+                // Notify handler AFTER resolution so campaignData is available
+                let requiresAuth = self.isAuthRequired(for: deepLink)
+                self.log("Short link resolved - iosUrl: \(deepLink.campaignData?.iosUrl ?? "nil"), notifying handler")
+
+                await MainActor.run {
+                    if self.config.autoHandleDeepLinks && requiresAuth {
+                        self.setPendingDeepLink(deepLink)
+                        if let authHandler = self.handler?.paylisherDeepLinkRequiresAuth {
+                            authHandler(deepLink) { [weak self] success in
+                                if success { self?.completePendingDeepLink() }
+                                else { self?.clearPendingDeepLink() }
+                            }
+                        }
+                    }
+                    self.handler?.paylisherDidReceiveDeepLink(deepLink, requiresAuth: requiresAuth)
+                }
+            }
+            return
+        }
+
+        // ✅ REGULAR DEEP LINK: resolve async in background, notify handler immediately
         if let keyName = deepLink.campaignKeyName {
             Task {
                 await resolveCampaign(for: deepLink, keyName: keyName)
@@ -240,13 +328,13 @@ import UIKit
         let requiresAuth = isAuthRequired(for: deepLink)
 
         log("Deep link parsed - destination: \(deepLink.destination), requiresAuth: \(requiresAuth), jid: \(deepLink.jid ?? "none")")
-        
+
         // Auto handle if enabled
         if config.autoHandleDeepLinks {
             if requiresAuth {
                 // Store as pending and request auth
                 setPendingDeepLink(deepLink)
-                
+
                 // Notify handler about auth requirement
                 if let authHandler = handler?.paylisherDeepLinkRequiresAuth {
                     authHandler(deepLink) { [weak self] success in
@@ -259,7 +347,7 @@ import UIKit
                 }
             }
         }
-        
+
         // Always notify handler
         handler?.paylisherDidReceiveDeepLink(deepLink, requiresAuth: requiresAuth)
     }
@@ -406,7 +494,9 @@ import UIKit
         do {
             log("Resolving campaign: \(keyName)")
 
-            let campaignData = try await PaylisherCampaignAPI.resolve(keyName: keyName)
+            // Short link ise (link.usepublisher.com / link.paylisher.com) aynı domain üzerinden resolve et
+            let shortLinkHost: String? = deepLink.isShortLink ? deepLink.url.host : nil
+            let campaignData = try await PaylisherCampaignAPI.resolve(keyName: keyName, shortLinkHost: shortLinkHost)
             deepLink.campaignData = campaignData
 
             log("Campaign resolved successfully: \(campaignData.title ?? "Unknown")")
@@ -476,10 +566,15 @@ import UIKit
             }
         }
 
-        // 3️⃣ Single path component (e.g., paylisher://X7kdi5Yq9lTVOv46uHYtV)
+        // 3️⃣ Single path component
         if pathParts.count == 1 {
             let potentialKey = pathParts[0]
-            if potentialKey.count >= 10 {
+            // Short link domain (test: link.usepublisher.com, prod: link.paylisher.com): accept any non-empty key
+            if let host = url.host, PaylisherDeepLink.shortLinkHosts.contains(host) {
+                return potentialKey
+            }
+            // General case: require at least 4 characters to avoid false positives
+            if potentialKey.count >= 4 {
                 return potentialKey
             }
         }
@@ -583,18 +678,8 @@ import UIKit
             properties[key] = value
         }
 
-        // ⭐ AUTOMATIC SESSION PROPERTY: Set deeplink_key as session property
-        // This enables User Path filtering in Paylisher analytics
-        // The session property persists for the entire session, allowing:
-        // - Session-level filtering by campaign key
-        // - Proper user journey tracking starting from deeplink
-        // - No need for manual $set_once in app code
-        if let keyName = deepLink.campaignKeyName {
-            properties["$set_once"] = [
-                "deeplink_key": keyName
-            ]
-            log("Setting session property: deeplink_key = \(keyName)")
-        }
+        // deeplink_key is managed as a session-level super property by the app
+        // via register()/unregister(). No person profile write needed.
 
         // Capture event via Paylisher SDK
         PaylisherSDK.shared.capture("Deep Link Opened", properties: properties)

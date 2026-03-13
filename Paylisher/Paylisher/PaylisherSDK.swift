@@ -177,14 +177,99 @@ let maxRetryDelay = 30.0
                 hedgeLog("[PaylisherSDK] Deferred Deep Link Manager initialized")
             }
 
+            // Configure Heartbeat Manager for silent push / uninstall detection
+            PaylisherHeartbeatManager.shared.configure(
+                config: config,
+                api: theApi,
+                storage: theStorage
+            )
+            if config.enableHeartbeat {
+                hedgeLog("[PaylisherSDK] Heartbeat Manager configured (endpoint: \(config.heartbeatEndpoint))")
+            }
+
             // Configure Firebase
             // FirebaseApp.configure();
             // Set the global uncaught exception handler
             ErrorHandlerRegistrar.setupGlobalErrorHandler()
         }
     }
- 
-    
+
+    // ============================================
+    // MARK: - Push Token & Heartbeat
+    // ============================================
+
+    /// Register FCM token for heartbeat / uninstall detection tracking.
+    ///
+    /// Call this from your `MessagingDelegate`'s
+    /// `messaging(_:didReceiveRegistrationToken:)` callback,
+    /// or after obtaining the token via `Messaging.messaging().token`.
+    ///
+    /// Since backend uses Firebase Admin SDK to send push notifications,
+    /// we need the **FCM token** (not the raw APNs device token).
+    ///
+    /// Thread-safe. The token is persisted across app restarts.
+    /// Also captures a `$fcm_token_registered` event for token lifecycle tracking.
+    ///
+    /// - Parameter fcmToken: FCM registration token string.
+    @objc public func registerFCMToken(_ fcmToken: String) {
+        if !isEnabled() {
+            return
+        }
+
+        if fcmToken.isEmpty {
+            hedgeLog("[PaylisherSDK] registerFCMToken called with empty token. Ignoring.")
+            return
+        }
+
+        PaylisherHeartbeatManager.shared.setFCMToken(fcmToken)
+
+        // Capture token registration event for lifecycle tracking
+        capture("$fcm_token_registered", properties: [
+            "platform": "ios",
+            "token_length": fcmToken.count,
+        ])
+    }
+
+    /// Handle a silent push notification for heartbeat / uninstall detection.
+    ///
+    /// Call this from your AppDelegate's
+    /// `application(_:didReceiveRemoteNotification:fetchCompletionHandler:)` method.
+    ///
+    /// If the push is a Paylisher heartbeat, the SDK processes it internally
+    /// and calls `completionHandler` when done. If not, it returns `false`
+    /// and you should handle the push yourself.
+    ///
+    /// **Apple Compliance**: The `completionHandler` is guaranteed to be called
+    /// within 25 seconds (Apple's limit is ~30s). A timeout guard ensures
+    /// the handler is never leaked.
+    ///
+    /// **Thread Safety**: All internal state is protected by locks.
+    ///
+    /// - Parameters:
+    ///   - userInfo: The push notification payload.
+    ///   - completionHandler: The background fetch completion handler.
+    /// - Returns: `true` if the push was handled by Paylisher SDK.
+    @objc @discardableResult
+    public func handleSilentPush(
+        _ userInfo: [AnyHashable: Any],
+        completionHandler: @escaping (UIBackgroundFetchResult) -> Void
+    ) -> Bool {
+        if !isEnabled() {
+            return false
+        }
+
+        guard config.enableHeartbeat else {
+            return false
+        }
+
+        guard PaylisherHeartbeatManager.shared.isPaylisherHeartbeat(userInfo) else {
+            return false
+        }
+
+        hedgeLog("[PaylisherSDK] Silent heartbeat push received. Processing...")
+        PaylisherHeartbeatManager.shared.processHeartbeat(userInfo, completionHandler: completionHandler)
+        return true
+    }
 
     // ============================================
     // MARK: - Deep Links (embedded in PaylisherSDK)
@@ -489,6 +574,9 @@ let maxRetryDelay = 30.0
 
         // ✅ JOURNEY TRACKING: Clear jid on reset (logout)
         PaylisherJourneyContext.shared.clearJourneyId()
+
+        // Reset heartbeat state (token will be re-registered on next app launch)
+        PaylisherHeartbeatManager.shared.reset()
 
         // reload flags as anon user
         reloadFeatureFlags()
@@ -1200,6 +1288,10 @@ let maxRetryDelay = 30.0
     }
 
     @objc func handleAppDidBecomeActive() {
+        #if os(iOS) || os(tvOS)
+            UIViewController.resetAutoScreenCaptureDedupeState()
+        #endif
+
         PaylisherSessionManager.shared.rotateSessionIdIfRequired {
             self.resetViews()
         }
