@@ -488,11 +488,26 @@ let maxRetryDelay = 30.0
                 props = props.merging(dynamicCtx ?? [:]) { current, _ in current }
             }
             props = props.merging(localDynamicCtx) { current, _ in current }
+            // SDK versiyon bilgisini people property olarak ekle
+            let sdkVersionProps: [String: Any] = [
+                "$lib": paylisherSdkName,
+                "$lib_version": paylisherVersion,
+                "$sdk_package_version": PaylisherSDK.version()
+            ]
+
             if userProperties != nil {
-                props["$set"] = (userProperties ?? [:])
+                var merged = sdkVersionProps
+                merged.merge(userProperties ?? [:]) { _, new in new }
+                props["$set"] = merged
+            } else {
+                props["$set"] = sdkVersionProps
             }
             if userPropertiesSetOnce != nil {
-                props["$set_once"] = (userPropertiesSetOnce ?? [:])
+                var merged = sdkVersionProps
+                merged.merge(userPropertiesSetOnce ?? [:]) { _, new in new }
+                props["$set_once"] = merged
+            } else {
+                props["$set_once"] = sdkVersionProps
             }
             if groups != nil {
                 // $groups are also set via the dynamicContext
