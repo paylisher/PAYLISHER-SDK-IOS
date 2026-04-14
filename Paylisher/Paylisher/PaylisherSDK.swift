@@ -77,7 +77,7 @@ let maxRetryDelay = 30.0
     }
 
     /// SDK Version
-    @objc(sdkVersion) public static func version() -> String {
+    @objc public static func sdkVersion() -> String {
         return "1.8.3"
     }
 
@@ -172,7 +172,7 @@ let maxRetryDelay = 30.0
                 PaylisherDeferredDeepLinkManager.setup(
                     config: deferredConfig,
                     apiKey: config.apiKey,
-                    sdkVersion: PaylisherSDK.version()
+                    sdkVersion: PaylisherSDK.sdkVersion()
                 )
                 hedgeLog("[PaylisherSDK] Deferred Deep Link Manager initialized")
             }
@@ -492,7 +492,7 @@ let maxRetryDelay = 30.0
             let sdkVersionProps: [String: Any] = [
                 "$lib": paylisherSdkName,
                 "$lib_version": paylisherVersion,
-                "$sdk_package_version": PaylisherSDK.version()
+                "$sdk_package_version": PaylisherSDK.sdkVersion()
             ]
 
             if userProperties != nil {
@@ -1468,7 +1468,7 @@ let maxRetryDelay = 30.0
         PaylisherDeferredDeepLinkManager.check(
             config: deferredConfig,
             apiKey: config.apiKey,
-            sdkVersion: PaylisherSDK.version(),
+            sdkVersion: PaylisherSDK.sdkVersion(),
             onSuccess: onSuccess,
             onNoMatch: onNoMatch,
             onError: onError

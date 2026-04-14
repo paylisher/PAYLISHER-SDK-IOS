@@ -100,7 +100,7 @@ class PaylisherContext {
         var sdkInfo: [String: Any] = [:]
         sdkInfo["$lib"] = paylisherSdkName
         sdkInfo["$lib_version"] = paylisherVersion
-        sdkInfo["$sdk_package_version"] = PaylisherSDK.version()
+        sdkInfo["$sdk_package_version"] = PaylisherSDK.sdkVersion()
         return sdkInfo
     }()
 
