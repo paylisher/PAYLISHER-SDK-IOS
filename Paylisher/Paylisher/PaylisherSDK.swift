@@ -385,6 +385,18 @@ let maxRetryDelay = 30.0
         return PaylisherSessionManager.shared.getSessionId()
     }
 
+    @objc public func refreshEngageInAppMessages() {
+        refreshEngageInAppMessages(target: nil)
+    }
+
+    public func refreshEngageInAppMessages(target: String?) {
+        if !isEnabled() {
+            return
+        }
+
+        PaylisherEngageInAppService.shared.refresh(using: self, target: target)
+    }
+
     @objc public func startSession() {
         if !isEnabled() {
             return
@@ -1349,6 +1361,10 @@ let maxRetryDelay = 30.0
 
         isInBackground = false
         captureAppOpened()
+
+        if config.engageInAppConfig?.autoFetchOnForeground == true {
+            refreshEngageInAppMessages(target: nil)
+        }
     }
 
     private func captureAppOpened() {

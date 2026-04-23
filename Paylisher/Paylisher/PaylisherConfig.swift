@@ -66,6 +66,10 @@ import UIKit
     /// Default: nil (disabled)
     public var deferredDeepLinkConfig: PaylisherDeferredDeepLinkConfig?
 
+    /// Engage-served in-app message pull configuration.
+    /// When set, SDK can fetch in-app campaigns directly from the Engage service without FCM delivery.
+    public var engageInAppConfig: PaylisherEngageInAppConfig?
+
     /// or EU Host: 'https://eu.i.paylisher.com'
     public static let defaultHost: String = "https://us.i.paylisher.com"
 
