@@ -331,11 +331,38 @@ public class NotificationManager {
         }
     }
 
+    /// Capture the `notificationReceived` event for a notification iOS is about to present
+    /// while the app is in the foreground. The host app should call this from
+    /// `userNotificationCenter(_:willPresent:withCompletionHandler:)` *before* invoking the
+    /// completion handler. Returns `true` if the notification was tracked.
+    @discardableResult
+    public func handleForegroundPresentation(_ notification: UNNotification) -> Bool {
+        let userInfo = notification.request.content.userInfo
+
+        let hasPaylisherSource = (userInfo["source"] as? String) == "Paylisher"
+        let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
+        guard hasPaylisherSource || pushId != nil else {
+            return false
+        }
+
+        let typeString = userInfo["type"] as? String ?? ""
+        PaylisherNotificationEventTracker.capture(
+            "notificationReceived",
+            userInfo: userInfo,
+            properties: ["type": typeString]
+        )
+        return true
+    }
+
     @discardableResult
     public func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
         let userInfo = response.notification.request.content.userInfo
 
-        guard let source = userInfo["source"] as? String, source == "Paylisher" else {
+        // Accept the notification if it carries a Paylisher pushId, even when the source
+        // marker is missing (some foreground delivery paths drop top-level data keys).
+        let hasPaylisherSource = (userInfo["source"] as? String) == "Paylisher"
+        let hasPushId = PaylisherNotificationEventTracker.pushId(from: userInfo) != nil
+        guard hasPaylisherSource || hasPushId else {
             return false
         }
 
