@@ -48,10 +48,12 @@ public class NotificationManager {
             DispatchQueue.global(qos: .background).async {
                  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
              }
-                PaylisherNotificationEventTracker.capture(
-                    "notificationReceived",
-                    userInfo: userInfo
-                )
+                if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                    PaylisherNotificationEventTracker.capture(
+                        "notificationReceived",
+                        userInfo: userInfo
+                    )
+                }
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
                 if let displayTime = displayTime,
@@ -111,10 +113,12 @@ public class NotificationManager {
             DispatchQueue.global(qos: .background).async {
                  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
              }
-                PaylisherNotificationEventTracker.capture(
-                    "notificationReceived",
-                    userInfo: userInfo
-                )
+                if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                    PaylisherNotificationEventTracker.capture(
+                        "notificationReceived",
+                        userInfo: userInfo
+                    )
+                }
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
                 if let displayTime = displayTime,
@@ -176,10 +180,12 @@ public class NotificationManager {
                 DispatchQueue.global(qos: .background).async {
                     self.saveToCoreData(type: type, request: request, userInfo: userInfo)
                 }
-                PaylisherNotificationEventTracker.capture(
-                    "notificationReceived",
-                    userInfo: userInfo
-                )
+                if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                    PaylisherNotificationEventTracker.capture(
+                        "notificationReceived",
+                        userInfo: userInfo
+                    )
+                }
                 
                completion(updatedContent)
             }
@@ -189,11 +195,13 @@ public class NotificationManager {
             DispatchQueue.global(qos: .background).async {
                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
             }
-            PaylisherNotificationEventTracker.capture(
-                "notificationReceived",
-                userInfo: userInfo,
-                properties: ["type": type]
-            )
+            if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                PaylisherNotificationEventTracker.capture(
+                    "notificationReceived",
+                    userInfo: userInfo,
+                    properties: ["type": type]
+                )
+            }
             
             completion(content)
         }
@@ -289,11 +297,13 @@ public class NotificationManager {
                     break
                 case .inApp:
                     print("FCM customNotification inApp")
-                    PaylisherNotificationEventTracker.capture(
-                        "notificationReceived",
-                        userInfo: userInfo,
-                        properties: ["type": typeString]
-                    )
+                    if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                        PaylisherNotificationEventTracker.capture(
+                            "notificationReceived",
+                            userInfo: userInfo,
+                            properties: ["type": typeString]
+                        )
+                    }
                     
                         PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
                         PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
@@ -372,10 +382,12 @@ public class NotificationManager {
             return false
         }
 
-        PaylisherNotificationEventTracker.capture(
-            "notificationReceived",
-            userInfo: userInfo
-        )
+        if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+            PaylisherNotificationEventTracker.capture(
+                "notificationReceived",
+                userInfo: userInfo
+            )
+        }
         return true
     }
 
@@ -593,7 +605,9 @@ public class NotificationManager {
 public enum PaylisherNotificationDedupe {
     private static let openClaimedKeyPrefix = "paylisher.notification.open.claimed."
     // Bound the marker history so UserDefaults doesn't grow forever.
-    private static let storedKeysList = "paylisher.notification.open.claimed.keys"
+    private static let openStoredKeysList = "paylisher.notification.open.claimed.keys"
+    private static let receivedClaimedKeyPrefix = "paylisher.notification.received.claimed."
+    private static let receivedStoredKeysList = "paylisher.notification.received.claimed.keys"
     private static let maxStoredKeys = 200
 
     static func messageKey(from userInfo: [AnyHashable: Any]) -> String? {
@@ -609,20 +623,22 @@ public enum PaylisherNotificationDedupe {
         return nil
     }
 
-    /// Atomically marks the open event for `userInfo` as captured. Returns `true` if the
-    /// caller should fire the event (first claim) and `false` if another path already did.
-    public static func tryClaimOpen(userInfo: [AnyHashable: Any]) -> Bool {
+    private static func tryClaim(
+        userInfo: [AnyHashable: Any],
+        keyPrefix: String,
+        listKey: String
+    ) -> Bool {
         guard let key = messageKey(from: userInfo) else {
             // No identifier to dedupe on — let the caller fire optimistically.
             return true
         }
         let defaults = UserDefaults.standard
-        let storageKey = "\(openClaimedKeyPrefix)\(key)"
+        let storageKey = "\(keyPrefix)\(key)"
         if defaults.bool(forKey: storageKey) {
             return false
         }
 
-        var stored = defaults.stringArray(forKey: storedKeysList) ?? []
+        var stored = defaults.stringArray(forKey: listKey) ?? []
         stored.append(storageKey)
         if stored.count > maxStoredKeys {
             let evict = stored.prefix(stored.count - maxStoredKeys)
@@ -631,9 +647,31 @@ public enum PaylisherNotificationDedupe {
             }
             stored = Array(stored.suffix(maxStoredKeys))
         }
-        defaults.set(stored, forKey: storedKeysList)
+        defaults.set(stored, forKey: listKey)
         defaults.set(true, forKey: storageKey)
         return true
+    }
+
+    /// Atomically marks the open event for `userInfo` as captured. Returns `true` if the
+    /// caller should fire the event (first claim) and `false` if another path already did.
+    public static func tryClaimOpen(userInfo: [AnyHashable: Any]) -> Bool {
+        return tryClaim(
+            userInfo: userInfo,
+            keyPrefix: openClaimedKeyPrefix,
+            listKey: openStoredKeysList
+        )
+    }
+
+    /// Atomically marks the received event for `userInfo` as captured. Same semantics as
+    /// `tryClaimOpen`, but for `notificationReceived` so dual-delegate paths
+    /// (willPresent + didReceiveRemoteNotification, NSE + AppDelegate, etc.) don't
+    /// double-fire it for the same FCM message.
+    public static func tryClaimReceived(userInfo: [AnyHashable: Any]) -> Bool {
+        return tryClaim(
+            userInfo: userInfo,
+            keyPrefix: receivedClaimedKeyPrefix,
+            listKey: receivedStoredKeysList
+        )
     }
 }
 
