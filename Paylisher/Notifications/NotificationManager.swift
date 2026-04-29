@@ -50,8 +50,7 @@ public class NotificationManager {
              }
                 PaylisherNotificationEventTracker.capture(
                     "notificationReceived",
-                    userInfo: userInfo,
-                    properties: ["type": type]
+                    userInfo: userInfo
                 )
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
@@ -114,8 +113,7 @@ public class NotificationManager {
              }
                 PaylisherNotificationEventTracker.capture(
                     "notificationReceived",
-                    userInfo: userInfo,
-                    properties: ["type": type]
+                    userInfo: userInfo
                 )
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
@@ -180,8 +178,7 @@ public class NotificationManager {
                 }
                 PaylisherNotificationEventTracker.capture(
                     "notificationReceived",
-                    userInfo: userInfo,
-                    properties: ["type": type]
+                    userInfo: userInfo
                 )
                 
                completion(updatedContent)
@@ -375,11 +372,9 @@ public class NotificationManager {
             return false
         }
 
-        let typeString = userInfo["type"] as? String ?? ""
         PaylisherNotificationEventTracker.capture(
             "notificationReceived",
-            userInfo: userInfo,
-            properties: ["type": typeString]
+            userInfo: userInfo
         )
         return true
     }
@@ -412,8 +407,7 @@ public class NotificationManager {
 
         PaylisherNotificationEventTracker.capture(
             "notificationOpen",
-            userInfo: userInfo,
-            properties: ["title": response.notification.request.content.title]
+            userInfo: userInfo
         )
 
         if let actionURLString = userInfo["action"] as? String,
@@ -592,7 +586,11 @@ public class NotificationManager {
 /// `handleLaunchOptions` and `userNotificationCenter(_:didReceive:withCompletionHandler:)`
 /// don't both end up emitting the event for the same push. Keyed by the FCM message id when
 /// available, falling back to pushId.
-enum PaylisherNotificationDedupe {
+///
+/// Public so host apps that capture `notificationOpen` themselves (instead of going through
+/// `NotificationManager.handleNotificationResponse`) can also participate in the dedupe by
+/// gating their capture on `tryClaimOpen(userInfo:)`.
+public enum PaylisherNotificationDedupe {
     private static let openClaimedKeyPrefix = "paylisher.notification.open.claimed."
     // Bound the marker history so UserDefaults doesn't grow forever.
     private static let storedKeysList = "paylisher.notification.open.claimed.keys"
@@ -613,7 +611,7 @@ enum PaylisherNotificationDedupe {
 
     /// Atomically marks the open event for `userInfo` as captured. Returns `true` if the
     /// caller should fire the event (first claim) and `false` if another path already did.
-    static func tryClaimOpen(userInfo: [AnyHashable: Any]) -> Bool {
+    public static func tryClaimOpen(userInfo: [AnyHashable: Any]) -> Bool {
         guard let key = messageKey(from: userInfo) else {
             // No identifier to dedupe on — let the caller fire optimistically.
             return true
@@ -642,6 +640,23 @@ enum PaylisherNotificationDedupe {
 enum PaylisherNotificationEventTracker {
     static let trackedCategoryIdentifier = "com.paylisher.notification.tracked"
 
+    /// Standard Paylisher push fields that the backend may set on the data payload. Extracted
+    /// automatically into every notification event so host apps don't have to hand-roll a
+    /// property mapping.
+    private static let standardUserInfoKeys = [
+        "type",
+        "pushId",
+        "pushCanonicalId",
+        "action",
+        "actionType",
+        "abExperimentId",
+        "abVariantId",
+        "abVariantLabel",
+        "abPhase",
+        "abObjective",
+        "title"
+    ]
+
     static func normalizePushId(_ pushId: String?) -> String? {
         let trimmed = pushId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
         return trimmed.isEmpty ? nil : trimmed
@@ -649,6 +664,25 @@ enum PaylisherNotificationEventTracker {
 
     static func pushId(from userInfo: [AnyHashable: Any]) -> String? {
         normalizePushId(userInfo["pushId"] as? String)
+    }
+
+    /// Pull the standard Paylisher push fields out of the FCM `userInfo` and produce the base
+    /// property map used by every notification event. Empty / whitespace-only string values
+    /// are dropped so they don't pollute the event.
+    static func extractStandardProperties(from userInfo: [AnyHashable: Any]) -> [String: Any] {
+        var props: [String: Any] = ["deliveryChannel": "push"]
+        for key in standardUserInfoKeys {
+            guard let raw = userInfo[key] else { continue }
+            if let s = raw as? String {
+                let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    props[key] = trimmed
+                }
+            } else {
+                props[key] = raw
+            }
+        }
+        return props
     }
 
     static func buildProperties(pushId: String?, properties: [String: Any?] = [:]) -> [String: Any] {
@@ -675,7 +709,13 @@ enum PaylisherNotificationEventTracker {
     }
 
     static func capture(_ event: String, userInfo: [AnyHashable: Any], properties: [String: Any?] = [:]) {
-        capture(event, pushId: pushId(from: userInfo), properties: properties)
+        var merged = extractStandardProperties(from: userInfo)
+        for (key, value) in properties {
+            if let value {
+                merged[key] = value
+            }
+        }
+        PaylisherSDK.shared.capture(event, properties: merged)
     }
 
     static func registerTrackedCategory() {
