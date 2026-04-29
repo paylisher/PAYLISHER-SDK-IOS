@@ -78,6 +78,21 @@ public class PaylisherCustomInAppNotificationManager {
         UserDefaults.standard.set(cache, forKey: inAppShownCacheKey)
         return true
     }
+
+    private func readEventType(for layoutType: String) -> String {
+        switch layoutType {
+        case "banner":
+            return "Banner"
+        case "fullscreen":
+            return "Fullscreen"
+        case "modal-carousel":
+            return "ModalCarousel"
+        case "fullscreen-carousel":
+            return "FullscreenCarousel"
+        default:
+            return "Modal"
+        }
+    }
     
    public func parseInAppPayload(from userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) -> CustomInAppPayload? {
        
@@ -371,6 +386,7 @@ public class PaylisherCustomInAppNotificationManager {
 
         let lang       = payload.defaultLang ?? "en"
         let layoutType = payload.layoutType ?? "modal"
+        let pushId = normalizedPushId(payload)
 
         guard let layouts = payload.layouts, !layouts.isEmpty else {
             print("[Paylisher] showCustomInApp: payload has no layouts")
@@ -382,14 +398,14 @@ public class PaylisherCustomInAppNotificationManager {
         switch layoutType {
         case "modal-carousel":
             let carouselVC = CarouselInAppViewController(
-                layouts: layouts, defaultLang: lang, isFullscreen: false
+                layouts: layouts, defaultLang: lang, isFullscreen: false, pushId: pushId
             )
             carouselVC.modalPresentationStyle = .overFullScreen
             vcToPresent = carouselVC
 
         case "fullscreen-carousel":
             let carouselVC = CarouselInAppViewController(
-                layouts: layouts, defaultLang: lang, isFullscreen: true
+                layouts: layouts, defaultLang: lang, isFullscreen: true, pushId: pushId
             )
             carouselVC.modalPresentationStyle = .overFullScreen
             vcToPresent = carouselVC
@@ -405,7 +421,7 @@ public class PaylisherCustomInAppNotificationManager {
             }
             let styleVC = StyleViewController(
                 style: style, close: close, extra: extra,
-                blocks: blocks, defaultLang: lang, layoutType: layoutType
+                blocks: blocks, defaultLang: lang, layoutType: layoutType, pushId: pushId
             )
             styleVC.modalPresentationStyle = .overFullScreen
             vcToPresent = styleVC
@@ -416,7 +432,13 @@ public class PaylisherCustomInAppNotificationManager {
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
             guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
                   let rootVC = keyWindow.rootViewController else { return }
-            rootVC.present(vcToPresent, animated: false)
+            rootVC.present(vcToPresent, animated: false) {
+                PaylisherNotificationEventTracker.capture(
+                    "inappMessageRead",
+                    pushId: pushId,
+                    properties: ["type": self.readEventType(for: layoutType)]
+                )
+            }
         }
     }
 

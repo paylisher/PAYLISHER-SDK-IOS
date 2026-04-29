@@ -36,6 +36,10 @@ import UIKit
     @objc public var propertiesSanitizer: PaylisherPropertiesSanitizer?
     /// Determines the behavior for processing user profiles.
     @objc public var personProfiles: PaylisherPersonProfiles = .identifiedOnly
+    /// Controls what happens when `identify()` is called again with the same distinctId
+    /// after the user is already identified on this device.
+    /// Defaults to `.ignore` for backward compatibility.
+    @objc public var repeatedIdentifyBehavior: PaylisherRepeatedIdentifyBehavior = .ignore
 
     /// The identifier of the App Group that should be used to store shared analytics data.
     /// Paylisher will try to get the physical location of the App Group’s shared container, otherwise fallback to the default location
@@ -61,6 +65,10 @@ import UIKit
     /// Enable this to track install attribution via deferred deep links
     /// Default: nil (disabled)
     public var deferredDeepLinkConfig: PaylisherDeferredDeepLinkConfig?
+
+    /// Engage-served in-app message pull configuration.
+    /// When set, SDK can fetch in-app campaigns directly from the Engage service without FCM delivery.
+    public var engageInAppConfig: PaylisherEngageInAppConfig?
 
     /// or EU Host: 'https://eu.i.paylisher.com'
     public static let defaultHost: String = "https://us.i.paylisher.com"

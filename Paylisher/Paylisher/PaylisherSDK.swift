@@ -77,8 +77,8 @@ let maxRetryDelay = 30.0
     }
 
     /// SDK Version
-    @objc(sdkVersion) public static func version() -> String {
-        return "1.6.0"
+    @objc public static func sdkVersion() -> String {
+        return "1.8.3"
     }
 
     @objc public func debug(_ enabled: Bool = true) {
@@ -172,7 +172,7 @@ let maxRetryDelay = 30.0
                 PaylisherDeferredDeepLinkManager.setup(
                     config: deferredConfig,
                     apiKey: config.apiKey,
-                    sdkVersion: PaylisherSDK.version()
+                    sdkVersion: PaylisherSDK.sdkVersion()
                 )
                 hedgeLog("[PaylisherSDK] Deferred Deep Link Manager initialized")
             }
@@ -385,6 +385,18 @@ let maxRetryDelay = 30.0
         return PaylisherSessionManager.shared.getSessionId()
     }
 
+    @objc public func refreshEngageInAppMessages() {
+        refreshEngageInAppMessages(target: nil)
+    }
+
+    public func refreshEngageInAppMessages(target: String?) {
+        if !isEnabled() {
+            return
+        }
+
+        PaylisherEngageInAppService.shared.refresh(using: self, target: target)
+    }
+
     @objc public func startSession() {
         if !isEnabled() {
             return
@@ -488,11 +500,26 @@ let maxRetryDelay = 30.0
                 props = props.merging(dynamicCtx ?? [:]) { current, _ in current }
             }
             props = props.merging(localDynamicCtx) { current, _ in current }
+            // SDK versiyon bilgisini people property olarak ekle
+            let sdkVersionProps: [String: Any] = [
+                "$lib": paylisherSdkName,
+                "$lib_version": paylisherVersion,
+                "$sdk_package_version": PaylisherSDK.sdkVersion()
+            ]
+
             if userProperties != nil {
-                props["$set"] = (userProperties ?? [:])
+                var merged = sdkVersionProps
+                merged.merge(userProperties ?? [:]) { _, new in new }
+                props["$set"] = merged
+            } else {
+                props["$set"] = sdkVersionProps
             }
             if userPropertiesSetOnce != nil {
-                props["$set_once"] = (userPropertiesSetOnce ?? [:])
+                var merged = sdkVersionProps
+                merged.merge(userPropertiesSetOnce ?? [:]) { _, new in new }
+                props["$set_once"] = merged
+            } else {
+                props["$set_once"] = sdkVersionProps
             }
             if groups != nil {
                 // $groups are also set via the dynamicContext
@@ -672,20 +699,26 @@ let maxRetryDelay = 30.0
         guard let queue, let storageManager = config.storageManager else {
             return
         }
-        let oldDistinctId = getDistinctId()
+        let previousDistinctId = getDistinctId()
+        let wasIdentified = storageManager.isIdentified()
 
-        let isIdentified = storageManager.isIdentified()
+        if distinctId != previousDistinctId, wasIdentified {
+            prepareForUserSwitch(from: previousDistinctId, to: distinctId, storageManager: storageManager)
+        }
 
-        if distinctId != oldDistinctId, !isIdentified {
+        let currentDistinctId = getDistinctId()
+        let isCurrentlyIdentified = storageManager.isIdentified()
+
+        if distinctId != currentDistinctId, !isCurrentlyIdentified {
             // We keep the AnonymousId to be used by decide calls and identify to link the previousId
-            storageManager.setAnonymousId(oldDistinctId)
+            storageManager.setAnonymousId(currentDistinctId)
             storageManager.setDistinctId(distinctId)
 
             storageManager.setIdentified(true)
 
             let properties = buildProperties(distinctId: distinctId, properties: [
                 "distinct_id": distinctId,
-                "$anon_distinct_id": oldDistinctId,
+                "$anon_distinct_id": currentDistinctId,
             ], userProperties: sanitizeDicionary(userProperties), userPropertiesSetOnce: sanitizeDicionary(userPropertiesSetOnce))
             let sanitizedProperties = sanitizeProperties(properties)
 
@@ -696,9 +729,39 @@ let maxRetryDelay = 30.0
             ))
 
             reloadFeatureFlags()
+        } else if distinctId == currentDistinctId, isCurrentlyIdentified, config.repeatedIdentifyBehavior == .capture {
+            capture(
+                "$identify",
+                distinctId: distinctId,
+                properties: nil,
+                userProperties: sanitizeDicionary(userProperties),
+                userPropertiesSetOnce: sanitizeDicionary(userPropertiesSetOnce),
+                groups: nil
+            )
         } else {
-            hedgeLog("already identified with id: \(oldDistinctId)")
+            hedgeLog("already identified with id: \(currentDistinctId)")
         }
+    }
+
+    private func prepareForUserSwitch(from previousDistinctId: String,
+                                      to newDistinctId: String,
+                                      storageManager: PaylisherStorageManager)
+    {
+        hedgeLog("Switching identified user from \(previousDistinctId) to \(newDistinctId). Clearing identity state before identify.")
+
+        storageManager.reset(true)
+        storage?.remove(key: .groups)
+        storage?.remove(key: .enabledFeatureFlags)
+        storage?.remove(key: .enabledFeatureFlagPayloads)
+        storage?.remove(key: .sessionReplay)
+
+        featureFlags?.clear()
+        flagCallReported.removeAll()
+
+        storageManager.setPersonProcessing(true)
+
+        endSession()
+        startSession()
     }
 
     @objc public func capture(_ event: String) {
@@ -1298,6 +1361,10 @@ let maxRetryDelay = 30.0
 
         isInBackground = false
         captureAppOpened()
+
+        if config.engageInAppConfig?.autoFetchOnForeground == true {
+            refreshEngageInAppMessages(target: nil)
+        }
     }
 
     private func captureAppOpened() {
@@ -1417,7 +1484,7 @@ let maxRetryDelay = 30.0
         PaylisherDeferredDeepLinkManager.check(
             config: deferredConfig,
             apiKey: config.apiKey,
-            sdkVersion: PaylisherSDK.version(),
+            sdkVersion: PaylisherSDK.sdkVersion(),
             onSuccess: onSuccess,
             onNoMatch: onNoMatch,
             onError: onError

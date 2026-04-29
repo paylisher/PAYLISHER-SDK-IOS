@@ -47,6 +47,7 @@ public class PaylisherNativeInAppNotificationManager {
         let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? ""
         
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
+        let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
         
         
        
@@ -88,7 +89,13 @@ public class PaylisherNativeInAppNotificationManager {
             if windowScene != nil,
                let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                let rootVC = keyWindow.rootViewController {
-                   rootVC.present(inAppVC, animated: true, completion: nil)
+                   rootVC.present(inAppVC, animated: true) {
+                       PaylisherNotificationEventTracker.capture(
+                           "inappMessageRead",
+                           pushId: pushId,
+                           properties: ["type": "Native"]
+                       )
+                   }
             }
         }
 //        #endif
@@ -114,5 +121,4 @@ public class PaylisherNativeInAppNotificationManager {
 
     
 }
-
 

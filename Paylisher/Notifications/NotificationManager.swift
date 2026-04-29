@@ -31,6 +31,8 @@ public class NotificationManager {
         let displayTime = pushNotification.condition.displayTime
         
         content.userInfo = userInfo
+        content.categoryIdentifier = PaylisherNotificationEventTracker.trackedCategoryIdentifier
+        PaylisherNotificationEventTracker.registerTrackedCategory()
         
         if silent == "true" {
             content.sound = nil
@@ -46,6 +48,12 @@ public class NotificationManager {
             DispatchQueue.global(qos: .background).async {
                  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
              }
+                if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                    PaylisherNotificationEventTracker.capture(
+                        "notificationReceived",
+                        userInfo: userInfo
+                    )
+                }
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
                 if let displayTime = displayTime,
@@ -88,6 +96,8 @@ public class NotificationManager {
         let displayTime = actionBasedNotification.condition.displayTime
         
         content.userInfo = userInfo
+        content.categoryIdentifier = PaylisherNotificationEventTracker.trackedCategoryIdentifier
+        PaylisherNotificationEventTracker.registerTrackedCategory()
         
         if silent == "true" {
             content.sound = nil
@@ -103,6 +113,12 @@ public class NotificationManager {
             DispatchQueue.global(qos: .background).async {
                  self.saveToCoreData(type: type, request: request, userInfo: userInfo)
              }
+                if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                    PaylisherNotificationEventTracker.capture(
+                        "notificationReceived",
+                        userInfo: userInfo
+                    )
+                }
                 
                 // displayTime değerine göre zamanlamayı belirleyelim:
                 if let displayTime = displayTime,
@@ -145,6 +161,8 @@ public class NotificationManager {
         let type = geofenceNotification.type
         
         content.userInfo = userInfo
+        content.categoryIdentifier = PaylisherNotificationEventTracker.trackedCategoryIdentifier
+        PaylisherNotificationEventTracker.registerTrackedCategory()
         
         if silent == "true" {
             content.sound = nil
@@ -162,6 +180,12 @@ public class NotificationManager {
                 DispatchQueue.global(qos: .background).async {
                     self.saveToCoreData(type: type, request: request, userInfo: userInfo)
                 }
+                if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                    PaylisherNotificationEventTracker.capture(
+                        "notificationReceived",
+                        userInfo: userInfo
+                    )
+                }
                 
                completion(updatedContent)
             }
@@ -170,6 +194,13 @@ public class NotificationManager {
             
             DispatchQueue.global(qos: .background).async {
                 self.saveToCoreData(type: type, request: request, userInfo: userInfo)
+            }
+            if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                PaylisherNotificationEventTracker.capture(
+                    "notificationReceived",
+                    userInfo: userInfo,
+                    properties: ["type": type]
+                )
             }
             
             completion(content)
@@ -266,6 +297,13 @@ public class NotificationManager {
                     break
                 case .inApp:
                     print("FCM customNotification inApp")
+                    if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                        PaylisherNotificationEventTracker.capture(
+                            "notificationReceived",
+                            userInfo: userInfo,
+                            properties: ["type": typeString]
+                        )
+                    }
                     
                         PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
                         PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
@@ -298,6 +336,105 @@ public class NotificationManager {
         customNotification(windowScene: windowScene, userInfo: userInfo, content, request) { _completion in
             completion(_completion)
         }
+    }
+
+    /// Capture a `notificationOpen` event when the app is cold-launched by tapping a
+    /// notification that iOS displayed itself (e.g. a remote push without
+    /// `mutable-content: 1`, where the Notification Service Extension never ran). Call this
+    /// from `application(_:didFinishLaunchingWithOptions:)` after the SDK is set up. The
+    /// `didReceive response` delegate will *also* fire shortly after; this helper dedupes via
+    /// `gcm.message_id` / `google.message_id` so the event is captured exactly once.
+    @discardableResult
+    public func handleLaunchOptions(_ launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        guard let userInfo = launchOptions?[.remoteNotification] as? [AnyHashable: Any] else {
+            return false
+        }
+
+        let hasPaylisherSource = (userInfo["source"] as? String) == "Paylisher"
+        let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
+        guard hasPaylisherSource || pushId != nil else {
+            return false
+        }
+
+        guard PaylisherNotificationDedupe.tryClaimOpen(userInfo: userInfo) else {
+            return false
+        }
+
+        PaylisherNotificationEventTracker.capture(
+            "notificationOpen",
+            userInfo: userInfo,
+            properties: ["via": "launchOptions"]
+        )
+        return true
+    }
+
+    /// Capture the `notificationReceived` event for a notification iOS is about to present
+    /// while the app is in the foreground. The host app should call this from
+    /// `userNotificationCenter(_:willPresent:withCompletionHandler:)` *before* invoking the
+    /// completion handler. Returns `true` if the notification was tracked.
+    @discardableResult
+    public func handleForegroundPresentation(_ notification: UNNotification) -> Bool {
+        let userInfo = notification.request.content.userInfo
+
+        let hasPaylisherSource = (userInfo["source"] as? String) == "Paylisher"
+        let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
+        guard hasPaylisherSource || pushId != nil else {
+            return false
+        }
+
+        if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+            PaylisherNotificationEventTracker.capture(
+                "notificationReceived",
+                userInfo: userInfo
+            )
+        }
+        return true
+    }
+
+    @discardableResult
+    public func handleNotificationResponse(_ response: UNNotificationResponse) -> Bool {
+        let userInfo = response.notification.request.content.userInfo
+
+        // Accept the notification if it carries a Paylisher pushId, even when the source
+        // marker is missing (some foreground delivery paths drop top-level data keys).
+        let hasPaylisherSource = (userInfo["source"] as? String) == "Paylisher"
+        let hasPushId = PaylisherNotificationEventTracker.pushId(from: userInfo) != nil
+        guard hasPaylisherSource || hasPushId else {
+            return false
+        }
+
+        if response.actionIdentifier == UNNotificationDismissActionIdentifier {
+            PaylisherNotificationEventTracker.capture(
+                "notificationDismiss",
+                userInfo: userInfo,
+                properties: ["via": "dismissAction"]
+            )
+            return true
+        }
+
+        // Skip if we already captured this open from launchOptions on cold start.
+        guard PaylisherNotificationDedupe.tryClaimOpen(userInfo: userInfo) else {
+            return true
+        }
+
+        PaylisherNotificationEventTracker.capture(
+            "notificationOpen",
+            userInfo: userInfo
+        )
+
+        if let actionURLString = userInfo["action"] as? String,
+           !actionURLString.isEmpty,
+           let actionURL = URL(string: actionURLString) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.5) {
+                UIApplication.shared.open(actionURL, options: [:], completionHandler: { success in
+                    print("FCM -> URL açma sonucu: \(success), url: \(actionURLString)")
+                })
+            }
+        } else {
+            print("Action URL bulunamadı veya boş! action değeri: \(userInfo["action"] ?? "nil")")
+        }
+
+        return true
     }
 
     private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
@@ -457,3 +594,181 @@ public class NotificationManager {
     
 }
 
+/// Cross-call dedupe for notificationOpen so that, on cold start from a notification tap,
+/// `handleLaunchOptions` and `userNotificationCenter(_:didReceive:withCompletionHandler:)`
+/// don't both end up emitting the event for the same push. Keyed by the FCM message id when
+/// available, falling back to pushId.
+///
+/// Public so host apps that capture `notificationOpen` themselves (instead of going through
+/// `NotificationManager.handleNotificationResponse`) can also participate in the dedupe by
+/// gating their capture on `tryClaimOpen(userInfo:)`.
+public enum PaylisherNotificationDedupe {
+    private static let openClaimedKeyPrefix = "paylisher.notification.open.claimed."
+    // Bound the marker history so UserDefaults doesn't grow forever.
+    private static let openStoredKeysList = "paylisher.notification.open.claimed.keys"
+    private static let receivedClaimedKeyPrefix = "paylisher.notification.received.claimed."
+    private static let receivedStoredKeysList = "paylisher.notification.received.claimed.keys"
+    private static let maxStoredKeys = 200
+
+    static func messageKey(from userInfo: [AnyHashable: Any]) -> String? {
+        let candidates = ["gcm.message_id", "google.message_id", "pushId"]
+        for key in candidates {
+            if let value = userInfo[key] as? String {
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
+            }
+        }
+        return nil
+    }
+
+    private static func tryClaim(
+        userInfo: [AnyHashable: Any],
+        keyPrefix: String,
+        listKey: String
+    ) -> Bool {
+        guard let key = messageKey(from: userInfo) else {
+            // No identifier to dedupe on — let the caller fire optimistically.
+            return true
+        }
+        let defaults = UserDefaults.standard
+        let storageKey = "\(keyPrefix)\(key)"
+        if defaults.bool(forKey: storageKey) {
+            return false
+        }
+
+        var stored = defaults.stringArray(forKey: listKey) ?? []
+        stored.append(storageKey)
+        if stored.count > maxStoredKeys {
+            let evict = stored.prefix(stored.count - maxStoredKeys)
+            for k in evict {
+                defaults.removeObject(forKey: k)
+            }
+            stored = Array(stored.suffix(maxStoredKeys))
+        }
+        defaults.set(stored, forKey: listKey)
+        defaults.set(true, forKey: storageKey)
+        return true
+    }
+
+    /// Atomically marks the open event for `userInfo` as captured. Returns `true` if the
+    /// caller should fire the event (first claim) and `false` if another path already did.
+    public static func tryClaimOpen(userInfo: [AnyHashable: Any]) -> Bool {
+        return tryClaim(
+            userInfo: userInfo,
+            keyPrefix: openClaimedKeyPrefix,
+            listKey: openStoredKeysList
+        )
+    }
+
+    /// Atomically marks the received event for `userInfo` as captured. Same semantics as
+    /// `tryClaimOpen`, but for `notificationReceived` so dual-delegate paths
+    /// (willPresent + didReceiveRemoteNotification, NSE + AppDelegate, etc.) don't
+    /// double-fire it for the same FCM message.
+    public static func tryClaimReceived(userInfo: [AnyHashable: Any]) -> Bool {
+        return tryClaim(
+            userInfo: userInfo,
+            keyPrefix: receivedClaimedKeyPrefix,
+            listKey: receivedStoredKeysList
+        )
+    }
+}
+
+enum PaylisherNotificationEventTracker {
+    static let trackedCategoryIdentifier = "com.paylisher.notification.tracked"
+
+    /// Standard Paylisher push fields that the backend may set on the data payload. Extracted
+    /// automatically into every notification event so host apps don't have to hand-roll a
+    /// property mapping.
+    private static let standardUserInfoKeys = [
+        "type",
+        "pushId",
+        "pushCanonicalId",
+        "action",
+        "actionType",
+        "abExperimentId",
+        "abVariantId",
+        "abVariantLabel",
+        "abPhase",
+        "abObjective",
+        "title"
+    ]
+
+    static func normalizePushId(_ pushId: String?) -> String? {
+        let trimmed = pushId?.trimmingCharacters(in: .whitespacesAndNewlines) ?? ""
+        return trimmed.isEmpty ? nil : trimmed
+    }
+
+    static func pushId(from userInfo: [AnyHashable: Any]) -> String? {
+        normalizePushId(userInfo["pushId"] as? String)
+    }
+
+    /// Pull the standard Paylisher push fields out of the FCM `userInfo` and produce the base
+    /// property map used by every notification event. Empty / whitespace-only string values
+    /// are dropped so they don't pollute the event.
+    static func extractStandardProperties(from userInfo: [AnyHashable: Any]) -> [String: Any] {
+        var props: [String: Any] = ["deliveryChannel": "push"]
+        for key in standardUserInfoKeys {
+            guard let raw = userInfo[key] else { continue }
+            if let s = raw as? String {
+                let trimmed = s.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    props[key] = trimmed
+                }
+            } else {
+                props[key] = raw
+            }
+        }
+        return props
+    }
+
+    static func buildProperties(pushId: String?, properties: [String: Any?] = [:]) -> [String: Any] {
+        var result: [String: Any] = [:]
+
+        if let pushId {
+            result["pushId"] = pushId
+        }
+
+        for (key, value) in properties {
+            if let value {
+                result[key] = value
+            }
+        }
+
+        return result
+    }
+
+    static func capture(_ event: String, pushId: String?, properties: [String: Any?] = [:]) {
+        PaylisherSDK.shared.capture(
+            event,
+            properties: buildProperties(pushId: pushId, properties: properties)
+        )
+    }
+
+    static func capture(_ event: String, userInfo: [AnyHashable: Any], properties: [String: Any?] = [:]) {
+        var merged = extractStandardProperties(from: userInfo)
+        for (key, value) in properties {
+            if let value {
+                merged[key] = value
+            }
+        }
+        PaylisherSDK.shared.capture(event, properties: merged)
+    }
+
+    static func registerTrackedCategory() {
+        let center = UNUserNotificationCenter.current()
+        let category = UNNotificationCategory(
+            identifier: trackedCategoryIdentifier,
+            actions: [],
+            intentIdentifiers: [],
+            options: [.customDismissAction]
+        )
+
+        center.getNotificationCategories { categories in
+            var updatedCategories = categories.filter { $0.identifier != trackedCategoryIdentifier }
+            updatedCategories.insert(category)
+            center.setNotificationCategories(updatedCategories)
+        }
+    }
+}

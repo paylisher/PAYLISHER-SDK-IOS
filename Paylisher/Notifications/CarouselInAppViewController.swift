@@ -18,6 +18,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
     private let layouts: [CustomInAppPayload.Layout]
     private let defaultLang: String
     private let isFullscreen: Bool
+    private let pushId: String?
 
     private var currentIndex: Int = 0
     private var hasAppliedInitialTransition = false
@@ -51,10 +52,16 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
     // MARK: - Init
 
-    init(layouts: [CustomInAppPayload.Layout], defaultLang: String, isFullscreen: Bool = false) {
+    init(
+        layouts: [CustomInAppPayload.Layout],
+        defaultLang: String,
+        isFullscreen: Bool = false,
+        pushId: String? = nil
+    ) {
         self.layouts      = layouts
         self.defaultLang  = defaultLang
         self.isFullscreen = isFullscreen
+        self.pushId = pushId
         super.init(nibName: nil, bundle: nil)
     }
 
@@ -398,7 +405,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
         if extra.overlay?.action == "close" {
             overlayView.isUserInteractionEnabled = true
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapClose))
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleOverlayClose))
             overlayView.addGestureRecognizer(tapGesture)
         }
     }
@@ -692,6 +699,36 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
     }
 
     @objc private func didTapClose() {
+        dismissInApp(via: "closeButton")
+    }
+
+    @objc private func handleOverlayClose() {
+        dismissInApp(via: "overlay")
+    }
+
+    private func captureButtonClick(action: String, type: String, label: String? = nil) {
+        var properties: [String: Any?] = [
+            "action": action,
+            "type": type,
+        ]
+        if let label, !label.isEmpty {
+            properties["label"] = label
+        }
+
+        PaylisherNotificationEventTracker.capture(
+            "inappMessageButtonClick",
+            pushId: pushId,
+            properties: properties
+        )
+    }
+
+    private func dismissInApp(via: String) {
+        PaylisherNotificationEventTracker.capture(
+            "inappMessageClose",
+            pushId: pushId,
+            properties: ["via": via]
+        )
+
         guard let transitionType = currentLayout?.extra?.transition ?? layouts.first?.extra?.transition else {
             dismiss(animated: true)
             return
@@ -723,12 +760,12 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
-        let font = makeFont(family: block.fontFamily, weight: block.fontWeight, size: block.fontSize)
-        if block.italic == true {
-            label.font = UIFont.italicSystemFont(ofSize: font.pointSize)
-        } else {
-            label.font = font
-        }
+        label.font = makeFont(
+            family: block.fontFamily,
+            weight: block.fontWeight,
+            size: block.fontSize,
+            italic: block.italic == true
+        )
 
         if block.underscore == true {
             let text = label.text ?? ""
@@ -768,6 +805,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
                 let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
                 wrapper.isUserInteractionEnabled = true
                 wrapper.accessibilityIdentifier = action
+                wrapper.accessibilityValue = "text"
                 wrapper.addGestureRecognizer(tap)
             }
 
@@ -789,6 +827,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
             wrapper.isUserInteractionEnabled = true
             wrapper.accessibilityIdentifier = action
+            wrapper.accessibilityValue = "text"
             wrapper.addGestureRecognizer(tap)
         }
 
@@ -849,6 +888,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
             wrapper.isUserInteractionEnabled = true
             wrapper.accessibilityIdentifier = link
+            wrapper.accessibilityValue = "image"
             wrapper.addGestureRecognizer(tap)
         }
 
@@ -882,6 +922,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         case "large": heightValue = 56
         default: heightValue = 44
         }
+        button.layer.cornerRadius = resolveButtonCornerRadius(block, height: heightValue)
 
         var constraints = [
             button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: margin),
@@ -968,6 +1009,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             case "large": heightValue = 56
             default: heightValue = 44
             }
+            button.layer.cornerRadius = resolveButtonCornerRadius(buttonData, height: heightValue)
             button.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
             stack.addArrangedSubview(button)
         }
@@ -991,7 +1033,12 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
         button.setTitle(title, for: .normal)
 
-        let font = makeFont(family: block.fontFamily, weight: block.fontWeight, size: block.fontSize)
+        let font = makeFont(
+            family: block.fontFamily,
+            weight: block.fontWeight,
+            size: block.fontSize,
+            italic: block.italic == true
+        )
         button.titleLabel?.font = font
 
         if let hex = block.textColor, let color = UIColor(hex: hex) {
@@ -1014,42 +1061,68 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
         let action = block.action ?? ""
         button.accessibilityIdentifier = action
+        button.accessibilityValue = "button"
         button.addTarget(self, action: #selector(handleButtonTap(_:)), for: .touchUpInside)
 
         return button
     }
 
-    private func makeFont(family: String?, weight: String?, size: String?) -> UIFont {
-        let fontSize = CGFloat(Double(size ?? "16") ?? 16)
-        let fontWeight: UIFont.Weight = weight == "bold" ? .bold : .regular
+    private func resolveButtonCornerRadius(
+        _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
+        height: CGFloat
+    ) -> CGFloat {
+        let requestedRadius = CGFloat(block.borderRadius ?? 8)
+        return min(requestedRadius, height / 2)
+    }
 
-        switch family {
+    private func makeFont(family: String?, weight: String?, size: String?, italic: Bool = false) -> UIFont {
+        let rawSize = (size ?? "16").replacingOccurrences(of: "px", with: "")
+        let fontSize = CGFloat(Double(rawSize) ?? 16)
+        let normalizedWeight = (weight ?? "").lowercased()
+        let isBold = normalizedWeight == "bold" || normalizedWeight == "bold_italic"
+        let isItalic = italic || normalizedWeight == "italic" || normalizedWeight == "bold_italic"
+        let fontWeight: UIFont.Weight = isBold ? .bold : .regular
+
+        let baseFont: UIFont
+        switch family?.lowercased() {
         case "monospace":
-            return .monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
+            baseFont = .monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
         default:
-            return .systemFont(ofSize: fontSize, weight: fontWeight)
+            baseFont = .systemFont(ofSize: fontSize, weight: fontWeight)
         }
+
+        guard isItalic,
+              let descriptor = baseFont.fontDescriptor.withSymbolicTraits(
+                baseFont.fontDescriptor.symbolicTraits.union(.traitItalic)
+              ) else {
+            return baseFont
+        }
+
+        return UIFont(descriptor: descriptor, size: fontSize)
     }
 
     @objc private func handleButtonTap(_ sender: UIButton) {
         let action = sender.accessibilityIdentifier ?? ""
+        captureButtonClick(action: action, type: "button", label: sender.currentTitle)
         handleBlockAction(action)
     }
 
     @objc private func handleTapAction(_ gesture: UITapGestureRecognizer) {
         let action = gesture.view?.accessibilityIdentifier ?? ""
+        let type = gesture.view?.accessibilityValue ?? "button"
+        captureButtonClick(action: action, type: type)
         handleBlockAction(action)
     }
 
     private func handleBlockAction(_ action: String) {
         if action.isEmpty || action == "close" {
-            didTapClose()
+            dismissInApp(via: "closeButton")
             return
         }
 
         if let url = URL(string: action) {
             UIApplication.shared.open(url)
         }
-        didTapClose()
+        dismissInApp(via: "intent")
     }
 }

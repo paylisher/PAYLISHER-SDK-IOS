@@ -23,6 +23,7 @@ class StyleViewController: UIViewController {
     private let blocks: CustomInAppPayload.Layout.Blocks
 
     private let layoutType: String
+    private let pushId: String?
 
     private let containerView = UIView()
 
@@ -56,13 +57,15 @@ class StyleViewController: UIViewController {
          extra: CustomInAppPayload.Layout.Extra,
          blocks: CustomInAppPayload.Layout.Blocks,
          defaultLang: String,
-         layoutType: String = "modal") {
+         layoutType: String = "modal",
+         pushId: String? = nil) {
         self.style = style
         self.close = close
         self.extra = extra
         self.blocks = blocks
         self.defaultLang = defaultLang
         self.layoutType = layoutType
+        self.pushId = pushId
         super.init(nibName: nil, bundle: nil)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
@@ -82,7 +85,7 @@ class StyleViewController: UIViewController {
 
         if layoutType == "banner", let duration = extra.banner?.duration, duration > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(duration)) { [weak self] in
-                self?.didTapClose()
+                self?.dismissInApp(via: "timeout")
             }
         }
     }
@@ -436,7 +439,7 @@ class StyleViewController: UIViewController {
         
         if extra.overlay?.action == "close" {
             
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapClose))
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleOverlayClose))
             overlayView.isUserInteractionEnabled = true
             overlayView.addGestureRecognizer(tapGesture)
         }
@@ -491,6 +494,20 @@ class StyleViewController: UIViewController {
     private func applyBlocks() {
         guard let orderArray = blocks.order else { return }
 
+        let hasFlexibleSpacer = orderArray.contains {
+            if case .spacer(let sb) = $0 { return sb.fillAvailableSpacing == true }
+            return false
+        }
+
+        let topSpacer = UIView()
+        let bottomSpacer = UIView()
+
+        if !hasFlexibleSpacer {
+            topSpacer.translatesAutoresizingMaskIntoConstraints = false
+            bottomSpacer.translatesAutoresizingMaskIntoConstraints = false
+            contentStackView.addArrangedSubview(topSpacer)
+        }
+
         for block in orderArray {
             var blockView: UIView?
             switch block {
@@ -511,6 +528,34 @@ class StyleViewController: UIViewController {
                 contentStackView.addArrangedSubview(v)
             }
         }
+
+        if !hasFlexibleSpacer {
+            contentStackView.addArrangedSubview(bottomSpacer)
+            applyContentAlignment(blocks.align, topSpacer: topSpacer, bottomSpacer: bottomSpacer)
+        }
+    }
+
+    private func applyContentAlignment(_ align: String?, topSpacer: UIView, bottomSpacer: UIView) {
+        let normalized = (align ?? "top").lowercased()
+
+        switch normalized {
+        case "center":
+            NSLayoutConstraint.activate([
+                topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+                bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+                topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor),
+            ])
+        case "bottom":
+            NSLayoutConstraint.activate([
+                topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+                bottomSpacer.heightAnchor.constraint(equalToConstant: 0),
+            ])
+        default: // "top"
+            NSLayoutConstraint.activate([
+                topSpacer.heightAnchor.constraint(equalToConstant: 0),
+                bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+            ])
+        }
     }
 
     private func renderTextBlock(_ block: CustomInAppPayload.Layout.Blocks.TextBlock) -> UIView {
@@ -519,12 +564,12 @@ class StyleViewController: UIViewController {
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
-        let font = makeFont(family: block.fontFamily, weight: block.fontWeight, size: block.fontSize)
-        if block.italic == true {
-            label.font = UIFont.italicSystemFont(ofSize: font.pointSize)
-        } else {
-            label.font = font
-        }
+        label.font = makeFont(
+            family: block.fontFamily,
+            weight: block.fontWeight,
+            size: block.fontSize,
+            italic: block.italic == true
+        )
 
         if block.underscore == true {
             let text = label.text ?? ""
@@ -572,6 +617,7 @@ class StyleViewController: UIViewController {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
             wrapper.isUserInteractionEnabled = true
             wrapper.accessibilityIdentifier = action
+            wrapper.accessibilityValue = "text"
             wrapper.addGestureRecognizer(tap)
         }
 
@@ -638,6 +684,7 @@ class StyleViewController: UIViewController {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
             wrapper.isUserInteractionEnabled = true
             wrapper.accessibilityIdentifier = link
+            wrapper.accessibilityValue = "image"
             wrapper.addGestureRecognizer(tap)
         }
 
@@ -672,6 +719,7 @@ class StyleViewController: UIViewController {
         case "large": heightValue = 56
         default: heightValue = 44
         }
+        button.layer.cornerRadius = resolveButtonCornerRadius(block, height: heightValue)
 
         var constraints = [
             button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: margin),
@@ -762,6 +810,7 @@ class StyleViewController: UIViewController {
             case "large": heightValue = 56
             default: heightValue = 44
             }
+            btn.layer.cornerRadius = resolveButtonCornerRadius(btnData, height: heightValue)
             btn.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
             stack.addArrangedSubview(btn)
         }
@@ -783,7 +832,12 @@ class StyleViewController: UIViewController {
         let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
         button.setTitle(title, for: .normal)
 
-        let font = makeFont(family: block.fontFamily, weight: block.fontWeight, size: block.fontSize)
+        let font = makeFont(
+            family: block.fontFamily,
+            weight: block.fontWeight,
+            size: block.fontSize,
+            italic: block.italic == true
+        )
         button.titleLabel?.font = font
 
         if let hex = block.textColor, let color = UIColor(hex: hex) {
@@ -806,46 +860,102 @@ class StyleViewController: UIViewController {
 
         let action = block.action ?? ""
         button.accessibilityIdentifier = action
+        button.accessibilityValue = "button"
         button.addTarget(self, action: #selector(handleButtonTap(_:)), for: .touchUpInside)
 
         return button
     }
 
-    private func makeFont(family: String?, weight: String?, size: String?) -> UIFont {
-        let fontSize = CGFloat(Double(size ?? "16") ?? 16)
-        let fontWeight: UIFont.Weight = weight == "bold" ? .bold : .regular
+    private func resolveButtonCornerRadius(
+        _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
+        height: CGFloat
+    ) -> CGFloat {
+        let requestedRadius = CGFloat(block.borderRadius ?? 8)
+        return min(requestedRadius, height / 2)
+    }
 
-        switch family {
+    private func makeFont(family: String?, weight: String?, size: String?, italic: Bool = false) -> UIFont {
+        let rawSize = (size ?? "16").replacingOccurrences(of: "px", with: "")
+        let fontSize = CGFloat(Double(rawSize) ?? 16)
+        let normalizedWeight = (weight ?? "").lowercased()
+        let isBold = normalizedWeight == "bold" || normalizedWeight == "bold_italic"
+        let isItalic = italic || normalizedWeight == "italic" || normalizedWeight == "bold_italic"
+        let fontWeight: UIFont.Weight = isBold ? .bold : .regular
+
+        let baseFont: UIFont
+        switch family?.lowercased() {
         case "monospace":
-            return .monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
+            baseFont = .monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
         default:
-            return .systemFont(ofSize: fontSize, weight: fontWeight)
+            baseFont = .systemFont(ofSize: fontSize, weight: fontWeight)
         }
+
+        guard isItalic,
+              let descriptor = baseFont.fontDescriptor.withSymbolicTraits(
+                baseFont.fontDescriptor.symbolicTraits.union(.traitItalic)
+              ) else {
+            return baseFont
+        }
+
+        return UIFont(descriptor: descriptor, size: fontSize)
     }
 
     @objc private func handleButtonTap(_ sender: UIButton) {
         let action = sender.accessibilityIdentifier ?? ""
+        captureButtonClick(action: action, type: "button", label: sender.currentTitle)
         handleBlockAction(action)
     }
 
     @objc private func handleTapAction(_ gesture: UITapGestureRecognizer) {
         let action = gesture.view?.accessibilityIdentifier ?? ""
+        let type = gesture.view?.accessibilityValue ?? "button"
+        captureButtonClick(action: action, type: type)
         handleBlockAction(action)
     }
 
     private func handleBlockAction(_ action: String) {
         if action.isEmpty || action == "close" {
-            didTapClose()
+            dismissInApp(via: "closeButton")
             return
         }
 
         if let url = URL(string: action) {
             UIApplication.shared.open(url)
         }
-        didTapClose()
+        dismissInApp(via: "intent")
     }
 
     @objc private func didTapClose() {
+        dismissInApp(via: "closeButton")
+    }
+
+    @objc private func handleOverlayClose() {
+        dismissInApp(via: "overlay")
+    }
+
+    private func captureButtonClick(action: String, type: String, label: String? = nil) {
+        var properties: [String: Any?] = [
+            "action": action,
+            "type": type,
+        ]
+        if let label, !label.isEmpty {
+            properties["label"] = label
+        }
+
+        PaylisherNotificationEventTracker.capture(
+            "inappMessageButtonClick",
+            pushId: pushId,
+            properties: properties
+        )
+    }
+
+    private func dismissInApp(via: String) {
+        PaylisherNotificationEventTracker.capture(
+            "inappMessageClose",
+            pushId: pushId,
+            properties: ["via": via]
+        )
+
         guard let transitionType = extra.transition else {
             dismiss(animated: true)
             return

@@ -170,7 +170,6 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, willPresent notification: UNNotification, withCompletionHandler completionHandler: @escaping (UNNotificationPresentationOptions) -> Void) {
         print("FCM -> willPresents")
-        PaylisherSDK.shared.capture("notificationReceived")
         completionHandler([.sound, .list, .banner, .badge ])
     }
     
@@ -204,21 +203,7 @@ class AppDelegate: NSObject, UIApplicationDelegate, UNUserNotificationCenterDele
     }
 
     func userNotificationCenter(_ center: UNUserNotificationCenter, didReceive response: UNNotificationResponse, withCompletionHandler completionHandler: @escaping () -> Void) {
-        let userInfo = response.notification.request.content.userInfo
-        let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
-
-        PaylisherSDK.shared.capture("notificationOpen")
-
-        print("FCM -> didReceive")
-        print("Bildirime tıklandı.")
-
-        if let actionURLString = userInfo["action"] as? String,
-           let actionURL = URL(string: actionURLString) {
-            UIApplication.shared.open(actionURL, options: [:], completionHandler: nil)
-        } else {
-            print("Action URL bulunamadı!")
-        }
-
+        _ = NotificationManager.shared.handleNotificationResponse(response)
         completionHandler()
     }
 
