@@ -331,6 +331,36 @@ public class NotificationManager {
         }
     }
 
+    /// Capture a `notificationOpen` event when the app is cold-launched by tapping a
+    /// notification that iOS displayed itself (e.g. a remote push without
+    /// `mutable-content: 1`, where the Notification Service Extension never ran). Call this
+    /// from `application(_:didFinishLaunchingWithOptions:)` after the SDK is set up. The
+    /// `didReceive response` delegate will *also* fire shortly after; this helper dedupes via
+    /// `gcm.message_id` / `google.message_id` so the event is captured exactly once.
+    @discardableResult
+    public func handleLaunchOptions(_ launchOptions: [UIApplication.LaunchOptionsKey: Any]?) -> Bool {
+        guard let userInfo = launchOptions?[.remoteNotification] as? [AnyHashable: Any] else {
+            return false
+        }
+
+        let hasPaylisherSource = (userInfo["source"] as? String) == "Paylisher"
+        let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
+        guard hasPaylisherSource || pushId != nil else {
+            return false
+        }
+
+        guard PaylisherNotificationDedupe.tryClaimOpen(userInfo: userInfo) else {
+            return false
+        }
+
+        PaylisherNotificationEventTracker.capture(
+            "notificationOpen",
+            userInfo: userInfo,
+            properties: ["via": "launchOptions"]
+        )
+        return true
+    }
+
     /// Capture the `notificationReceived` event for a notification iOS is about to present
     /// while the app is in the foreground. The host app should call this from
     /// `userNotificationCenter(_:willPresent:withCompletionHandler:)` *before* invoking the
@@ -372,6 +402,11 @@ public class NotificationManager {
                 userInfo: userInfo,
                 properties: ["via": "dismissAction"]
             )
+            return true
+        }
+
+        // Skip if we already captured this open from launchOptions on cold start.
+        guard PaylisherNotificationDedupe.tryClaimOpen(userInfo: userInfo) else {
             return true
         }
 
@@ -551,6 +586,57 @@ public class NotificationManager {
     
     
     
+}
+
+/// Cross-call dedupe for notificationOpen so that, on cold start from a notification tap,
+/// `handleLaunchOptions` and `userNotificationCenter(_:didReceive:withCompletionHandler:)`
+/// don't both end up emitting the event for the same push. Keyed by the FCM message id when
+/// available, falling back to pushId.
+enum PaylisherNotificationDedupe {
+    private static let openClaimedKeyPrefix = "paylisher.notification.open.claimed."
+    // Bound the marker history so UserDefaults doesn't grow forever.
+    private static let storedKeysList = "paylisher.notification.open.claimed.keys"
+    private static let maxStoredKeys = 200
+
+    static func messageKey(from userInfo: [AnyHashable: Any]) -> String? {
+        let candidates = ["gcm.message_id", "google.message_id", "pushId"]
+        for key in candidates {
+            if let value = userInfo[key] as? String {
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty {
+                    return trimmed
+                }
+            }
+        }
+        return nil
+    }
+
+    /// Atomically marks the open event for `userInfo` as captured. Returns `true` if the
+    /// caller should fire the event (first claim) and `false` if another path already did.
+    static func tryClaimOpen(userInfo: [AnyHashable: Any]) -> Bool {
+        guard let key = messageKey(from: userInfo) else {
+            // No identifier to dedupe on — let the caller fire optimistically.
+            return true
+        }
+        let defaults = UserDefaults.standard
+        let storageKey = "\(openClaimedKeyPrefix)\(key)"
+        if defaults.bool(forKey: storageKey) {
+            return false
+        }
+
+        var stored = defaults.stringArray(forKey: storedKeysList) ?? []
+        stored.append(storageKey)
+        if stored.count > maxStoredKeys {
+            let evict = stored.prefix(stored.count - maxStoredKeys)
+            for k in evict {
+                defaults.removeObject(forKey: k)
+            }
+            stored = Array(stored.suffix(maxStoredKeys))
+        }
+        defaults.set(stored, forKey: storedKeysList)
+        defaults.set(true, forKey: storageKey)
+        return true
+    }
 }
 
 enum PaylisherNotificationEventTracker {
