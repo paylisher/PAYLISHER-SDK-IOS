@@ -4,10 +4,36 @@ import Foundation
 import UIKit
 #endif
 
-final class PaylisherEngageInAppService {
+@objc public enum InAppAckStatus: Int {
+    case delivered, seen, clicked, dismissed
+    var rawString: String {
+        switch self {
+        case .delivered: return "DELIVERED"
+        case .seen:      return "SEEN"
+        case .clicked:   return "CLICKED"
+        case .dismissed: return "DISMISSED"
+        }
+    }
+}
+
+final class PaylisherEngageInAppService: NSObject {
     static let shared = PaylisherEngageInAppService()
 
-    private init() {}
+    private let queueLock = NSLock()
+    private var pendingMessages: [[String: Any]] = []
+    private var presentedPushIds = Set<String>()
+
+    override private init() {
+        super.init()
+        #if os(iOS) || os(tvOS)
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppForegroundForRender),
+            name: UIApplication.didBecomeActiveNotification,
+            object: nil
+        )
+        #endif
+    }
 
     func refresh(using sdk: PaylisherSDK, target: String? = nil) {
         guard let config = sdk.config.engageInAppConfig else {
@@ -78,6 +104,63 @@ final class PaylisherEngageInAppService {
         }.resume()
     }
 
+    func acknowledge(distinctId: String, pushId: String, status: InAppAckStatus) {
+        #if os(iOS) || os(tvOS)
+        guard let config = PaylisherSDK.shared.config.engageInAppConfig else {
+            return
+        }
+
+        let ackEndpoint = ackUrlString(from: config.fetchEndpoint)
+        guard let url = URL(string: ackEndpoint) else {
+            if config.debugLogging {
+                hedgeLog("[PaylisherSDK] Engage in-app ack skipped: invalid ack endpoint \(ackEndpoint)")
+            }
+            return
+        }
+
+        let deviceId = UIDevice.current.identifierForVendor?.uuidString ?? ""
+
+        let body: [String: Any] = [
+            "teamId": config.teamId,
+            "projectId": config.projectId,
+            "sourceId": config.sourceId,
+            "distinctId": distinctId,
+            "deviceId": deviceId,
+            "pushId": pushId,
+            "status": status.rawString,
+        ]
+
+        var request = URLRequest(url: url)
+        request.httpMethod = "POST"
+        request.timeoutInterval = 10
+        request.setValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.setValue(config.sdkKey, forHTTPHeaderField: "X-SDK-Key")
+
+        do {
+            request.httpBody = try JSONSerialization.data(withJSONObject: body)
+        } catch {
+            if config.debugLogging {
+                hedgeLog("[PaylisherSDK] Engage in-app ack body encode failed: \(error)")
+            }
+            return
+        }
+
+        URLSession.shared.dataTask(with: request) { _, _, error in
+            if let error, config.debugLogging {
+                hedgeLog("[PaylisherSDK] Engage in-app ack failed: \(error.localizedDescription)")
+            }
+        }.resume()
+        #endif
+    }
+
+    private func ackUrlString(from fetchEndpoint: String) -> String {
+        guard let lastSlash = fetchEndpoint.lastIndex(of: "/") else {
+            return fetchEndpoint
+        }
+        let prefix = fetchEndpoint[..<fetchEndpoint.index(after: lastSlash)]
+        return prefix + "ack"
+    }
+
     private func buildRequestBody(
         config: PaylisherEngageInAppConfig,
         distinctId: String,
@@ -110,13 +193,84 @@ final class PaylisherEngageInAppService {
         }
 
         #if os(iOS) || os(tvOS)
-        DispatchQueue.main.async {
-            let windowScene = self.activeWindowScene()
-            messages.forEach { message in
-                self.presentMessage(message, windowScene: windowScene, debugLogging: debugLogging)
+        queueLock.lock()
+        for message in messages {
+            if let pushId = extractPushId(from: message) {
+                if presentedPushIds.contains(pushId) { continue }
+                presentedPushIds.insert(pushId)
+            }
+            pendingMessages.append(message)
+        }
+        queueLock.unlock()
+
+        renderPendingMessages(debugLogging: debugLogging)
+        #endif
+    }
+
+    private func extractPushId(from message: [String: Any]) -> String? {
+        let raw = (message["payload"] as? [String: Any])?["pushId"] ?? message["pushId"]
+        switch raw {
+        case let value as String: return value
+        case let value as NSNumber: return String(describing: value)
+        default: return nil
+        }
+    }
+
+    private func isExcludedScreen(currentTarget: String?, config: PaylisherEngageInAppConfig) -> Bool {
+        guard let currentTarget, !currentTarget.isEmpty else {
+            return false
+        }
+        for name in config.excludedActivities {
+            if currentTarget.range(of: name, options: .caseInsensitive) != nil {
+                return true
             }
         }
-        #endif
+        return false
+    }
+
+    @objc private func handleAppForegroundForRender() {
+        let debugLogging = PaylisherSDK.shared.config.engageInAppConfig?.debugLogging ?? false
+        renderPendingMessages(debugLogging: debugLogging)
+    }
+
+    private func renderPendingMessages(debugLogging: Bool) {
+        DispatchQueue.main.async { [weak self] in
+            guard let self else { return }
+            #if os(iOS) || os(tvOS)
+            guard let config = PaylisherSDK.shared.config.engageInAppConfig else {
+                return
+            }
+
+            guard let scene = self.activeWindowScene() else {
+                return
+            }
+
+            let target = self.currentScreenTarget()
+            if self.isExcludedScreen(currentTarget: target, config: config) {
+                return
+            }
+
+            self.queueLock.lock()
+            let drained = self.pendingMessages
+            self.pendingMessages.removeAll()
+            self.queueLock.unlock()
+
+            if drained.isEmpty {
+                return
+            }
+
+            let distinctId = PaylisherSDK.shared.getDistinctId()
+                .trimmingCharacters(in: .whitespacesAndNewlines)
+
+            for message in drained {
+                self.presentMessage(message, windowScene: scene, debugLogging: debugLogging)
+
+                if let pushId = self.extractPushId(from: message), !distinctId.isEmpty {
+                    self.acknowledge(distinctId: distinctId, pushId: pushId, status: .delivered)
+                }
+            }
+            #endif
+        }
     }
 
     #if os(iOS) || os(tvOS)
