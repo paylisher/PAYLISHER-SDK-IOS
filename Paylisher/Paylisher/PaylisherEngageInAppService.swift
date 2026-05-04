@@ -32,7 +32,20 @@ final class PaylisherEngageInAppService: NSObject {
             name: UIApplication.didBecomeActiveNotification,
             object: nil
         )
+        // Foreground auto-fetch parity with paylisher-android (ProcessLifecycleOwner +
+        // autoFetchOnForeground=true). Without this, iOS users never see in-app messages
+        // unless the host app calls refresh() manually.
+        NotificationCenter.default.addObserver(
+            self,
+            selector: #selector(handleAppWillEnterForegroundForFetch),
+            name: UIApplication.willEnterForegroundNotification,
+            object: nil
+        )
         #endif
+    }
+
+    deinit {
+        NotificationCenter.default.removeObserver(self)
     }
 
     func refresh(using sdk: PaylisherSDK, target: String? = nil) {
@@ -124,6 +137,7 @@ final class PaylisherEngageInAppService: NSObject {
             "teamId": config.teamId,
             "projectId": config.projectId,
             "sourceId": config.sourceId,
+            "sdkKey": config.sdkKey,
             "distinctId": distinctId,
             "deviceId": deviceId,
             "pushId": pushId,
@@ -231,6 +245,20 @@ final class PaylisherEngageInAppService: NSObject {
     @objc private func handleAppForegroundForRender() {
         let debugLogging = PaylisherSDK.shared.config.engageInAppConfig?.debugLogging ?? false
         renderPendingMessages(debugLogging: debugLogging)
+    }
+
+    @objc private func handleAppWillEnterForegroundForFetch() {
+        guard let config = PaylisherSDK.shared.config.engageInAppConfig, config.autoFetchOnForeground else {
+            return
+        }
+        #if os(iOS) || os(tvOS)
+        // Skip auto-fetch on excluded screens (e.g. Splash). The fetched messages would
+        // queue up anyway, but avoiding the HTTP call mirrors Android's excludedActivities.
+        if isExcludedScreen(currentTarget: currentScreenTarget(), config: config) {
+            return
+        }
+        #endif
+        refresh(using: PaylisherSDK.shared)
     }
 
     private func renderPendingMessages(debugLogging: Bool) {

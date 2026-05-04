@@ -1363,7 +1363,9 @@ let maxRetryDelay = 30.0
         captureAppOpened()
 
         if config.engageInAppConfig?.autoFetchOnForeground == true {
-            refreshEngageInAppMessages(target: nil)
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
+                self?.refreshEngageInAppMessages(target: nil)
+            }
         }
     }
 
