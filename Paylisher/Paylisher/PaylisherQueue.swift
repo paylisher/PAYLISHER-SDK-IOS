@@ -106,8 +106,22 @@ class PaylisherQueue {
             shouldRetry = true
         }
 
-        // TODO: https://github.com/Paylisher/paylisher-android/pull/130
-        // fix: reduce batch size if API returns 413
+        // 413 Payload Too Large: halve maxBatchSize / flushAt (down to 1) and retry,
+        // mirroring paylisher-android. Without this, large media payloads (e.g. PNG snapshots
+        // exceeding the broker limit) would either loop forever as 5xx-style retries or be
+        // silently dropped. Once batch size is already 1 and we still get 413, fall through to
+        // the drop branch — there's nothing we can do at that point.
+        if statusCode == 413, config.maxBatchSize > 1 {
+            config.maxBatchSize = calcFloor(config.maxBatchSize)
+            config.flushAt = calcFloor(config.flushAt)
+            hedgeLog("Flushing failed with 413, retrying with smaller batch (maxBatchSize=\(config.maxBatchSize), flushAt=\(config.flushAt)).")
+            shouldRetry = true
+        }
+
+        // 5xx is a transient server error; keep events and retry rather than drop.
+        if 500 ... 599 ~= statusCode {
+            shouldRetry = true
+        }
 
         if shouldRetry {
             retryCount += 1
@@ -119,6 +133,10 @@ class PaylisherQueue {
         }
 
         payload.completion(!shouldRetry)
+    }
+
+    private func calcFloor(_ value: Int) -> Int {
+        max(value / 2, 1)
     }
 
     func start(disableReachabilityForTesting: Bool,
