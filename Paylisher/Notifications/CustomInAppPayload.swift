@@ -617,26 +617,9 @@ public struct CustomInAppPayload: Codable {
                         }
                         
                     }
-                    
+
                 }
-                
-                init(from decoder: Decoder) throws {
-                    
-                    let container = try decoder.container(keyedBy: CodingKeys.self)
-                    
-                    self.type = try? container.decode(String.self, forKey: .type)
-                    
-                    if let orderStr = try? container.decode(String.self, forKey: .order),
-                       let intVal = Int(orderStr) {
-                        self.order = intVal
-                    } else {
-                        self.order = nil
-                    }
-                    
-                    self.buttonGroupType = try? container.decode(String.self, forKey: .buttonGroupType)
-                    self.buttons = try? container.decode([ButtonBlock].self, forKey: .buttons)
-                    
-                }
+
             }
         }
     }
