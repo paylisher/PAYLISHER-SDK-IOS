@@ -250,11 +250,32 @@ class StyleViewController: UIViewController {
 
         containerView.clipsToBounds = true
 
+        addBottomStripIfNeeded()
+
         if let bgImageStr = style.bgImage, !bgImageStr.isEmpty {
             addBackgroundImage(urlString: bgImageStr)
         }
 
         // Modal position is fixed to center by product rule.
+    }
+
+    private func addBottomStripIfNeeded() {
+        let bottomInset = CGFloat(style.bgBottomInset ?? 0)
+        guard bottomInset > 0 else { return }
+
+        let stripColorHex = style.bgBottomColor ?? style.bgColor
+        guard let hex = stripColorHex, let color = UIColor(hex: hex) else { return }
+
+        let stripView = UIView()
+        stripView.translatesAutoresizingMaskIntoConstraints = false
+        stripView.backgroundColor = color
+        containerView.insertSubview(stripView, at: 0)
+        NSLayoutConstraint.activate([
+            stripView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            stripView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            stripView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            stripView.heightAnchor.constraint(equalToConstant: bottomInset)
+        ])
     }
     
     private func applyClose() {
@@ -393,15 +414,17 @@ class StyleViewController: UIViewController {
         bgImageView.translatesAutoresizingMaskIntoConstraints = false
         bgImageView.contentMode = .scaleAspectFill
         bgImageView.clipsToBounds = true
-        
+
         containerView.insertSubview(bgImageView, at: 0)
-        
+
+        let bottomInset = CGFloat(style.bgBottomInset ?? 0)
+
         NSLayoutConstraint.activate([
             bgImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             bgImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             bgImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-            
+            bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -bottomInset)
+
         ])
         
         if let url = URL(string: urlString) {
@@ -491,6 +514,23 @@ class StyleViewController: UIViewController {
     
     // MARK: - Block Rendering
 
+    private func wrapBlockWithMargins(_ blockView: UIView, marginTop: Int?, marginBottom: Int?) -> UIView {
+        let top = CGFloat(marginTop ?? 0)
+        let bottom = CGFloat(marginBottom ?? 0)
+        if top == 0 && bottom == 0 { return blockView }
+        let wrapper = UIView()
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        blockView.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(blockView)
+        NSLayoutConstraint.activate([
+            blockView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: top),
+            blockView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -bottom),
+            blockView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+            blockView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+        ])
+        return wrapper
+    }
+
     private func applyBlocks() {
         guard let orderArray = blocks.order else { return }
 
@@ -510,22 +550,32 @@ class StyleViewController: UIViewController {
 
         for block in orderArray {
             var blockView: UIView?
+            var marginTop: Int? = nil
+            var marginBottom: Int? = nil
             switch block {
             case .text(let tb):
                 blockView = renderTextBlock(tb)
+                marginTop = tb.marginTop
+                marginBottom = tb.marginBottom
             case .image(let ib):
                 blockView = renderImageBlock(ib)
+                marginTop = ib.marginTop
+                marginBottom = ib.marginBottom
             case .spacer(let sb):
                 blockView = renderSpacerBlock(sb)
+                marginTop = sb.marginTop
+                marginBottom = sb.marginBottom
             case .button(let bb):
                 blockView = renderButtonBlock(bb)
             case .buttonGroup(let bg):
                 blockView = renderButtonGroupBlock(bg)
+                marginTop = bg.marginTop
+                marginBottom = bg.marginBottom
             case .unknown:
                 continue
             }
             if let v = blockView {
-                contentStackView.addArrangedSubview(v)
+                contentStackView.addArrangedSubview(wrapBlockWithMargins(v, marginTop: marginTop, marginBottom: marginBottom))
             }
         }
 
@@ -630,6 +680,17 @@ class StyleViewController: UIViewController {
         // Match preview/Android behavior: image fills a fixed frame (cropping if needed).
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
+
+        // Accessibility: expose the alt text to VoiceOver, mirroring Android's
+        // contentDescription wiring. Image becomes a VoiceOver-readable element
+        // only when an alt text is provided.
+        if let altText = block.alt, !altText.isEmpty {
+            imageView.isAccessibilityElement = true
+            imageView.accessibilityLabel = altText
+            imageView.accessibilityTraits.insert(.image)
+        } else {
+            imageView.isAccessibilityElement = false
+        }
 
         if layoutType == "banner" {
             let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: 60)
@@ -798,8 +859,8 @@ class StyleViewController: UIViewController {
 
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 8
-        stack.alignment = .fill
+        stack.spacing = 0
+        stack.alignment = .center
         stack.distribution = .fillEqually
 
         for btnData in buttons {
@@ -812,7 +873,21 @@ class StyleViewController: UIViewController {
             }
             btn.layer.cornerRadius = resolveButtonCornerRadius(btnData, height: heightValue)
             btn.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
-            stack.addArrangedSubview(btn)
+
+            // Wrap each button so per-button margin can shrink its width and the
+            // stack's .fillEqually still splits the row 50/50 between wrappers.
+            let buttonWrapper = UIView()
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            buttonWrapper.translatesAutoresizingMaskIntoConstraints = false
+            buttonWrapper.addSubview(btn)
+            let buttonMargin = CGFloat(btnData.margin ?? 8)
+            NSLayoutConstraint.activate([
+                btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
+                btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
+                btn.leadingAnchor.constraint(equalTo: buttonWrapper.leadingAnchor, constant: buttonMargin),
+                btn.trailingAnchor.constraint(equalTo: buttonWrapper.trailingAnchor, constant: -buttonMargin),
+            ])
+            stack.addArrangedSubview(buttonWrapper)
         }
 
         let wrapper = UIView()
