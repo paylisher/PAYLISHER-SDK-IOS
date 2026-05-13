@@ -715,9 +715,10 @@ class StyleViewController: UIViewController {
         }
 
         let rawMargin = CGFloat(block.margin ?? 0)
-        // Preview/Android contract: keep image inset on X axis only.
-        let horizontalMarginBase: CGFloat = (layoutType == "fullscreen" && rawMargin <= 0) ? baseHorizontalInset : rawMargin
-        let horizontalMargin: CGFloat = horizontalMarginBase + extraHorizontalInset
+        // Preview parity: image horizontal inset == payload margin (no SDK-injected
+        // +6 padding). Fullscreen keeps a baseline inset so the image does not
+        // collide with system safe areas when margin is 0.
+        let horizontalMargin: CGFloat = (layoutType == "fullscreen" && rawMargin <= 0) ? baseHorizontalInset : rawMargin
         let verticalMargin: CGFloat = 0
         let wrapper = UIView()
         let frameView = UIView()
