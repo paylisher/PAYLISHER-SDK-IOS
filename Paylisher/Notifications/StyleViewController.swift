@@ -1111,7 +1111,10 @@ class StyleViewController: UIViewController {
 
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 0
+        // Horizontal group: `buttonGap` is interpreted as % of container width
+        // (vs % of container height for vertical groups). Same authored value,
+        // container-aware axis — mirrors Studio + Android.
+        stack.spacing = bannerPctH(CGFloat(block.buttonGap ?? 0))
         stack.alignment = .center
         stack.distribution = .fillEqually
 
