@@ -1072,11 +1072,14 @@ class StyleViewController: UIViewController {
         let wrapper = UIView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(stack)
-        // Banner: scale the 8pt vertical group padding with banner height.
-        let stackVerticalPad = scaleV(8)
+        // No more hardcoded vertical wrapper padding. Each block already gets
+        // its own per-block `marginTop` / `marginBottom` via `wrapBlockWithMargins`,
+        // so the button group now butts up to the previous/next block by default
+        // — the user controls the gap explicitly through those margins (banner:
+        // percent of banner height; modal/fullscreen: raw pt).
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: stackVerticalPad),
-            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -stackVerticalPad),
+            stack.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
             stack.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset),
             stack.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset),
         ])
