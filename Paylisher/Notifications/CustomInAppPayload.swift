@@ -536,6 +536,11 @@ public struct CustomInAppPayload: Codable {
                 let buttons: [ButtonBlock]?
                 let marginTop: Int?
                 let marginBottom: Int?
+                /// Vertical inter-button gap. Banner: percent of banner height (0–100).
+                /// Modal/fullscreen: raw pt. Only honored for `double-vertical` groups —
+                /// `double-horizontal` always butts the two slots up against each other
+                /// (SDK locks 50/50). Optional; missing/legacy payloads default to 0.
+                let buttonGap: Int?
 
                 init(from decoder: Decoder) throws {
                     let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -545,6 +550,7 @@ public struct CustomInAppPayload: Codable {
                     self.buttons = try? container.decode([ButtonBlock].self, forKey: .buttons)
                     self.marginTop = decodeIntOrString(container, forKey: .marginTop)
                     self.marginBottom = decodeIntOrString(container, forKey: .marginBottom)
+                    self.buttonGap = decodeIntOrString(container, forKey: .buttonGap)
                 }
                 
                 
