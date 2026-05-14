@@ -1140,6 +1140,25 @@ class StyleViewController: UIViewController {
             // Banner: per-button horizontal margin is a PERCENT of banner width
             // (0–100). Modal/fullscreen pass through raw pt.
             let buttonMargin = bannerPctH(CGFloat(btnData.margin ?? 8))
+            let hSize = (btnData.horizontalSize ?? "").lowercased()
+            // `auto` buttons sit at their intrinsic width inside the half
+            // wrapper (centered) so the user can pair a wide button on one
+            // side with a compact one on the other. Every other size stretches
+            // the button to the wrapper edge (minus margin) — matches the
+            // Studio + Android renderers.
+            if hSize == "auto" {
+                btn.titleEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+                btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+                NSLayoutConstraint.activate([
+                    btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
+                    btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
+                    btn.centerXAnchor.constraint(equalTo: buttonWrapper.centerXAnchor),
+                    btn.leadingAnchor.constraint(greaterThanOrEqualTo: buttonWrapper.leadingAnchor, constant: buttonMargin),
+                    btn.trailingAnchor.constraint(lessThanOrEqualTo: buttonWrapper.trailingAnchor, constant: -buttonMargin),
+                ])
+                stack.addArrangedSubview(buttonWrapper)
+                continue
+            }
             NSLayoutConstraint.activate([
                 btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
                 btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
