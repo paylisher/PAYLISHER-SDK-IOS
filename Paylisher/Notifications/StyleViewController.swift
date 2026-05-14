@@ -186,13 +186,30 @@ class StyleViewController: UIViewController {
 
     /// Resolve an authored fontSize string (`"16"` / `"16px"`) — banner +
     /// modal treat it as a percent of container height, fullscreen returns
-    /// it raw. Returns the same shape `makeFont` consumes.
+    /// it raw. Returns the same shape `makeFont` consumes. Used for TEXT
+    /// blocks; button blocks now use `resolveButtonFontSizeString` instead
+    /// so the font scales with the button itself, not the container.
     private func scaledFontSizeString(_ raw: String?) -> String? {
         guard let raw = raw else { return nil }
         guard isPercentContainer else { return raw }
         let trimmed = raw.replacingOccurrences(of: "px", with: "")
         guard let value = Double(trimmed) else { return raw }
         let resolved = bannerPctV(CGFloat(value))
+        return String(format: "%g", Double(resolved))
+    }
+
+    /// Resolve a button's authored fontSize as a PERCENT of that button's
+    /// own height. Banner + modal: same contract — `50` means "half of the
+    /// button's height". Fullscreen returns the raw string for legacy pt
+    /// semantics. Keeps the text inside the button regardless of container
+    /// (a 10% value reads as 10% of 32/44/56pt, never 10% of a 405pt modal).
+    private func resolveButtonFontSizeString(_ raw: String?, buttonHeight: CGFloat) -> String? {
+        guard let raw = raw else { return nil }
+        guard isPercentContainer else { return raw }
+        let trimmed = raw.replacingOccurrences(of: "px", with: "")
+        guard let value = Double(trimmed) else { return raw }
+        let pct = max(0, min(100, CGFloat(value)))
+        let resolved = buttonHeight * pct / 100
         return String(format: "%g", Double(resolved))
     }
 
@@ -988,25 +1005,27 @@ class StyleViewController: UIViewController {
     }
 
     private func renderButtonBlock(_ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock) -> UIView {
-        let button = createStyledButton(block)
         // `block.margin` is a HORIZONTAL-ONLY outer spacing — pads left/right
         // (and shrinks the button accordingly). Vertical gap between buttons
         // is controlled by per-block `marginTop` / `marginBottom`.
         // Banner: PERCENT of banner width (0–100). Modal/fullscreen: raw pt.
         let marginH = bannerPctH(CGFloat(block.margin ?? 8))
 
-        let wrapper = UIView()
-        button.translatesAutoresizingMaskIntoConstraints = false
-        wrapper.addSubview(button)
-
+        // Resolve intrinsic button height BEFORE building the styled button —
+        // the button's font is now a percent of its own height, so we need
+        // the final height ready when `createStyledButton` is called.
         let baseHeight: CGFloat
         switch block.verticalSize {
         case "small": baseHeight = 32
         case "large": baseHeight = 56
         default: baseHeight = 44
         }
-        // Banner: scale intrinsic button height vertically.
         let heightValue: CGFloat = scaleV(baseHeight)
+
+        let button = createStyledButton(block, buttonHeight: heightValue)
+        let wrapper = UIView()
+        button.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(button)
         button.layer.cornerRadius = resolveButtonCornerRadius(block, height: heightValue)
 
         var constraints = [
@@ -1097,15 +1116,15 @@ class StyleViewController: UIViewController {
         stack.distribution = .fillEqually
 
         for btnData in buttons {
-            let btn = createStyledButton(btnData)
             let baseHeight: CGFloat
             switch btnData.verticalSize {
             case "small": baseHeight = 32
             case "large": baseHeight = 56
             default: baseHeight = 44
             }
-            // Banner: scale button intrinsic height with banner height.
+            // Banner / modal: scale button intrinsic height with container height.
             let heightValue: CGFloat = scaleV(baseHeight)
+            let btn = createStyledButton(btnData, buttonHeight: heightValue)
             btn.layer.cornerRadius = resolveButtonCornerRadius(btnData, height: heightValue)
             btn.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
 
@@ -1144,13 +1163,18 @@ class StyleViewController: UIViewController {
         return wrapper
     }
 
-    private func createStyledButton(_ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock) -> UIButton {
+    private func createStyledButton(
+        _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
+        buttonHeight: CGFloat = 44
+    ) -> UIButton {
         let button = UIButton(type: .system)
         let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
         button.setTitle(title, for: .normal)
 
-        // Banner: scale authored fontSize string vertically before makeFont
-        // parses it. Modal/fullscreen pass the raw string through unchanged.
+        // Banner + modal: authored fontSize is a PERCENT of CONTAINER height —
+        // same contract text blocks use. Fullscreen keeps the raw string for
+        // legacy pt semantics. (`buttonHeight` param kept for future use.)
+        _ = buttonHeight
         let font = makeFont(
             family: block.fontFamily,
             weight: block.fontWeight,
