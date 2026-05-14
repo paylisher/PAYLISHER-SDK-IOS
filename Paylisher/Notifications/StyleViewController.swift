@@ -8,9 +8,6 @@
 import UIKit
 
 class StyleViewController: UIViewController {
-    private let modalHeightRatio: CGFloat = 0.48
-    private let modalImageHeightRatio: CGFloat = 0.36
-    private let modalImageMinHeight: CGFloat = 72
     private let baseHorizontalInset: CGFloat = 16
     private let extraHorizontalInset: CGFloat = 6
 
@@ -24,14 +21,28 @@ class StyleViewController: UIViewController {
     private let bannerInnerVerticalPaddingRatio: CGFloat = 0.04
     private let bannerOuterVerticalInsetRatio: CGFloat = 0.02
 
-    // Banner content scale — authored pt values are interpreted against the
-    // reference banner (iPhone 13 viewport: 390 × 844pt → banner 358.8 × 219.44pt).
-    // Render time scales them to the current device's banner geometry so the
-    // visual proportions stay identical on every device. Mirrors
-    // `lib/banner-scale.ts` (Studio) and the `scaleH/scaleV` helpers in
-    // `InAppMessagingBanner.kt` (Android).
+    // Modal geometry — mirrors `lib/modal-layout-constants.ts` (Studio) and
+    // Android's `InAppMessageHelper.kt`. Modal is now ratio-driven the same
+    // way banner is, so authored fields (margins, font sizes, gaps) read as
+    // percents of modal geometry and the same proportions render on every
+    // device.
+    private let modalHeightRatio: CGFloat = 0.48
+    private let modalWidthRatio: CGFloat = 0.88
+    private let modalInnerHorizontalPaddingRatio: CGFloat = 0.05
+    private let modalInnerVerticalPaddingRatio: CGFloat = 0.05
+    private let modalImageHeightRatio: CGFloat = 0.36
+    private let modalImageMinHeight: CGFloat = 72
+
+    // Container content scale — authored pt values are interpreted against
+    // an iPhone-13 reference container (banner: 358.8 × 219.44pt;
+    // modal: 343.2 × 405.12pt). Render time scales them to the current
+    // device so visual proportions stay identical on every device. Mirrors
+    // `lib/banner-scale.ts` / `lib/modal-layout-constants.ts` (Studio) and
+    // the `scaleH/scaleV` helpers in the Android SDK.
     private let bannerReferenceWidth: CGFloat = 358.8    // 390 * (1 - 2 * 0.04)
     private let bannerReferenceHeight: CGFloat = 219.44  // 844 * 0.26
+    private var modalReferenceWidth: CGFloat { 390 * modalWidthRatio }   // 343.2
+    private var modalReferenceHeight: CGFloat { 844 * modalHeightRatio } // 405.12
 
     private let style: CustomInAppPayload.Layout.Style
     
@@ -67,80 +78,118 @@ class StyleViewController: UIViewController {
     private let defaultLang: String
 
     private var contentHorizontalInset: CGFloat {
-        // Banner's scrollView is already inset by the ratio-based inner
-        // horizontal padding (see banner case in `setupUI`), so the per-block
-        // wrappers must not add another inset on top — otherwise a `full`
-        // width button or button-row would lose width to double padding.
-        if layoutType == "banner" { return 0 }
+        // Banner + modal each apply their own ratio-based inner horizontal
+        // padding at the scrollView level, so the per-block wrappers must
+        // NOT add another inset on top — otherwise a `full` width button or
+        // button-row would lose width to double padding. Fullscreen still
+        // adds the legacy 22pt (base + extra) inset since it owns the whole
+        // screen and doesn't bring its own ratio padding.
+        if layoutType == "banner" || layoutType == "modal" { return 0 }
         return baseHorizontalInset + extraHorizontalInset
     }
 
-    // MARK: - Banner content scaling
+    // MARK: - Container content scaling
 
-    /// Current banner frame width (pt) — derived from the device screen and
-    /// the outer horizontal inset ratio. Same formula as the constraint in
-    /// `setupUI`'s banner case.
-    private func currentBannerWidth() -> CGFloat {
-        return UIScreen.main.bounds.width * (1 - 2 * bannerOuterHorizontalInsetRatio)
+    /// Whether this layout uses percent-based authoring (banner + modal).
+    /// Fullscreen still passes raw pt through.
+    private var isPercentContainer: Bool {
+        return layoutType == "banner" || layoutType == "modal"
     }
 
-    /// Current banner frame height (pt) — `device.height * 0.26`.
-    private func currentBannerHeight() -> CGFloat {
-        return UIScreen.main.bounds.height * bannerHeightRatio
+    /// Current container frame width (pt) — derived from the device screen
+    /// and the container's outer geometry ratio. Same formula as the
+    /// constraint in `setupUI`'s banner / modal case.
+    private func currentContainerWidth() -> CGFloat {
+        if layoutType == "banner" {
+            return UIScreen.main.bounds.width * (1 - 2 * bannerOuterHorizontalInsetRatio)
+        }
+        if layoutType == "modal" {
+            return UIScreen.main.bounds.width * modalWidthRatio
+        }
+        return UIScreen.main.bounds.width
+    }
+
+    /// Current container frame height (pt).
+    private func currentContainerHeight() -> CGFloat {
+        if layoutType == "banner" {
+            return UIScreen.main.bounds.height * bannerHeightRatio
+        }
+        if layoutType == "modal" {
+            return UIScreen.main.bounds.height * modalHeightRatio
+        }
+        return UIScreen.main.bounds.height
+    }
+
+    /// Back-compat alias — banner-specific call sites still use this name.
+    private func currentBannerWidth() -> CGFloat { return currentContainerWidth() }
+    private func currentBannerHeight() -> CGFloat { return currentContainerHeight() }
+
+    /// Reference width of the current container on the iPhone-13 baseline.
+    private func referenceContainerWidth() -> CGFloat {
+        if layoutType == "banner" { return bannerReferenceWidth }
+        if layoutType == "modal" { return modalReferenceWidth }
+        return UIScreen.main.bounds.width
+    }
+    /// Reference height of the current container on the iPhone-13 baseline.
+    private func referenceContainerHeight() -> CGFloat {
+        if layoutType == "banner" { return bannerReferenceHeight }
+        if layoutType == "modal" { return modalReferenceHeight }
+        return UIScreen.main.bounds.height
     }
 
     /// Scale a horizontal authored pt value (margins, horizontal insets) to
-    /// the current banner's coordinate space. No-op outside `banner`.
+    /// the current container's coordinate space. No-op for fullscreen.
     private func scaleH(_ pt: CGFloat) -> CGFloat {
-        guard layoutType == "banner" else { return pt }
-        let scale = currentBannerWidth() / bannerReferenceWidth
+        guard isPercentContainer else { return pt }
+        let scale = currentContainerWidth() / referenceContainerWidth()
         return pt * scale
     }
 
     /// Scale a vertical authored pt value (font size, image height, button
-    /// height, spacers, vertical margins) to the current banner's coordinate
-    /// space. No-op outside `banner`.
+    /// height, spacers, vertical margins) to the current container's
+    /// coordinate space. No-op for fullscreen.
     ///
     /// Kept for categorical / intrinsic renderer constants (image 60pt,
     /// button 32/44/56pt, group wrapper paddings). Authored fields go through
     /// `bannerPctH` / `bannerPctV` instead — they are now percent-based.
     private func scaleV(_ pt: CGFloat) -> CGFloat {
-        guard layoutType == "banner" else { return pt }
-        let scale = currentBannerHeight() / bannerReferenceHeight
+        guard isPercentContainer else { return pt }
+        let scale = currentContainerHeight() / referenceContainerHeight()
         return pt * scale
     }
 
-    // MARK: - Banner percent helpers
+    // MARK: - Container percent helpers
     //
-    // Authored payload spacing/sizing fields are now expressed as a percent of
-    // banner dimensions (0–100). Mirrors `bannerPctH/V` in Studio's
-    // `InAppReview.tsx` and the Android `InAppMessagingBanner.kt` helpers.
-    // Non-banner layouts pass the raw value through (legacy pt) so modal /
-    // fullscreen render unchanged.
+    // Authored payload spacing/sizing fields are expressed as a percent of
+    // the current container's dimensions (0–100). Banner + modal share this
+    // contract; fullscreen passes the raw pt through (legacy semantics).
+    // Mirrors `bannerPctH/V` in Studio's `InAppReview.tsx` and the
+    // `bannerPctVPx/HPx` helpers in the Android SDKs.
 
     private func clampPct(_ value: CGFloat) -> CGFloat {
         return max(0, min(100, value))
     }
 
-    /// Resolve a banner-percent value (0–100) to pt against the current
-    /// banner width. Outside banner the raw value is returned (legacy pt).
+    /// Resolve a percent value (0–100) to pt against the current container's
+    /// width. Fullscreen returns the raw value (legacy pt). Name kept as
+    /// `bannerPctH` for diff legibility — both banner and modal flow here.
     private func bannerPctH(_ raw: CGFloat) -> CGFloat {
-        guard layoutType == "banner" else { return raw }
-        return currentBannerWidth() * clampPct(raw) / 100
+        guard isPercentContainer else { return raw }
+        return currentContainerWidth() * clampPct(raw) / 100
     }
 
-    /// Same against the current banner height.
+    /// Same against the current container's height.
     private func bannerPctV(_ raw: CGFloat) -> CGFloat {
-        guard layoutType == "banner" else { return raw }
-        return currentBannerHeight() * clampPct(raw) / 100
+        guard isPercentContainer else { return raw }
+        return currentContainerHeight() * clampPct(raw) / 100
     }
 
-    /// Resolve an authored fontSize string (`"16"` / `"16px"`) — banner mode
-    /// treats it as a percent of banner height, modal / fullscreen returns it
-    /// raw. Returns the same shape `makeFont` consumes.
+    /// Resolve an authored fontSize string (`"16"` / `"16px"`) — banner +
+    /// modal treat it as a percent of container height, fullscreen returns
+    /// it raw. Returns the same shape `makeFont` consumes.
     private func scaledFontSizeString(_ raw: String?) -> String? {
         guard let raw = raw else { return nil }
-        guard layoutType == "banner" else { return raw }
+        guard isPercentContainer else { return raw }
         let trimmed = raw.replacingOccurrences(of: "px", with: "")
         guard let value = Double(trimmed) else { return raw }
         let resolved = bannerPctV(CGFloat(value))
@@ -306,21 +355,30 @@ class StyleViewController: UIViewController {
             containerView.heightAnchor.constraint(equalToConstant: bannerHeight).isActive = true
 
         default:
-            // Modal (default): centered, screen-based frame
+            // Modal (default): centered, ratio-driven frame so the same
+            // proportions render on every device — mirrors banner's contract.
             let cY = containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
             cY.identifier = "containerCenterY"
             centerYConstraint = cY
 
+            let modalHeightPt = UIScreen.main.bounds.height * modalHeightRatio
+            let modalWidthPt = UIScreen.main.bounds.width * modalWidthRatio
+            let innerHorizontalPadding = modalWidthPt * modalInnerHorizontalPaddingRatio
+            let innerVerticalPadding = modalHeightPt * modalInnerVerticalPaddingRatio
+
             NSLayoutConstraint.activate([
-                containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-                containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
+                containerView.widthAnchor.constraint(
+                    equalTo: view.widthAnchor,
+                    multiplier: modalWidthRatio
+                ),
+                containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
                 cY,
                 containerView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: modalHeightRatio),
 
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
-                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: innerHorizontalPadding),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -innerHorizontalPadding),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -innerVerticalPadding),
             ])
         }
 
@@ -369,15 +427,15 @@ class StyleViewController: UIViewController {
     }
 
     private func addBottomStripIfNeeded() {
-        // `bgBottomInset` is now authored as a PERCENT of banner height (0–100)
-        // — same contract as Studio + Android. For banner we resolve it against
-        // the current banner height; for modal/fullscreen it falls back to the
-        // raw pt value (unchanged behavior).
+        // `bgBottomInset` is authored as a PERCENT of the container's height
+        // (0–100) — same contract as Studio + Android. Banner / modal resolve
+        // against the current container height; fullscreen passes raw pt
+        // through so legacy layouts there stay unchanged.
         let rawValue = CGFloat(style.bgBottomInset ?? 0)
         let bottomInset: CGFloat = {
-            if layoutType == "banner" {
+            if isPercentContainer {
                 let clampedPct = max(0, min(100, rawValue))
-                return currentBannerHeight() * clampedPct / 100
+                return currentContainerHeight() * clampedPct / 100
             }
             return rawValue
         }()
@@ -537,14 +595,14 @@ class StyleViewController: UIViewController {
 
         containerView.insertSubview(bgImageView, at: 0)
 
-        // Banner: bgBottomInset is a percent of banner height (0–100). For
-        // non-banner layouts we keep the value as raw pt so legacy modal /
-        // fullscreen renders unchanged.
+        // Banner + modal: bgBottomInset is a percent of the container's
+        // height (0–100). Fullscreen passes the raw pt through so legacy
+        // layouts there stay unchanged.
         let rawBottomInset = CGFloat(style.bgBottomInset ?? 0)
         let bottomInset: CGFloat = {
-            if layoutType == "banner" {
+            if isPercentContainer {
                 let pct = max(0, min(100, rawBottomInset))
-                return currentBannerHeight() * pct / 100
+                return currentContainerHeight() * pct / 100
             }
             return rawBottomInset
         }()
@@ -915,13 +973,13 @@ class StyleViewController: UIViewController {
             return spacer
         }
 
-        // `verticalSpacing` is now a PERCENT of banner height (0–100). For
-        // modal/fullscreen we keep raw pt so legacy layouts are unaffected.
+        // `verticalSpacing` is a PERCENT of the container's height (0–100)
+        // for banner + modal. Fullscreen passes raw pt through.
         let rawValue = CGFloat(block.verticalSpacing ?? 8)
         let height: CGFloat = {
-            if layoutType == "banner" {
+            if isPercentContainer {
                 let pct = max(0, min(100, rawValue))
-                return currentBannerHeight() * pct / 100
+                return currentContainerHeight() * pct / 100
             }
             return rawValue
         }()
