@@ -14,6 +14,16 @@ class StyleViewController: UIViewController {
     private let baseHorizontalInset: CGFloat = 16
     private let extraHorizontalInset: CGFloat = 6
 
+    // Banner geometry — mirrors `lib/banner-layout-constants.ts` in the
+    // Studio repo and `InAppMessageHelper.kt` / `InAppMessagingBanner.kt`
+    // in the Android SDK. Keep these in sync — the same proportions must
+    // render on every platform so banners look identical at any device size.
+    private let bannerHeightRatio: CGFloat = 0.26
+    private let bannerOuterHorizontalInsetRatio: CGFloat = 0.04
+    private let bannerInnerHorizontalPaddingRatio: CGFloat = 0.04
+    private let bannerInnerVerticalPaddingRatio: CGFloat = 0.04
+    private let bannerOuterVerticalInsetRatio: CGFloat = 0.02
+
     private let style: CustomInAppPayload.Layout.Style
     
     private let close: CustomInAppPayload.Layout.Close
@@ -48,7 +58,12 @@ class StyleViewController: UIViewController {
     private let defaultLang: String
 
     private var contentHorizontalInset: CGFloat {
-        baseHorizontalInset + extraHorizontalInset
+        // Banner's scrollView is already inset by the ratio-based inner
+        // horizontal padding (see banner case in `setupUI`), so the per-block
+        // wrappers must not add another inset on top — otherwise a `full`
+        // width button or button-row would lose width to double padding.
+        if layoutType == "banner" { return 0 }
+        return baseHorizontalInset + extraHorizontalInset
     }
 
 
@@ -170,31 +185,44 @@ class StyleViewController: UIViewController {
             ])
 
         case "banner":
-            // Banner: floating pill, fixed 26% height, position-aware
+            // Banner: floating pill, ratio-driven geometry so the visual
+            // proportion is identical on every device. Width / inner pad /
+            // outer pad are all multipliers of the device viewport rather
+            // than fixed pt — mirrors Studio (`computeBannerGeometry`) and
+            // Android SDK.
             let verticalPos = style.verticalPosition ?? "center"
+            let screenSize = UIScreen.main.bounds
+            let bannerHeight = screenSize.height * bannerHeightRatio
+            let outerVerticalInset = screenSize.height * bannerOuterVerticalInsetRatio
+            let innerHorizontalPadding = screenSize.width
+                * (1 - 2 * bannerOuterHorizontalInsetRatio)
+                * bannerInnerHorizontalPaddingRatio
+            let innerVerticalPadding = bannerHeight * bannerInnerVerticalPaddingRatio
 
             NSLayoutConstraint.activate([
-                containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-                containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
+                containerView.widthAnchor.constraint(
+                    equalTo: view.widthAnchor,
+                    multiplier: 1 - 2 * bannerOuterHorizontalInsetRatio
+                ),
+                containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: innerHorizontalPadding),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -innerHorizontalPadding),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -innerVerticalPadding),
             ])
 
             switch verticalPos {
             case "top":
-                containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16).isActive = true
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16).isActive = true
+                containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: outerVerticalInset).isActive = true
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding).isActive = true
             case "bottom":
-                containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16).isActive = true
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16).isActive = true
+                containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -outerVerticalInset).isActive = true
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding).isActive = true
             default: // center
                 containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16).isActive = true
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding).isActive = true
             }
 
-            // Fixed height: 26% of screen height
-            containerView.heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height * 0.26).isActive = true
+            containerView.heightAnchor.constraint(equalToConstant: bannerHeight).isActive = true
 
         default:
             // Modal (default): centered, screen-based frame
@@ -640,7 +668,10 @@ class StyleViewController: UIViewController {
 
         let margin = CGFloat(block.horizontalMargin ?? 0)
         if margin > 0 {
-            let adjustedMargin = margin + extraHorizontalInset
+            // Banner already pads the scrollView by the ratio-based inner
+            // padding, so user-set `horizontalMargin` should land additively
+            // without the modal-only +6 extra inset.
+            let adjustedMargin = margin + (layoutType == "banner" ? 0 : extraHorizontalInset)
             let wrapper = UIView()
             label.translatesAutoresizingMaskIntoConstraints = false
             wrapper.addSubview(label)
