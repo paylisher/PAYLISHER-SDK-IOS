@@ -33,16 +33,29 @@ class StyleViewController: UIViewController {
     private let modalImageHeightRatio: CGFloat = 0.36
     private let modalImageMinHeight: CGFloat = 72
 
+    // Fullscreen geometry — mirrors `lib/fullscreen-layout-constants.ts`.
+    // Same authoring contract as banner / modal: every authored field is a
+    // percent of container geometry. Container here = full device viewport.
+    // Min top/bottom insets are layered ON TOP OF the device's own safeArea
+    // so a notch-less device still has breathing room — content lands in a
+    // comfortable zone whether the phone has a notch / dynamic island or not.
+    private let fullscreenInnerHorizontalPaddingRatio: CGFloat = 0.04
+    private let fullscreenInnerVerticalPaddingRatio: CGFloat = 0.04
+    private let fullscreenImageHeightRatio: CGFloat = 0.32
+    private let fullscreenMinTopInset: CGFloat = 60
+    private let fullscreenMinBottomInset: CGFloat = 50
+
     // Container content scale — authored pt values are interpreted against
     // an iPhone-13 reference container (banner: 358.8 × 219.44pt;
-    // modal: 343.2 × 405.12pt). Render time scales them to the current
-    // device so visual proportions stay identical on every device. Mirrors
-    // `lib/banner-scale.ts` / `lib/modal-layout-constants.ts` (Studio) and
-    // the `scaleH/scaleV` helpers in the Android SDK.
+    // modal: 343.2 × 405.12pt; fullscreen: 390 × 844pt). Render time scales
+    // them to the current device so visual proportions stay identical on
+    // every device. Mirrors the Studio + Android helpers.
     private let bannerReferenceWidth: CGFloat = 358.8    // 390 * (1 - 2 * 0.04)
     private let bannerReferenceHeight: CGFloat = 219.44  // 844 * 0.26
     private var modalReferenceWidth: CGFloat { 390 * modalWidthRatio }   // 343.2
     private var modalReferenceHeight: CGFloat { 844 * modalHeightRatio } // 405.12
+    private let fullscreenReferenceWidth: CGFloat = 390
+    private let fullscreenReferenceHeight: CGFloat = 844
 
     private let style: CustomInAppPayload.Layout.Style
     
@@ -78,27 +91,25 @@ class StyleViewController: UIViewController {
     private let defaultLang: String
 
     private var contentHorizontalInset: CGFloat {
-        // Banner + modal each apply their own ratio-based inner horizontal
-        // padding at the scrollView level, so the per-block wrappers must
-        // NOT add another inset on top — otherwise a `full` width button or
-        // button-row would lose width to double padding. Fullscreen still
-        // adds the legacy 22pt (base + extra) inset since it owns the whole
-        // screen and doesn't bring its own ratio padding.
-        if layoutType == "banner" || layoutType == "modal" { return 0 }
+        // Banner / modal / fullscreen all apply their own ratio-based inner
+        // horizontal padding at the scrollView level, so the per-block
+        // wrappers must NOT add another inset on top — otherwise a `full`
+        // width button or button-row would lose width to double padding.
+        // Fallback (unknown layoutType) keeps the legacy 22pt inset.
+        if layoutType == "banner" || layoutType == "modal" || layoutType == "fullscreen" { return 0 }
         return baseHorizontalInset + extraHorizontalInset
     }
 
     // MARK: - Container content scaling
 
-    /// Whether this layout uses percent-based authoring (banner + modal).
-    /// Fullscreen still passes raw pt through.
+    /// Whether this layout uses percent-based authoring. Banner / modal /
+    /// fullscreen all do now — only unknown layoutTypes fall back to raw pt.
     private var isPercentContainer: Bool {
-        return layoutType == "banner" || layoutType == "modal"
+        return layoutType == "banner" || layoutType == "modal" || layoutType == "fullscreen"
     }
 
     /// Current container frame width (pt) — derived from the device screen
-    /// and the container's outer geometry ratio. Same formula as the
-    /// constraint in `setupUI`'s banner / modal case.
+    /// and the container's outer geometry ratio.
     private func currentContainerWidth() -> CGFloat {
         if layoutType == "banner" {
             return UIScreen.main.bounds.width * (1 - 2 * bannerOuterHorizontalInsetRatio)
@@ -128,12 +139,14 @@ class StyleViewController: UIViewController {
     private func referenceContainerWidth() -> CGFloat {
         if layoutType == "banner" { return bannerReferenceWidth }
         if layoutType == "modal" { return modalReferenceWidth }
+        if layoutType == "fullscreen" { return fullscreenReferenceWidth }
         return UIScreen.main.bounds.width
     }
     /// Reference height of the current container on the iPhone-13 baseline.
     private func referenceContainerHeight() -> CGFloat {
         if layoutType == "banner" { return bannerReferenceHeight }
         if layoutType == "modal" { return modalReferenceHeight }
+        if layoutType == "fullscreen" { return fullscreenReferenceHeight }
         return UIScreen.main.bounds.height
     }
 
@@ -318,17 +331,30 @@ class StyleViewController: UIViewController {
 
         switch layoutType {
         case "fullscreen":
-            // Fullscreen: container fills the entire screen
+            // Fullscreen: container fills the screen. The scrollView is
+            // inset by max(safeArea, fullscreenMinInset) on each axis so
+            // notch-less devices still get a comfortable top/bottom inset,
+            // plus a ratio-based horizontal + vertical padding for visual
+            // breathing room (matches Studio + Android).
+            let screenSize = UIScreen.main.bounds
+            let fullscreenInnerH = screenSize.width * fullscreenInnerHorizontalPaddingRatio
+            let fullscreenInnerV = screenSize.height * fullscreenInnerVerticalPaddingRatio
+            // We resolve safeAreaInsets at layout time via the top-level
+            // view, but UIKit only fills those after layout — using the
+            // safeAreaLayoutGuide anchor plus our minimum constants gives
+            // us the right behaviour on every device automatically.
+            let topPadding = max(view.safeAreaInsets.top, fullscreenMinTopInset) + fullscreenInnerV
+            let bottomPadding = max(view.safeAreaInsets.bottom, fullscreenMinBottomInset) + fullscreenInnerV
             NSLayoutConstraint.activate([
                 containerView.topAnchor.constraint(equalTo: view.topAnchor),
                 containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                 containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-                scrollView.topAnchor.constraint(equalTo: containerView.safeAreaLayoutGuide.topAnchor),
-                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                scrollView.bottomAnchor.constraint(equalTo: containerView.safeAreaLayoutGuide.bottomAnchor),
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: topPadding),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: fullscreenInnerH),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -fullscreenInnerH),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -bottomPadding),
             ])
 
         case "banner":
@@ -911,6 +937,17 @@ class StyleViewController: UIViewController {
             // banner; scale vertically so it stays proportional everywhere.
             let bannerImageHeight = scaleV(60)
             let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: bannerImageHeight)
+            heightConstraint.priority = .required
+            heightConstraint.isActive = true
+        } else if layoutType == "fullscreen" {
+            // Fullscreen image: 32% of the device viewport (image is meant
+            // to dominate). 72pt floor matches modal so tiny devices never
+            // collapse the image to nothing.
+            let fullscreenImageHeight = max(
+                UIScreen.main.bounds.height * fullscreenImageHeightRatio,
+                modalImageMinHeight,
+            )
+            let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: fullscreenImageHeight)
             heightConstraint.priority = .required
             heightConstraint.isActive = true
         } else {
