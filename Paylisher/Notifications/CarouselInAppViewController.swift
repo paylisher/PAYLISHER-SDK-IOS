@@ -679,27 +679,42 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         if let orderArray = layout.blocks?.order {
             for block in orderArray {
                 var blockView: UIView?
+                // Carousel slide parity with single: per-block marginTop /
+                // marginBottom are PERCENTS of container height (0–100).
+                // Resolved + applied via wrapBlockWithMargins below.
+                var marginTop: Int? = nil
+                var marginBottom: Int? = nil
                 switch block {
                 case .text(let tb):
                     blockView = renderTextBlock(tb)
+                    marginTop = tb.marginTop
+                    marginBottom = tb.marginBottom
                 case .image(let ib):
                     blockView = renderImageBlock(ib)
+                    marginTop = ib.marginTop
+                    marginBottom = ib.marginBottom
                 case .spacer(let sb):
                     let spacerView = renderSpacerBlock(sb)
                     if sb.fillAvailableSpacing == true {
                         flexibleSpacerViews.append(spacerView)
                     }
                     blockView = spacerView
+                    marginTop = sb.marginTop
+                    marginBottom = sb.marginBottom
                 case .button(let bb):
                     blockView = renderButtonBlock(bb)
                 case .buttonGroup(let bg):
                     blockView = renderButtonGroupBlock(bg)
+                    marginTop = bg.marginTop
+                    marginBottom = bg.marginBottom
                 case .unknown:
                     continue
                 }
 
                 if let view = blockView {
-                    contentStackView.addArrangedSubview(view)
+                    contentStackView.addArrangedSubview(
+                        wrapBlockWithMargins(view, marginTop: marginTop, marginBottom: marginBottom)
+                    )
                 }
             }
         }
@@ -743,47 +758,49 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             pageView.backgroundColor = color
         }
 
-        guard let bgImageURL = style?.bgImage, !bgImageURL.isEmpty else {
-            return
-        }
+        // bgImage is OPTIONAL — apply only when a non-empty URL is set.
+        // Previously this branch early-returned, which silently skipped
+        // the bottom-strip render below for any slide without a bgImage
+        // (bgBottomInset / bgBottomColor / bgBottomRadiusTop all dropped).
+        if let bgImageURL = style?.bgImage, !bgImageURL.isEmpty {
+            let bgImageView = UIImageView()
+            bgImageView.translatesAutoresizingMaskIntoConstraints = false
+            bgImageView.contentMode = .scaleAspectFill
+            bgImageView.clipsToBounds = true
 
-        let bgImageView = UIImageView()
-        bgImageView.translatesAutoresizingMaskIntoConstraints = false
-        bgImageView.contentMode = .scaleAspectFill
-        bgImageView.clipsToBounds = true
-
-        pageView.insertSubview(bgImageView, at: 0)
-
-        NSLayoutConstraint.activate([
-            bgImageView.topAnchor.constraint(equalTo: pageView.topAnchor),
-            bgImageView.leadingAnchor.constraint(equalTo: pageView.leadingAnchor),
-            bgImageView.trailingAnchor.constraint(equalTo: pageView.trailingAnchor),
-            bgImageView.bottomAnchor.constraint(equalTo: pageView.bottomAnchor),
-        ])
-
-        if let url = URL(string: bgImageURL) {
-            URLSession.shared.dataTask(with: url) { data, _, _ in
-                if let data = data, let image = UIImage(data: data) {
-                    DispatchQueue.main.async {
-                        bgImageView.image = image
-                    }
-                }
-            }.resume()
-        }
-
-        if style?.bgImageMask == true,
-           let maskColorHex = style?.bgImageColor {
-            let maskView = UIView()
-            maskView.translatesAutoresizingMaskIntoConstraints = false
-            maskView.backgroundColor = UIColor(hex: maskColorHex)?.withAlphaComponent(0.5)
-            bgImageView.addSubview(maskView)
+            pageView.insertSubview(bgImageView, at: 0)
 
             NSLayoutConstraint.activate([
-                maskView.topAnchor.constraint(equalTo: bgImageView.topAnchor),
-                maskView.leadingAnchor.constraint(equalTo: bgImageView.leadingAnchor),
-                maskView.trailingAnchor.constraint(equalTo: bgImageView.trailingAnchor),
-                maskView.bottomAnchor.constraint(equalTo: bgImageView.bottomAnchor),
+                bgImageView.topAnchor.constraint(equalTo: pageView.topAnchor),
+                bgImageView.leadingAnchor.constraint(equalTo: pageView.leadingAnchor),
+                bgImageView.trailingAnchor.constraint(equalTo: pageView.trailingAnchor),
+                bgImageView.bottomAnchor.constraint(equalTo: pageView.bottomAnchor),
             ])
+
+            if let url = URL(string: bgImageURL) {
+                URLSession.shared.dataTask(with: url) { data, _, _ in
+                    if let data = data, let image = UIImage(data: data) {
+                        DispatchQueue.main.async {
+                            bgImageView.image = image
+                        }
+                    }
+                }.resume()
+            }
+
+            if style?.bgImageMask == true,
+               let maskColorHex = style?.bgImageColor {
+                let maskView = UIView()
+                maskView.translatesAutoresizingMaskIntoConstraints = false
+                maskView.backgroundColor = UIColor(hex: maskColorHex)?.withAlphaComponent(0.5)
+                bgImageView.addSubview(maskView)
+
+                NSLayoutConstraint.activate([
+                    maskView.topAnchor.constraint(equalTo: bgImageView.topAnchor),
+                    maskView.leadingAnchor.constraint(equalTo: bgImageView.leadingAnchor),
+                    maskView.trailingAnchor.constraint(equalTo: bgImageView.trailingAnchor),
+                    maskView.bottomAnchor.constraint(equalTo: bgImageView.bottomAnchor),
+                ])
+            }
         }
 
         // Carousel slide parity with single modal/fullscreen: per-slide
@@ -791,6 +808,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         // `bgBottomRadiusTop` top radius). Strip sits ABOVE bgImage and
         // BELOW the slide's contentContainer so authored content overlaps
         // the strip naturally. Mirrors StyleViewController.addBottomStripIfNeeded.
+        // Now runs for EVERY slide regardless of whether bgImage is set.
         addBottomStripIfNeeded(on: pageView, style: style)
     }
 
@@ -947,6 +965,28 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
     }
 
     // MARK: - Block Rendering
+
+    /// Wrap a block view with per-block top + bottom margins. Carousel
+    /// percent parity: marginTop / marginBottom are PERCENTS of container
+    /// height (0–100). Returns the original blockView when both margins
+    /// are 0 to avoid an extra UIView in the hierarchy. Mirrors
+    /// StyleViewController.wrapBlockWithMargins.
+    private func wrapBlockWithMargins(_ blockView: UIView, marginTop: Int?, marginBottom: Int?) -> UIView {
+        let top = bannerPctV(CGFloat(marginTop ?? 0))
+        let bottom = bannerPctV(CGFloat(marginBottom ?? 0))
+        if top == 0 && bottom == 0 { return blockView }
+        let wrapper = UIView()
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        blockView.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(blockView)
+        NSLayoutConstraint.activate([
+            blockView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: top),
+            blockView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -bottom),
+            blockView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+            blockView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+        ])
+        return wrapper
+    }
 
     private func renderTextBlock(_ block: CustomInAppPayload.Layout.Blocks.TextBlock) -> UIView {
         let label = UILabel()
