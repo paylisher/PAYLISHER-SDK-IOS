@@ -9,9 +9,36 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
     // MARK: - Properties
 
+    // Modal geometry — kept in sync with StyleViewController + Studio +
+    // Android. The carousel's modal mode now uses the SAME ratio-driven
+    // contract as the single modal so authored percent fields (margins,
+    // fontSize, gap, radius) resolve identically across the two paths.
     private let modalHeightRatio: CGFloat = 0.48
+    private let modalWidthRatio: CGFloat = 0.88
+    private let modalInnerHorizontalPaddingRatio: CGFloat = 0.05
+    private let modalInnerVerticalPaddingRatio: CGFloat = 0.05
     private let modalImageHeightRatio: CGFloat = 0.36
     private let modalImageMinHeight: CGFloat = 72
+
+    // Fullscreen geometry — mirrors StyleViewController's fullscreen
+    // contract. Container fills the device; inner padding is 4% of width/
+    // height; min top/bottom insets layered on top of the device safeArea
+    // so notch-less phones still get breathing room.
+    private let fullscreenInnerHorizontalPaddingRatio: CGFloat = 0.04
+    private let fullscreenInnerVerticalPaddingRatio: CGFloat = 0.04
+    private let fullscreenImageHeightRatio: CGFloat = 0.32
+    private let fullscreenMinTopInset: CGFloat = 60
+    private let fullscreenMinBottomInset: CGFloat = 35
+
+    // iPhone-13 reference container dimensions — authored pt values (image
+    // intrinsic 60pt, button heights 32/44/56pt, padding 4pt etc.) scale
+    // from these to the current device's container so visual proportions
+    // stay identical. Same constants StyleViewController uses.
+    private var modalReferenceWidth: CGFloat { 390 * modalWidthRatio }   // 343.2
+    private var modalReferenceHeight: CGFloat { 844 * modalHeightRatio } // 405.12
+    private let fullscreenReferenceWidth: CGFloat = 390
+    private let fullscreenReferenceHeight: CGFloat = 844
+
     private let baseHorizontalInset: CGFloat = 16
     private let extraHorizontalInset: CGFloat = 6
 
@@ -27,7 +54,103 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
     private var bottomBarHeightConstraint: NSLayoutConstraint?
 
     private var contentHorizontalInset: CGFloat {
-        baseHorizontalInset + extraHorizontalInset
+        // Carousel always renders inside the container's ratio-based inner
+        // horizontal padding (applied at the page-scrollView level for
+        // fullscreen, at the content-scrollView level for modal). Per-block
+        // wrappers must NOT add their own legacy inset on top — otherwise
+        // a `full`-width button or button-row loses width to double padding.
+        // Matches StyleViewController.contentHorizontalInset for modal /
+        // fullscreen layoutType (returns 0).
+        return 0
+    }
+
+    // MARK: - Container content scaling
+    //
+    // Mirrors StyleViewController so authored payload fields behave
+    // IDENTICALLY whether the layout renders via the single-message path
+    // or as a carousel slide. Banner is intentionally absent here —
+    // carousel only supports modal + fullscreen.
+
+    private var layoutType: String {
+        return isFullscreen ? "fullscreen" : "modal"
+    }
+
+    /// Carousel uses percent-based authoring for both modal and fullscreen.
+    private var isPercentContainer: Bool { true }
+
+    private func currentContainerWidth() -> CGFloat {
+        if isFullscreen { return UIScreen.main.bounds.width }
+        return UIScreen.main.bounds.width * modalWidthRatio
+    }
+
+    private func currentContainerHeight() -> CGFloat {
+        if isFullscreen { return UIScreen.main.bounds.height }
+        return UIScreen.main.bounds.height * modalHeightRatio
+    }
+
+    private func referenceContainerWidth() -> CGFloat {
+        return isFullscreen ? fullscreenReferenceWidth : modalReferenceWidth
+    }
+
+    private func referenceContainerHeight() -> CGFloat {
+        return isFullscreen ? fullscreenReferenceHeight : modalReferenceHeight
+    }
+
+    /// Scale a horizontal authored pt value to the current container's
+    /// coordinate space. Kept for categorical intrinsics (e.g. image 60pt
+    /// banner reference — unused in carousel but kept for API parity).
+    private func scaleH(_ pt: CGFloat) -> CGFloat {
+        let scale = currentContainerWidth() / referenceContainerWidth()
+        return pt * scale
+    }
+
+    /// Scale a vertical authored pt value (button heights 32/44/56,
+    /// per-block vertical paddings) to the current container's height.
+    private func scaleV(_ pt: CGFloat) -> CGFloat {
+        let scale = currentContainerHeight() / referenceContainerHeight()
+        return pt * scale
+    }
+
+    // MARK: - Container percent helpers
+    //
+    // Authored payload fields (margins, fontSize, radius, gap, verticalSpacing)
+    // are PERCENTS of the current container's dimensions (0–100). Carousel
+    // resolves them against the current page's container so a slide in a
+    // carousel looks identical to the same payload rendered as a single
+    // modal / fullscreen. Mirrors StyleViewController's bannerPctH/V.
+
+    private func clampPct(_ value: CGFloat) -> CGFloat {
+        return max(0, min(100, value))
+    }
+
+    private func bannerPctH(_ raw: CGFloat) -> CGFloat {
+        return currentContainerWidth() * clampPct(raw) / 100
+    }
+
+    private func bannerPctV(_ raw: CGFloat) -> CGFloat {
+        return currentContainerHeight() * clampPct(raw) / 100
+    }
+
+    /// Resolve an authored fontSize string (`"16"` / `"16px"`) as % of
+    /// container height. Returns the same shape `makeFont` consumes.
+    private func scaledFontSizeString(_ raw: String?) -> String? {
+        guard let raw = raw else { return nil }
+        let trimmed = raw.replacingOccurrences(of: "px", with: "")
+        guard let value = Double(trimmed) else { return raw }
+        let resolved = bannerPctV(CGFloat(value))
+        return String(format: "%g", Double(resolved))
+    }
+
+    /// Resolve a button's authored fontSize as % of the button's OWN
+    /// height (not container height). Kept for future use — `createStyledButton`
+    /// currently uses `scaledFontSizeString` for parity with StyleViewController.
+    private func resolveButtonFontSizeString(_ raw: String?, buttonHeight: CGFloat) -> String? {
+        guard let raw = raw else { return nil }
+        let trimmed = raw.replacingOccurrences(of: "px", with: "")
+        guard let value = Double(trimmed) else { return raw }
+        let pct = clampPct(CGFloat(value))
+        let resolved = buttonHeight * pct / 100
+        return String(format: "%g", Double(resolved))
     }
 
     private var currentLayout: CustomInAppPayload.Layout? {
@@ -292,15 +415,13 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             ? view.safeAreaLayoutGuide.topAnchor
             : containerView.topAnchor
 
+        // Parity with StyleViewController.applyClose: every position works
+        // for both modal and fullscreen carousels. Previous code remapped
+        // outside-left / outside-right to inside for modal-carousel; that
+        // silently dropped the user's authored placement.
         let position = close.position ?? "right"
-        let resolvedPosition: String
-        if !isFullscreen && (position == "outside-left" || position == "outside-right") {
-            resolvedPosition = position == "outside-left" ? "left" : "right"
-        } else {
-            resolvedPosition = position
-        }
 
-        switch resolvedPosition {
+        switch position {
         case "left":
             closePositionConstraints = [
                 closeButton.topAnchor.constraint(equalTo: safeTopAnchor, constant: 8),
@@ -451,19 +572,39 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         pageView.addSubview(contentContainer)
 
         if isFullscreen {
-            let bottomOffset = -fullscreenBottomChromeHeight
+            // Carousel slide parity with single fullscreen: each slide gets
+            // a min-inset + 4% ratio padding on every edge so notch-less
+            // devices still have breathing room AND notched devices stay
+            // clear of the Dynamic Island. Bottom padding additionally
+            // reserves space for the carousel bottom bar (page control +
+            // arrows). Mirrors StyleViewController fullscreen branch.
+            let screenSize = UIScreen.main.bounds
+            let fullscreenInnerH = screenSize.width * fullscreenInnerHorizontalPaddingRatio
+            let fullscreenInnerV = screenSize.height * fullscreenInnerVerticalPaddingRatio
+            let topPadding = max(view.safeAreaInsets.top, fullscreenMinTopInset) + fullscreenInnerV
+            let bottomPadding = max(view.safeAreaInsets.bottom, fullscreenMinBottomInset)
+                + fullscreenInnerV
+                + fullscreenBottomChromeHeight
             NSLayoutConstraint.activate([
-                contentContainer.topAnchor.constraint(equalTo: pageView.safeAreaLayoutGuide.topAnchor),
-                contentContainer.leadingAnchor.constraint(equalTo: pageView.leadingAnchor),
-                contentContainer.trailingAnchor.constraint(equalTo: pageView.trailingAnchor),
-                contentContainer.bottomAnchor.constraint(equalTo: pageView.safeAreaLayoutGuide.bottomAnchor, constant: bottomOffset),
+                contentContainer.topAnchor.constraint(equalTo: pageView.topAnchor, constant: topPadding),
+                contentContainer.leadingAnchor.constraint(equalTo: pageView.leadingAnchor, constant: fullscreenInnerH),
+                contentContainer.trailingAnchor.constraint(equalTo: pageView.trailingAnchor, constant: -fullscreenInnerH),
+                contentContainer.bottomAnchor.constraint(equalTo: pageView.bottomAnchor, constant: -bottomPadding),
             ])
         } else {
+            // Carousel slide parity with single modal: ratio-based inner
+            // padding on every edge (5% width / 5% height) so the same
+            // proportions render on every device. Mirrors StyleViewController
+            // modal default branch.
+            let modalHeightPt = UIScreen.main.bounds.height * modalHeightRatio
+            let modalWidthPt = UIScreen.main.bounds.width * modalWidthRatio
+            let innerH = modalWidthPt * modalInnerHorizontalPaddingRatio
+            let innerV = modalHeightPt * modalInnerVerticalPaddingRatio
             NSLayoutConstraint.activate([
-                contentContainer.topAnchor.constraint(equalTo: pageView.topAnchor, constant: 16),
-                contentContainer.leadingAnchor.constraint(equalTo: pageView.leadingAnchor),
-                contentContainer.trailingAnchor.constraint(equalTo: pageView.trailingAnchor),
-                contentContainer.bottomAnchor.constraint(equalTo: pageView.bottomAnchor, constant: -16),
+                contentContainer.topAnchor.constraint(equalTo: pageView.topAnchor, constant: innerV),
+                contentContainer.leadingAnchor.constraint(equalTo: pageView.leadingAnchor, constant: innerH),
+                contentContainer.trailingAnchor.constraint(equalTo: pageView.trailingAnchor, constant: -innerH),
+                contentContainer.bottomAnchor.constraint(equalTo: pageView.bottomAnchor, constant: -innerV),
             ])
         }
 
@@ -644,6 +785,59 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
                 maskView.bottomAnchor.constraint(equalTo: bgImageView.bottomAnchor),
             ])
         }
+
+        // Carousel slide parity with single modal/fullscreen: per-slide
+        // bottom strip (`bgBottomInset` height + `bgBottomColor` fill +
+        // `bgBottomRadiusTop` top radius). Strip sits ABOVE bgImage and
+        // BELOW the slide's contentContainer so authored content overlaps
+        // the strip naturally. Mirrors StyleViewController.addBottomStripIfNeeded.
+        addBottomStripIfNeeded(on: pageView, style: style)
+    }
+
+    /// Add the bottom decorative strip to a carousel slide. Reads
+    /// `bgBottomInset` (PERCENT of container height), `bgBottomColor`
+    /// (falls back to `bgColor`), and `bgBottomRadiusTop` (PERCENT of
+    /// container height, top-left + top-right corners only). All three
+    /// fields are authored per-slide in Studio.
+    private func addBottomStripIfNeeded(
+        on pageView: UIView,
+        style: CustomInAppPayload.Layout.Style?
+    ) {
+        guard let style = style else { return }
+        let rawValue = CGFloat(style.bgBottomInset ?? 0)
+        let bottomInset: CGFloat = {
+            let clampedPct = clampPct(rawValue)
+            return currentContainerHeight() * clampedPct / 100
+        }()
+        guard bottomInset > 0 else { return }
+
+        let stripColorHex = style.bgBottomColor ?? style.bgColor
+        guard let hex = stripColorHex, let color = UIColor(hex: hex) else { return }
+
+        let rawTopRadius = CGFloat(style.bgBottomRadiusTop ?? 0)
+        let topRadius: CGFloat = {
+            let pct = clampPct(rawTopRadius)
+            return currentContainerHeight() * pct / 100
+        }()
+
+        let stripView = UIView()
+        stripView.translatesAutoresizingMaskIntoConstraints = false
+        stripView.backgroundColor = color
+        if topRadius > 0 {
+            stripView.layer.cornerRadius = topRadius
+            stripView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
+            stripView.layer.masksToBounds = true
+        }
+        // Insert below contentContainer (which is added AFTER applyPageBackground
+        // returns) but above bgImage. Subview index doesn't strictly matter
+        // because contentContainer gets added last and ends up on top.
+        pageView.addSubview(stripView)
+        NSLayoutConstraint.activate([
+            stripView.leadingAnchor.constraint(equalTo: pageView.leadingAnchor),
+            stripView.trailingAnchor.constraint(equalTo: pageView.trailingAnchor),
+            stripView.bottomAnchor.constraint(equalTo: pageView.bottomAnchor),
+            stripView.heightAnchor.constraint(equalToConstant: bottomInset),
+        ])
     }
 
     // MARK: - Navigation
@@ -760,10 +954,14 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
+        // Carousel slide percent parity: fontSize is a PERCENT of container
+        // height (modal: 0.48 × screen.h; fullscreen: screen.h). Mirrors
+        // StyleViewController.renderTextBlock.
+        let scaledFontSize = scaledFontSizeString(block.fontSize)
         label.font = makeFont(
             family: block.fontFamily,
             weight: block.fontWeight,
-            size: block.fontSize,
+            size: scaledFontSize,
             italic: block.italic == true
         )
 
@@ -787,16 +985,21 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             label.textAlignment = .left
         }
 
-        let margin = CGFloat(block.horizontalMargin ?? 0)
-        if margin > 0 {
-            let adjustedMargin = margin + extraHorizontalInset
+        // Carousel slide percent parity: horizontalMargin is a PERCENT of
+        // container width. Modal/fullscreen also keep the legacy
+        // `extraHorizontalInset` so a payload-authored 0% still gets a
+        // small breathing inset — same contract StyleViewController uses.
+        let scaledHorizontalMargin = bannerPctH(CGFloat(block.horizontalMargin ?? 0))
+        let scaledVerticalPadding = scaleV(4)
+        if (block.horizontalMargin ?? 0) > 0 {
+            let adjustedMargin = scaledHorizontalMargin + extraHorizontalInset
             let wrapper = UIView()
             label.translatesAutoresizingMaskIntoConstraints = false
             wrapper.addSubview(label)
 
             NSLayoutConstraint.activate([
-                label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 4),
-                label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -4),
+                label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: scaledVerticalPadding),
+                label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -scaledVerticalPadding),
                 label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: adjustedMargin),
                 label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -adjustedMargin),
             ])
@@ -817,8 +1020,8 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         wrapper.addSubview(label)
 
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 4),
-            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -4),
+            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: scaledVerticalPadding),
+            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -scaledVerticalPadding),
             label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset),
             label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset),
         ])
@@ -837,14 +1040,37 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
     private func renderImageBlock(_ block: CustomInAppPayload.Layout.Blocks.ImageBlock) -> UIView {
         let imageView = UIImageView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
+        // Match Studio preview + Android: image fills a fixed slot, crops overflow.
         imageView.contentMode = .scaleAspectFill
         imageView.clipsToBounds = true
 
-        let modalHeight = UIScreen.main.bounds.height * modalHeightRatio
-        let imageHeight = max(modalHeight * modalImageHeightRatio, modalImageMinHeight)
-        let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: imageHeight)
-        heightConstraint.priority = .required
-        heightConstraint.isActive = true
+        // Accessibility: expose `alt` to VoiceOver (mirrors StyleViewController).
+        if let altText = block.alt, !altText.isEmpty {
+            imageView.isAccessibilityElement = true
+            imageView.accessibilityLabel = altText
+            imageView.accessibilityTraits.insert(.image)
+        } else {
+            imageView.isAccessibilityElement = false
+        }
+
+        // Carousel slide percent parity: fullscreen image dominates (32% of
+        // viewport, 72pt floor); modal uses 36% of modal height. Same
+        // intrinsics StyleViewController.renderImageBlock applies.
+        if isFullscreen {
+            let fullscreenImageHeight = max(
+                UIScreen.main.bounds.height * fullscreenImageHeightRatio,
+                modalImageMinHeight
+            )
+            let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: fullscreenImageHeight)
+            heightConstraint.priority = .required
+            heightConstraint.isActive = true
+        } else {
+            let modalHeight = UIScreen.main.bounds.height * modalHeightRatio
+            let imageHeight = max(modalHeight * modalImageHeightRatio, modalImageMinHeight)
+            let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: imageHeight)
+            heightConstraint.priority = .required
+            heightConstraint.isActive = true
+        }
 
         if let urlString = block.url, let url = URL(string: urlString) {
             URLSession.shared.dataTask(with: url) { data, _, _ in
@@ -856,17 +1082,25 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             }.resume()
         }
 
+        // Image sits inside the container's inner padding (applied at the
+        // scrollView level). `block.margin` is an ADDITIONAL inset on top
+        // of that. Fullscreen with `margin <= 0` falls back to a baseline
+        // horizontal inset so the image doesn't run flush to system safe
+        // areas — same contract StyleViewController uses.
         let rawMargin = CGFloat(block.margin ?? 0)
-        let horizontalMarginBase: CGFloat = (isFullscreen && rawMargin <= 0) ? baseHorizontalInset : rawMargin
-        let horizontalMargin: CGFloat = horizontalMarginBase + extraHorizontalInset
+        let horizontalMargin: CGFloat = {
+            return (isFullscreen && rawMargin <= 0) ? baseHorizontalInset : rawMargin
+        }()
 
         let wrapper = UIView()
         let frameView = UIView()
         frameView.translatesAutoresizingMaskIntoConstraints = false
         frameView.clipsToBounds = true
 
+        // Carousel slide percent parity: image radius is a PERCENT of
+        // container height. Mirrors StyleViewController.renderImageBlock.
         if let radius = block.radius {
-            frameView.layer.cornerRadius = CGFloat(radius)
+            frameView.layer.cornerRadius = bannerPctV(CGFloat(radius))
         }
 
         wrapper.addSubview(frameView)
@@ -904,29 +1138,43 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             return spacer
         }
 
-        spacer.heightAnchor.constraint(equalToConstant: CGFloat(block.verticalSpacing ?? 8)).isActive = true
+        // Carousel slide percent parity: verticalSpacing is a PERCENT of
+        // container height. Mirrors StyleViewController.renderSpacerBlock.
+        let rawValue = CGFloat(block.verticalSpacing ?? 8)
+        let height: CGFloat = {
+            let pct = clampPct(rawValue)
+            return currentContainerHeight() * pct / 100
+        }()
+        spacer.heightAnchor.constraint(equalToConstant: height).isActive = true
         return spacer
     }
 
     private func renderButtonBlock(_ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock) -> UIView {
-        let button = createStyledButton(block)
-        let margin = CGFloat(block.margin ?? 8)
+        // Carousel slide percent parity: `block.margin` is a HORIZONTAL-ONLY
+        // outer spacing — PERCENT of container width. Mirrors
+        // StyleViewController.renderButtonBlock.
+        let marginH = bannerPctH(CGFloat(block.margin ?? 8))
 
+        // Carousel slide percent parity: intrinsic button heights are scaled
+        // vertically with the container. Same constants StyleViewController
+        // uses (32 / 44 / 56pt iPhone-13 reference).
+        let baseHeight: CGFloat
+        switch block.verticalSize {
+        case "small": baseHeight = 32
+        case "large": baseHeight = 56
+        default: baseHeight = 44
+        }
+        let heightValue: CGFloat = scaleV(baseHeight)
+
+        let button = createStyledButton(block, buttonHeight: heightValue)
         let wrapper = UIView()
         button.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(button)
-
-        let heightValue: CGFloat
-        switch block.verticalSize {
-        case "small": heightValue = 32
-        case "large": heightValue = 56
-        default: heightValue = 44
-        }
         button.layer.cornerRadius = resolveButtonCornerRadius(block, height: heightValue)
 
         var constraints = [
-            button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: margin),
-            button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -margin),
+            button.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
             button.heightAnchor.constraint(equalToConstant: heightValue),
         ]
 
@@ -940,22 +1188,27 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         }
 
         if normalizedHSize == "full" {
-            constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset))
-            constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset))
+            // Full width — buttonPosition irrelevant. Horizontal margin
+            // shrinks the button on both sides on top of the container's
+            // inner padding (handled at scrollView level).
+            constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset + marginH))
+            constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -(contentHorizontalInset + marginH)))
         } else {
             if normalizedHSize == "half" {
-                constraints.append(button.widthAnchor.constraint(equalTo: wrapper.widthAnchor, multiplier: 0.5))
+                // 50% of wrapper minus margin on each side.
+                constraints.append(button.widthAnchor.constraint(equalTo: wrapper.widthAnchor, multiplier: 0.5, constant: -2 * marginH))
             } else {
-                constraints.append(button.leadingAnchor.constraint(greaterThanOrEqualTo: wrapper.leadingAnchor, constant: contentHorizontalInset))
-                constraints.append(button.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -contentHorizontalInset))
-                button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 24, bottom: 8, right: 24)
+                // auto — content-hugging width with min padding on either side.
+                constraints.append(button.leadingAnchor.constraint(greaterThanOrEqualTo: wrapper.leadingAnchor, constant: contentHorizontalInset + marginH))
+                constraints.append(button.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -(contentHorizontalInset + marginH)))
+                button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
             }
 
             switch block.buttonPosition {
             case "left":
-                constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset))
+                constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset + marginH))
             case "right":
-                constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset))
+                constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -(contentHorizontalInset + marginH)))
             default:
                 constraints.append(button.centerXAnchor.constraint(equalTo: wrapper.centerXAnchor))
             }
@@ -970,11 +1223,18 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
         let isHorizontal = block.buttonGroupType == "double-horizontal"
 
+        // Vertical group: reuse single-button renderer so horizontalSize
+        // (half/full/auto), buttonPosition and margins behave exactly like
+        // single layouts. Mirrors StyleViewController.renderButtonGroupBlock.
         if !isHorizontal {
             let wrapper = UIView()
             let stack = UIStackView()
             stack.axis = .vertical
-            stack.spacing = 0
+            // Carousel slide percent parity: vertical buttonGap is a
+            // PERCENT of container height (0–100). Replaces previous
+            // hardcoded `spacing = 0`.
+            let rawGap = CGFloat(block.buttonGap ?? 0)
+            stack.spacing = bannerPctV(rawGap)
             stack.alignment = .fill
             stack.distribution = .fill
             stack.translatesAutoresizingMaskIntoConstraints = false
@@ -997,30 +1257,75 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 8
-        stack.alignment = .fill
+        // Carousel slide percent parity: horizontal buttonGap is a PERCENT
+        // of container WIDTH (vs % of height for vertical). Same authored
+        // value, container-aware axis — replaces previous hardcoded 8pt.
+        stack.spacing = bannerPctH(CGFloat(block.buttonGap ?? 0))
+        stack.alignment = .center
         stack.distribution = .fillEqually
 
         for buttonData in buttons {
-            let button = createStyledButton(buttonData)
-            let heightValue: CGFloat
+            // Carousel slide percent parity: button intrinsic heights are
+            // scaled vertically with the container (32/44/56 iPhone-13 ref).
+            let baseHeight: CGFloat
             switch buttonData.verticalSize {
-            case "small": heightValue = 32
-            case "large": heightValue = 56
-            default: heightValue = 44
+            case "small": baseHeight = 32
+            case "large": baseHeight = 56
+            default: baseHeight = 44
             }
-            button.layer.cornerRadius = resolveButtonCornerRadius(buttonData, height: heightValue)
-            button.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
-            stack.addArrangedSubview(button)
+            let heightValue: CGFloat = scaleV(baseHeight)
+
+            let btn = createStyledButton(buttonData, buttonHeight: heightValue)
+            btn.layer.cornerRadius = resolveButtonCornerRadius(buttonData, height: heightValue)
+            btn.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
+
+            // Wrap each button so per-button margin can shrink its width
+            // and the stack's .fillEqually still splits the row 50/50.
+            // Same construction StyleViewController uses for horizontal
+            // button groups.
+            let buttonWrapper = UIView()
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            buttonWrapper.translatesAutoresizingMaskIntoConstraints = false
+            buttonWrapper.addSubview(btn)
+            // Carousel slide percent parity: per-button margin is a
+            // PERCENT of container width.
+            let buttonMargin = bannerPctH(CGFloat(buttonData.margin ?? 8))
+            let hSize = (buttonData.horizontalSize ?? "").lowercased()
+            // `auto` buttons sit at intrinsic width centered inside the
+            // half wrapper. Other sizes stretch to wrapper edge (minus
+            // margin). Same logic StyleViewController applies.
+            if hSize == "auto" {
+                btn.titleEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+                btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+                NSLayoutConstraint.activate([
+                    btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
+                    btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
+                    btn.centerXAnchor.constraint(equalTo: buttonWrapper.centerXAnchor),
+                    btn.leadingAnchor.constraint(greaterThanOrEqualTo: buttonWrapper.leadingAnchor, constant: buttonMargin),
+                    btn.trailingAnchor.constraint(lessThanOrEqualTo: buttonWrapper.trailingAnchor, constant: -buttonMargin),
+                ])
+                stack.addArrangedSubview(buttonWrapper)
+                continue
+            }
+            NSLayoutConstraint.activate([
+                btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
+                btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
+                btn.leadingAnchor.constraint(equalTo: buttonWrapper.leadingAnchor, constant: buttonMargin),
+                btn.trailingAnchor.constraint(equalTo: buttonWrapper.trailingAnchor, constant: -buttonMargin),
+            ])
+            stack.addArrangedSubview(buttonWrapper)
         }
 
         let wrapper = UIView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(stack)
 
+        // No hardcoded vertical wrapper padding — per-block marginTop /
+        // marginBottom carry user-controlled vertical spacing (handled at
+        // the contentStackView level). Mirrors StyleViewController.
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -8),
+            stack.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
             stack.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset),
             stack.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset),
         ])
@@ -1028,15 +1333,23 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         return wrapper
     }
 
-    private func createStyledButton(_ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock) -> UIButton {
+    private func createStyledButton(
+        _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
+        buttonHeight: CGFloat = 44
+    ) -> UIButton {
         let button = UIButton(type: .system)
         let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
         button.setTitle(title, for: .normal)
 
+        // Carousel slide percent parity: authored fontSize is a PERCENT of
+        // CONTAINER height — same contract text blocks use. Matches
+        // StyleViewController.createStyledButton. `buttonHeight` param kept
+        // for future use (e.g. switching to button-relative font scaling).
+        _ = buttonHeight
         let font = makeFont(
             family: block.fontFamily,
             weight: block.fontWeight,
-            size: block.fontSize,
+            size: scaledFontSizeString(block.fontSize),
             italic: block.italic == true
         )
         button.titleLabel?.font = font
@@ -1056,7 +1369,9 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             button.layer.borderWidth = 1
         }
 
-        button.layer.cornerRadius = CGFloat(block.borderRadius ?? 8)
+        // Carousel slide percent parity: borderRadius is a PERCENT of
+        // container height (0–100). Mirrors StyleViewController.
+        button.layer.cornerRadius = bannerPctV(CGFloat(block.borderRadius ?? 8))
         button.clipsToBounds = true
 
         let action = block.action ?? ""
@@ -1071,8 +1386,11 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
         height: CGFloat
     ) -> CGFloat {
-        let requestedRadius = CGFloat(block.borderRadius ?? 8)
-        return min(requestedRadius, height / 2)
+        // Carousel slide percent parity: borderRadius PERCENT-of-container.
+        // Capped at height/2 so it never exceeds a pill regardless of
+        // authored value. Mirrors StyleViewController.
+        let resolved = bannerPctV(CGFloat(block.borderRadius ?? 8))
+        return min(resolved, height / 2)
     }
 
     private func makeFont(family: String?, weight: String?, size: String?, italic: Bool = false) -> UIFont {
