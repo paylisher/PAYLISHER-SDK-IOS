@@ -43,7 +43,7 @@ class StyleViewController: UIViewController {
     private let fullscreenInnerVerticalPaddingRatio: CGFloat = 0.04
     private let fullscreenImageHeightRatio: CGFloat = 0.32
     private let fullscreenMinTopInset: CGFloat = 60
-    private let fullscreenMinBottomInset: CGFloat = 50
+    private let fullscreenMinBottomInset: CGFloat = 35
 
     // Container content scale — authored pt values are interpreted against
     // an iPhone-13 reference container (banner: 358.8 × 219.44pt;
@@ -71,6 +71,13 @@ class StyleViewController: UIViewController {
     private let containerView = UIView()
 
     private var containerHeightConstraint: NSLayoutConstraint?
+
+    /// When the bottom strip needs mixed top + bottom radii, we can't use
+    /// `maskedCorners` (UIKit only allows one radius per CALayer), so we
+    /// install a CAShapeLayer mask built from a per-corner path. The hook
+    /// is invoked from `viewDidLayoutSubviews` so the path follows the
+    /// strip's resolved frame.
+    private var stripViewMixedCornerHook: (() -> Void)?
 
     private let overlayView = UIView()
 
@@ -254,6 +261,13 @@ class StyleViewController: UIViewController {
 
     }
     
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Bottom strip with mixed top + bottom radii needs its CAShapeLayer
+        // mask rebuilt whenever the strip's frame resolves / changes.
+        stripViewMixedCornerHook?()
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         applyTransition()
@@ -487,26 +501,28 @@ class StyleViewController: UIViewController {
         let stripColorHex = style.bgBottomColor ?? style.bgColor
         guard let hex = stripColorHex, let color = UIColor(hex: hex) else { return }
 
-        // `bgBottomRadius` is authored as a PERCENT of container height —
-        // rounds the strip's BOTTOM-LEFT + BOTTOM-RIGHT corners only (top
-        // stays square so the strip seams flush against the content above).
-        let rawBottomRadius = CGFloat(style.bgBottomRadius ?? 0)
-        let bottomRadius: CGFloat = {
+        // `bgBottomRadiusTop` is authored as % container height (0–100).
+        // Softens the strip's top-left + top-right corners via
+        // `maskedCorners` — the cheap CALayer path. Bottom corners sit
+        // flush with the container's outer edge.
+        let rawTopRadius = CGFloat(style.bgBottomRadiusTop ?? 0)
+        let topRadius: CGFloat = {
             if isPercentContainer {
-                let pct = max(0, min(100, rawBottomRadius))
+                let pct = max(0, min(100, rawTopRadius))
                 return currentContainerHeight() * pct / 100
             }
-            return rawBottomRadius
+            return rawTopRadius
         }()
 
         let stripView = UIView()
         stripView.translatesAutoresizingMaskIntoConstraints = false
         stripView.backgroundColor = color
-        if bottomRadius > 0 {
-            stripView.layer.cornerRadius = bottomRadius
-            stripView.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+        if topRadius > 0 {
+            stripView.layer.cornerRadius = topRadius
+            stripView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
             stripView.layer.masksToBounds = true
         }
+        stripViewMixedCornerHook = nil
         containerView.insertSubview(stripView, at: 0)
         NSLayoutConstraint.activate([
             stripView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
@@ -655,24 +671,16 @@ class StyleViewController: UIViewController {
 
         containerView.insertSubview(bgImageView, at: 0)
 
-        // Banner + modal: bgBottomInset is a percent of the container's
-        // height (0–100). Fullscreen passes the raw pt through so legacy
-        // layouts there stay unchanged.
-        let rawBottomInset = CGFloat(style.bgBottomInset ?? 0)
-        let bottomInset: CGFloat = {
-            if isPercentContainer {
-                let pct = max(0, min(100, rawBottomInset))
-                return currentContainerHeight() * pct / 100
-            }
-            return rawBottomInset
-        }()
-
+        // bgImage fills the ENTIRE container — the bottom strip is a
+        // decorative overlay inserted on top of bgImage (via
+        // `addBottomStripIfNeeded` later in the same pipeline). Keeps the
+        // image visually continuous so there's no seam between the
+        // image's bottom and the strip's top.
         NSLayoutConstraint.activate([
             bgImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             bgImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             bgImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-            bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -bottomInset)
-
+            bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
         ])
         
         if let url = URL(string: urlString) {

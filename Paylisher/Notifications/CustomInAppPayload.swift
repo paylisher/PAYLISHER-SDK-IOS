@@ -109,10 +109,11 @@ public struct CustomInAppPayload: Codable {
 
             let bgBottomColor: String?
 
-            /// Strip bottom-left + bottom-right corner radius — percent of
-            /// container height (0–100). Mirrors Studio + Android. Optional;
-            /// missing/legacy payloads default to 0 = square corners.
-            let bgBottomRadius: Int?
+            /// Strip TOP curve — percent of container height (-100 to 100).
+            /// Positive: softens the strip's top corners. Negative: strip
+            /// extends upward into a dome that rises into the content
+            /// area. 0 / nil = flat seam.
+            let bgBottomRadiusTop: Int?
 
             let verticalPosition: String?
 
@@ -162,14 +163,15 @@ public struct CustomInAppPayload: Codable {
 
                 self.bgBottomColor = try? container.decode(String.self, forKey: .bgBottomColor)
 
-                // bgBottomRadius (accept Int or numeric String)
-                if let intVal = try? container.decode(Int.self, forKey: .bgBottomRadius) {
-                    self.bgBottomRadius = intVal
-                } else if let strVal = try? container.decode(String.self, forKey: .bgBottomRadius),
+                // bgBottomRadiusTop (accept Int or numeric String — may be
+                // negative, used to express an upward dome curve)
+                if let intVal = try? container.decode(Int.self, forKey: .bgBottomRadiusTop) {
+                    self.bgBottomRadiusTop = intVal
+                } else if let strVal = try? container.decode(String.self, forKey: .bgBottomRadiusTop),
                           let parsed = Int(strVal) {
-                    self.bgBottomRadius = parsed
+                    self.bgBottomRadiusTop = parsed
                 } else {
-                    self.bgBottomRadius = nil
+                    self.bgBottomRadiusTop = nil
                 }
 
                 self.verticalPosition = try? container.decode(String.self, forKey: .verticalPosition)
