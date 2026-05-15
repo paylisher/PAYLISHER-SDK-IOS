@@ -487,9 +487,26 @@ class StyleViewController: UIViewController {
         let stripColorHex = style.bgBottomColor ?? style.bgColor
         guard let hex = stripColorHex, let color = UIColor(hex: hex) else { return }
 
+        // `bgBottomRadius` is authored as a PERCENT of container height —
+        // rounds the strip's BOTTOM-LEFT + BOTTOM-RIGHT corners only (top
+        // stays square so the strip seams flush against the content above).
+        let rawBottomRadius = CGFloat(style.bgBottomRadius ?? 0)
+        let bottomRadius: CGFloat = {
+            if isPercentContainer {
+                let pct = max(0, min(100, rawBottomRadius))
+                return currentContainerHeight() * pct / 100
+            }
+            return rawBottomRadius
+        }()
+
         let stripView = UIView()
         stripView.translatesAutoresizingMaskIntoConstraints = false
         stripView.backgroundColor = color
+        if bottomRadius > 0 {
+            stripView.layer.cornerRadius = bottomRadius
+            stripView.layer.maskedCorners = [.layerMinXMaxYCorner, .layerMaxXMaxYCorner]
+            stripView.layer.masksToBounds = true
+        }
         containerView.insertSubview(stripView, at: 0)
         NSLayoutConstraint.activate([
             stripView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),

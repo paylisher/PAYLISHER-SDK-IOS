@@ -109,6 +109,11 @@ public struct CustomInAppPayload: Codable {
 
             let bgBottomColor: String?
 
+            /// Strip bottom-left + bottom-right corner radius — percent of
+            /// container height (0–100). Mirrors Studio + Android. Optional;
+            /// missing/legacy payloads default to 0 = square corners.
+            let bgBottomRadius: Int?
+
             let verticalPosition: String?
 
             let horizontalPosition: String?
@@ -156,6 +161,16 @@ public struct CustomInAppPayload: Codable {
                 }
 
                 self.bgBottomColor = try? container.decode(String.self, forKey: .bgBottomColor)
+
+                // bgBottomRadius (accept Int or numeric String)
+                if let intVal = try? container.decode(Int.self, forKey: .bgBottomRadius) {
+                    self.bgBottomRadius = intVal
+                } else if let strVal = try? container.decode(String.self, forKey: .bgBottomRadius),
+                          let parsed = Int(strVal) {
+                    self.bgBottomRadius = parsed
+                } else {
+                    self.bgBottomRadius = nil
+                }
 
                 self.verticalPosition = try? container.decode(String.self, forKey: .verticalPosition)
                 self.horizontalPosition = try? container.decode(String.self, forKey: .horizontalPosition)
