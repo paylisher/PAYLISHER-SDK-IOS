@@ -31,30 +31,35 @@ public class PaylisherNativeInAppNotificationManager {
         let defaultLang = userInfo["defaultLang"] as! String
         
         let titleDict = nativeDict["title"] as? [String: String] ?? [:]
-        
+
         let bodyDict  = nativeDict["body"]  as? [String: String] ?? [:]
-        
-        let imageUrl = nativeDict["imageUrl"] as? String ?? ""
-        
+
+        // Per-field text alignment — authored on Studio
+        // ("left" | "center" | "right"). Falls back to "center" on
+        // missing / unknown values; same default the Studio preview uses.
+        let titleAlign = (nativeDict["titleAlign"] as? String) ?? "center"
+        let bodyAlign  = (nativeDict["bodyAlign"]  as? String) ?? "center"
+
         let actionUrl = nativeDict["actionUrl"] as? String ?? ""
-        
+
         let type = userInfo["type"] as? String ?? "Native IN-APP"
-        
+
         let actionText = nativeDict["actionText"] as? String ?? ""
-        
+
         let localizedTitle = titleDict[defaultLang] ?? titleDict.values.first ?? ""
 
         let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? ""
-        
+
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
-        
-        
-       
+
+
+
         let inAppVC = PaylisherInAppModalViewController(
             title: localizedTitle,
             body: localizedBody,
-            imageUrl: imageUrl,
+            titleAlign: titleAlign,
+            bodyAlign: bodyAlign,
             actionUrl: actionUrl,
             actionText: actionText,
             gcmMessageID: gcmMessageID

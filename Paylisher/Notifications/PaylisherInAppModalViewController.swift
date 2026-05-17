@@ -5,27 +5,51 @@
 
 import UIKit
 
+/// "Native" in-app notification — the compact card variant. Differs from the
+/// `StyleViewController` modal/fullscreen/banner family by being intentionally
+/// minimal: title + body + optional action button, centered on screen, no
+/// authored layout blocks, no image. Sizing is content-driven (natural wrap)
+/// with a `maxHeight` cap so an unusually long body still fits on small phones.
+///
+/// Authoring contract (matches Studio + Android SDK):
+///   - `title`, `body`            — localized strings
+///   - `titleAlign` / `bodyAlign` — "left" | "center" | "right" (default: "center")
+///   - `actionText`               — button label; empty ⇒ button hidden
+///   - `actionUrl`                — opened on tap
 class PaylisherInAppModalViewController: UIViewController {
 
     private let titleText: String
     private let bodyText: String
-    private let imageUrlString: String?
+    private let titleAlignment: NSTextAlignment
+    private let bodyAlignment: NSTextAlignment
     private let actionUrlString: String?
     private let actionText: String
     private let gcmMessageID: String
 
-    // Stored so the overlay-tap gesture can check whether the touch is inside
+    // Stored so the overlay-tap gesture can check whether the touch is inside.
     private let container = UIView()
+
+    // Native card geometry — percent-of-viewport, mirrors the Studio preview
+    // (`InAppReview.tsx` native branch: cardWidth = device.width * 0.84,
+    // cardMaxHeight = device.height * 0.7). Kept in sync across platforms so
+    // a notification renders the same on every device + the studio mockup.
+    private let cardWidthRatio: CGFloat = 0.84
+    private let cardMaxHeightRatio: CGFloat = 0.7
+    // Inner padding scales with the card itself, not the screen — keeps the
+    // breathing room consistent at every device width. ~5% mirrors modal.
+    private let cardInnerPaddingRatio: CGFloat = 0.05
 
     init(title: String,
          body: String,
-         imageUrl: String?,
+         titleAlign: String,
+         bodyAlign: String,
          actionUrl: String?,
          actionText: String,
          gcmMessageID: String) {
         self.titleText      = title
         self.bodyText       = body
-        self.imageUrlString = imageUrl
+        self.titleAlignment = Self.resolveAlignment(titleAlign)
+        self.bodyAlignment  = Self.resolveAlignment(bodyAlign)
         self.actionUrlString = actionUrl
         self.actionText     = actionText
         self.gcmMessageID   = gcmMessageID
@@ -41,113 +65,154 @@ class PaylisherInAppModalViewController: UIViewController {
     override func viewDidLoad() {
         super.viewDidLoad()
 
-        // Dimmed background — tap outside card to dismiss
+        // Dimmed background — tap outside card to dismiss.
         view.backgroundColor = UIColor.black.withAlphaComponent(0.5)
         let tap = UITapGestureRecognizer(target: self, action: #selector(handleOverlayTap(_:)))
         view.addGestureRecognizer(tap)
 
-        // Card container
-        container.backgroundColor  = .white
+        // ── Card container ───────────────────────────────────────────────
+        container.backgroundColor = .white
         container.layer.cornerRadius = 8
-        container.clipsToBounds    = true
+        container.clipsToBounds = true
         container.translatesAutoresizingMaskIntoConstraints = false
         view.addSubview(container)
 
+        let screenSize = UIScreen.main.bounds
+        // No height constraint by design — the stack inside drives the card's
+        // intrinsic height (doğal wrap). The maxHeight constraint below caps
+        // it so a wildly long body still fits the viewport.
         NSLayoutConstraint.activate([
             container.centerXAnchor.constraint(equalTo: view.centerXAnchor),
             container.centerYAnchor.constraint(equalTo: view.centerYAnchor),
-            container.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: 0.8),
+            container.widthAnchor.constraint(equalTo: view.widthAnchor, multiplier: cardWidthRatio),
+            container.heightAnchor.constraint(lessThanOrEqualTo: view.heightAnchor, multiplier: cardMaxHeightRatio),
         ])
 
-        // ── Image (top, full-width, 80pt) ─────────────────────────────────────
-        var contentTopAnchor: NSLayoutYAxisAnchor = container.topAnchor
-        var contentTopConstant: CGFloat = 16
+        // Inner padding — scales with the card width so denser devices keep
+        // the same visual breathing room as the studio preview.
+        let cardWidth = screenSize.width * cardWidthRatio
+        let innerPadding = cardWidth * cardInnerPaddingRatio
 
-        if let urlStr = imageUrlString, !urlStr.isEmpty {
-            let imageView = UIImageView()
-            imageView.contentMode = .scaleAspectFill
-            imageView.clipsToBounds = true
-            imageView.translatesAutoresizingMaskIntoConstraints = false
-            container.addSubview(imageView)
+        // Body fontSize % of CARD width (the only stable axis here because
+        // height is content-driven). Mirrors modal's percent-of-container
+        // intent: a fixed pt value would look giant on small phones + tiny
+        // on big ones. ~5.5% on a 343pt card ≈ ~19pt — same visual weight as
+        // the legacy 16pt on an iPhone-13.
+        let titleFontSize = cardWidth * 0.06
+        let bodyFontSize  = cardWidth * 0.045
+        let buttonFontSize = cardWidth * 0.04
 
-            NSLayoutConstraint.activate([
-                imageView.topAnchor.constraint(equalTo: container.topAnchor),
-                imageView.leadingAnchor.constraint(equalTo: container.leadingAnchor),
-                imageView.trailingAnchor.constraint(equalTo: container.trailingAnchor),
-                imageView.heightAnchor.constraint(equalToConstant: 80),
-            ])
-            contentTopAnchor   = imageView.bottomAnchor
-            contentTopConstant = 12
-
-            if let url = URL(string: urlStr) {
-                URLSession.shared.dataTask(with: url) { data, _, _ in
-                    if let data = data, let img = UIImage(data: data) {
-                        DispatchQueue.main.async { imageView.image = img }
-                    }
-                }.resume()
-            }
-        }
-
-        // ── Content stack (title · body · button) ────────────────────────────
+        // ── Content stack (title · body · button) ────────────────────────
         let stack = UIStackView()
-        stack.axis        = .vertical
-        stack.alignment   = .center
-        stack.spacing     = 8
+        stack.axis = .vertical
+        // Stretch each row to the full card width; the row's own
+        // `textAlignment` handles left / center / right per-field.
+        stack.alignment = .fill
+        stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
-        container.addSubview(stack)
+        // Scroll wrapper so a long body that exceeds the maxHeight cap
+        // becomes scrollable instead of clipped. Natural wrap stays the
+        // primary mechanism — scroll is only the safety net for extreme
+        // cases (matches the Studio preview's `overflow: auto`).
+        let scrollView = UIScrollView()
+        scrollView.translatesAutoresizingMaskIntoConstraints = false
+        scrollView.alwaysBounceVertical = false
+        scrollView.showsVerticalScrollIndicator = false
+        container.addSubview(scrollView)
+        scrollView.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: contentTopAnchor, constant: contentTopConstant),
-            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: 16),
-            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -16),
-            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -16),
+            scrollView.topAnchor.constraint(equalTo: container.topAnchor, constant: innerPadding),
+            scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -innerPadding),
+            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: innerPadding),
+            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -innerPadding),
+
+            stack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
+            stack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
+            stack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
+            stack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
         ])
 
-        // Title
+        // Title — only added when non-empty.
         if !titleText.isEmpty {
             let label = UILabel()
             label.text          = titleText
             label.textColor     = .black
-            label.font          = .boldSystemFont(ofSize: 20)
+            label.font          = .boldSystemFont(ofSize: titleFontSize)
             label.numberOfLines = 0
-            label.textAlignment = .center
+            label.textAlignment = titleAlignment
             stack.addArrangedSubview(label)
         }
 
-        // Body
+        // Body — only added when non-empty.
         if !bodyText.isEmpty {
             let label = UILabel()
             label.text          = bodyText
             label.textColor     = .black
-            label.font          = .systemFont(ofSize: 16, weight: .semibold)
+            label.font          = .systemFont(ofSize: bodyFontSize, weight: .semibold)
             label.numberOfLines = 0
-            label.textAlignment = .center
+            label.textAlignment = bodyAlignment
             stack.addArrangedSubview(label)
         }
 
-        // Spacer between text and button (only when there is text above)
-        if !titleText.isEmpty || !bodyText.isEmpty {
+        // Spacer between text + button only when there's text above it.
+        let hasTextAbove = !titleText.isEmpty || !bodyText.isEmpty
+        let showButton = !actionText.isEmpty
+
+        if hasTextAbove && showButton {
             let spacer = UIView()
             spacer.translatesAutoresizingMaskIntoConstraints = false
             spacer.heightAnchor.constraint(equalToConstant: 8).isActive = true
             stack.addArrangedSubview(spacer)
         }
 
-        // Action button — always shown
-        let btn = UIButton(type: .system)
-        btn.setTitle(actionText.isEmpty ? "Open" : actionText, for: .normal)
-        btn.titleLabel?.font = .systemFont(ofSize: 14, weight: .medium)
-        btn.backgroundColor  = UIColor(red: 29/255, green: 78/255, blue: 216/255, alpha: 1)
-        btn.setTitleColor(.white, for: .normal)
-        btn.layer.cornerRadius = 4
-        btn.contentEdgeInsets  = UIEdgeInsets(top: 8, left: 16, bottom: 8, right: 16)
-        btn.addTarget(self, action: #selector(didTapActionButton), for: .touchUpInside)
-        stack.addArrangedSubview(btn)
+        // Action button — ONLY added when the author supplied a label.
+        // Mirrors the Studio preview + Android SDK contract: empty
+        // `actionText` ⇒ no button (previously iOS fell back to "Open" and
+        // Android always showed it; now both hide).
+        if showButton {
+            // Wrap the button so the stackView's `.fill` alignment doesn't
+            // stretch a centered button row to the full card width.
+            let row = UIView()
+            row.translatesAutoresizingMaskIntoConstraints = false
+
+            let btn = UIButton(type: .system)
+            btn.setTitle(actionText, for: .normal)
+            btn.titleLabel?.font = .systemFont(ofSize: buttonFontSize, weight: .medium)
+            btn.backgroundColor  = UIColor(red: 29/255, green: 78/255, blue: 216/255, alpha: 1)
+            btn.setTitleColor(.white, for: .normal)
+            btn.layer.cornerRadius = 4
+            btn.contentEdgeInsets  = UIEdgeInsets(top: 8, left: 20, bottom: 8, right: 20)
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            btn.addTarget(self, action: #selector(didTapActionButton), for: .touchUpInside)
+
+            row.addSubview(btn)
+            NSLayoutConstraint.activate([
+                btn.topAnchor.constraint(equalTo: row.topAnchor),
+                btn.bottomAnchor.constraint(equalTo: row.bottomAnchor),
+                btn.centerXAnchor.constraint(equalTo: row.centerXAnchor),
+                btn.leadingAnchor.constraint(greaterThanOrEqualTo: row.leadingAnchor),
+                btn.trailingAnchor.constraint(lessThanOrEqualTo: row.trailingAnchor),
+            ])
+            stack.addArrangedSubview(row)
+        }
     }
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         CoreDataManager.shared.updateNotificationStatus(byMessageID: gcmMessageID, newStatus: "READ")
+    }
+
+    // MARK: - Helpers
+
+    private static func resolveAlignment(_ raw: String) -> NSTextAlignment {
+        switch raw.lowercased() {
+        case "left":   return .left
+        case "right":  return .right
+        case "center": return .center
+        default:       return .center
+        }
     }
 
     // MARK: - Actions
