@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'Paylisher'
-  s.version          = '1.7.1'
+  s.version          = '1.8.4'
   s.summary          = 'Paylisher Analytics, Replay & Deep Link SDK'
   s.description      = <<-DESC
 Paylisher is a comprehensive mobile SDK providing event tracking, session replay, secure data collection, and advanced deep linking capabilities including deferred deep links for install attribution.

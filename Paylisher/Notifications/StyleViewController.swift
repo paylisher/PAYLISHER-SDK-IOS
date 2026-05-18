@@ -1014,7 +1014,7 @@ class StyleViewController: UIViewController {
             // collapse the image to nothing.
             let fullscreenImageHeight = max(
                 UIScreen.main.bounds.height * fullscreenImageHeightRatio,
-                modalImageMinHeight,
+                modalImageMinHeight
             )
             let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: fullscreenImageHeight)
             heightConstraint.priority = .required
