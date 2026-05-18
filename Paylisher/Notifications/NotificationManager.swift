@@ -296,19 +296,33 @@ public class NotificationManager {
                     geofenceNotification(userInfo, content, request, completion)
                     break
                 case .inApp:
-                    print("FCM customNotification inApp")
+                    // Reception log — matches Android `FCM | InApp` shape.
+                    // Includes the full FCM userInfo (parity with
+                    // `FcmMessageHandler.handleInAppPayload` →
+                    // "Notification InApp Data: $dataPayloadJson") so the
+                    // exact payload is reproducible from the logs alone.
+                    let pushId = (userInfo["pushId"] as? String) ?? "?"
+                    let layoutType = (userInfo["layoutType"] as? String) ?? "?"
+                    let gcmMessageId = (userInfo["gcm.message_id"] as? String) ?? "?"
+                    print("FCM | InApp | Notification InApp Data: \(userInfo)")
+                    print("FCM | InApp | received | pushId=\(pushId) | layoutType=\(layoutType) | gcmMessageId=\(gcmMessageId)")
+
                     if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
+                        print("FCM | InApp | dedupe claimed → capturing notificationReceived | pushId=\(pushId)")
                         PaylisherNotificationEventTracker.capture(
                             "notificationReceived",
                             userInfo: userInfo,
                             properties: ["type": typeString]
                         )
+                    } else {
+                        print("FCM | InApp | duplicate skipped | pushId=\(pushId) | gcmMessageId=\(gcmMessageId)")
                     }
-                    
-                        PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
-                        PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
- 
+
+                    print("FCM | InApp | routing → native + custom | pushId=\(pushId) | layoutType=\(layoutType)")
+                    PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(userInfo: userInfo, windowScene: windowScene)
+                    PaylisherCustomInAppNotificationManager.shared.parseInAppPayload(from: userInfo, windowScene: windowScene)
+                    PaylisherCustomInAppNotificationManager.shared.customInAppFunction(userInfo: userInfo, windowScene: windowScene)
+
                     break
                 case .silentHeartbeat:
                     // Silent heartbeat: no notification shown, only backend ack

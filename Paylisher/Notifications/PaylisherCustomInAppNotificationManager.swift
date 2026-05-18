@@ -382,21 +382,28 @@ public class PaylisherCustomInAppNotificationManager {
     /// Direct show method — accepts a pre-built CustomInAppPayload without JSON parsing.
     /// Mirrors Android's InAppMessageHelper.showCustomInAppMessage* API for programmatic use.
     public func showCustomInApp(_ payload: CustomInAppPayload, windowScene: UIWindowScene?) {
-        guard shouldPresentInApp(payload) else { return }
+        guard shouldPresentInApp(payload) else {
+            print("FCM | InAppRouter | shouldPresentInApp=false → skip | pushId=\(normalizedPushId(payload))")
+            return
+        }
 
         let lang       = payload.defaultLang ?? "en"
         let layoutType = payload.layoutType ?? "modal"
         let pushId = normalizedPushId(payload)
 
         guard let layouts = payload.layouts, !layouts.isEmpty else {
-            print("[Paylisher] showCustomInApp: payload has no layouts")
+            print("FCM | InAppRouter | payload has no layouts | pushId=\(pushId) | layoutType=\(layoutType)")
             return
         }
+
+        // InApp parsed — mirrors Android InAppTaskWorker line "InApp parsed".
+        print("FCM | InAppRouter | InApp parsed | pushId=\(pushId) | layoutType=\(layoutType) | lang=\(lang) | layoutCount=\(layouts.count)")
 
         let vcToPresent: UIViewController
 
         switch layoutType {
         case "modal-carousel":
+            print("FCM | InAppRouter | Showing MODAL_CAROUSEL | pushId=\(pushId) | slides=\(layouts.count)")
             let carouselVC = CarouselInAppViewController(
                 layouts: layouts, defaultLang: lang, isFullscreen: false, pushId: pushId
             )
@@ -404,6 +411,7 @@ public class PaylisherCustomInAppNotificationManager {
             vcToPresent = carouselVC
 
         case "fullscreen-carousel":
+            print("FCM | InAppRouter | Showing FULLSCREEN_CAROUSEL | pushId=\(pushId) | slides=\(layouts.count)")
             let carouselVC = CarouselInAppViewController(
                 layouts: layouts, defaultLang: lang, isFullscreen: true, pushId: pushId
             )
@@ -411,12 +419,27 @@ public class PaylisherCustomInAppNotificationManager {
             vcToPresent = carouselVC
 
         default:
+            // BANNER / MODAL / FULLSCREEN — single layout.
+            // Android distinguishes these in the worker; on iOS the
+            // distinction is the `layoutType` string carried into
+            // StyleViewController. Log the resolved branch so the iOS
+            // trail matches "Showing BANNER" / "Showing MODAL" /
+            // "Showing FULLSCREEN" on Android.
+            let resolvedTag: String = {
+                switch layoutType {
+                case "banner":     return "BANNER"
+                case "fullscreen": return "FULLSCREEN"
+                case "modal":      return "MODAL"
+                default:           return "MODAL (default)"
+                }
+            }()
+            print("FCM | InAppRouter | Showing \(resolvedTag) | pushId=\(pushId)")
             guard let firstLayout = layouts.first,
                   let style  = firstLayout.style,
                   let close  = firstLayout.close,
                   let extra  = firstLayout.extra,
                   let blocks = firstLayout.blocks else {
-                print("[Paylisher] showCustomInApp: payload missing required layout fields")
+                print("FCM | InAppRouter | payload missing required layout fields | pushId=\(pushId) | layoutType=\(layoutType)")
                 return
             }
             let styleVC = StyleViewController(

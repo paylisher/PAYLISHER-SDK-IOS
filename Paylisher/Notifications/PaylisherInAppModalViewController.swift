@@ -140,6 +140,11 @@ class PaylisherInAppModalViewController: UIViewController {
             label.numberOfLines = 0
             label.textAlignment = titleAlignment
             stack.addArrangedSubview(label)
+            // Diagnostic — same shape as Android's `PAYLISHER_NATIVE` line so
+            // logs from the two SDKs line up side-by-side when triaging
+            // alignment / weight issues. `textAlignment` is logged as its
+            // raw rawValue (0=natural, 1=left, 2=center, 3=right, 4=justified).
+            print("PAYLISHER_NATIVE | title: text='\(titleText)' align=\(titleAlignment.rawValue) fontSize=\(Int(titleFontSize)) weight=bold")
         }
 
         // Body — only added when non-empty.
@@ -155,6 +160,10 @@ class PaylisherInAppModalViewController: UIViewController {
             label.numberOfLines = 0
             label.textAlignment = bodyAlignment
             stack.addArrangedSubview(label)
+            // Diagnostic — Android-shape `PAYLISHER_NATIVE` parity. Body
+            // truncated to 40 chars in the log to keep noise down.
+            let bodyPreview = bodyText.count > 40 ? String(bodyText.prefix(40)) + "…" : bodyText
+            print("PAYLISHER_NATIVE | body: text='\(bodyPreview)' align=\(bodyAlignment.rawValue) fontSize=\(Int(bodyFontSize)) weight=regular")
         }
 
         // Spacer between text + button only when there's text above it.
@@ -202,6 +211,9 @@ class PaylisherInAppModalViewController: UIViewController {
 
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
+        // Render-complete log — mirrors Android InAppMessageHelper's
+        // "In-App sent!" trailing line at the end of the native path.
+        print("FCM | InApp | In-App Native sent! locale=\(Locale.current.identifier) gcmMessageId=\(gcmMessageID)")
         CoreDataManager.shared.updateNotificationStatus(byMessageID: gcmMessageID, newStatus: "READ")
     }
 

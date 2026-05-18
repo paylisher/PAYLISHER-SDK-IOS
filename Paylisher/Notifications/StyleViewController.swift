@@ -254,11 +254,39 @@ class StyleViewController: UIViewController {
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        setupUI()
-        
-        closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
 
+        // Render-start log — mirrors Android InAppMessageHelper's
+        //   "InApp Banner render started — layoutType=… lang=…"
+        //   "InApp Modal render started — layoutType=… lang=…"
+        //   "InApp Fullscreen render started — layoutType=… lang=…"
+        // and the geometry log line that follows it. Single-shot per
+        // presentation so the trail is easy to follow.
+        let screen = UIScreen.main.bounds
+        switch layoutType {
+        case "banner":
+            let bannerH = screen.height * bannerHeightRatio
+            let outerV = screen.height * bannerOuterVerticalInsetRatio
+            let innerH = screen.width * (1 - 2 * bannerOuterHorizontalInsetRatio) * bannerInnerHorizontalPaddingRatio
+            let innerV = bannerH * bannerInnerVerticalPaddingRatio
+            print("FCM | InApp | Banner render started — layoutType=\(layoutType) lang=\(defaultLang) pushId=\(pushId ?? "?")")
+            print("FCM | InApp | Banner sizing — screen=\(Int(screen.width))x\(Int(screen.height)) bannerH=\(Int(bannerH)) outerV=\(Int(outerV)) innerPad=\(Int(innerH))x\(Int(innerV))")
+        case "fullscreen":
+            let innerH = screen.width * fullscreenInnerHorizontalPaddingRatio
+            let innerV = screen.height * fullscreenInnerVerticalPaddingRatio
+            print("FCM | InApp | Fullscreen render started — layoutType=\(layoutType) lang=\(defaultLang) pushId=\(pushId ?? "?")")
+            print("FCM | InApp | Fullscreen sizing — viewport=\(Int(screen.width))x\(Int(screen.height)) innerPad=\(Int(innerH))x\(Int(innerV)) minSafe=\(Int(fullscreenMinTopInset))/\(Int(fullscreenMinBottomInset))")
+        default:
+            let modalW = screen.width * modalWidthRatio
+            let modalH = screen.height * modalHeightRatio
+            let innerH = modalW * modalInnerHorizontalPaddingRatio
+            let innerV = modalH * modalInnerVerticalPaddingRatio
+            print("FCM | InApp | Modal render started — layoutType=\(layoutType) lang=\(defaultLang) pushId=\(pushId ?? "?")")
+            print("FCM | InApp | Modal sizing — screen=\(Int(screen.width))x\(Int(screen.height)) modal=\(Int(modalW))x\(Int(modalH)) innerPad=\(Int(innerH))x\(Int(innerV))")
+        }
+
+        setupUI()
+
+        closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
     }
     
     override func viewDidLayoutSubviews() {
@@ -271,6 +299,22 @@ class StyleViewController: UIViewController {
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         applyTransition()
+
+        // Render-complete log — mirrors Android InAppMessageHelper's
+        // "In-App Banner sent!" / "In-App Modal sent!" / "In-App Fullscreen sent!"
+        // line emitted after dialog.show(). Includes locale info on the same
+        // log line so the trail captures both the layout and the language
+        // that was rendered.
+        let locale = Locale.current.identifier
+        let sentTag: String = {
+            switch layoutType {
+            case "banner":     return "Banner"
+            case "fullscreen": return "Fullscreen"
+            case "modal":      return "Modal"
+            default:           return "Modal (default)"
+            }
+        }()
+        print("FCM | InApp | In-App \(sentTag) sent! locale=\(locale) pushId=\(pushId ?? "?")")
 
         if layoutType == "banner", let duration = extra.banner?.duration, duration > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(duration)) { [weak self] in

@@ -195,6 +195,26 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
     override func viewDidLoad() {
         super.viewDidLoad()
 
+        // Render-start + geometry log — mirrors Android's
+        //   "Modal carousel sizing — modal=<W>x<H> innerPad=… slides=…"
+        //   "Fullscreen carousel sizing — viewport=<W>x<H> innerPad=… minSafe=… slides=…"
+        let screen = UIScreen.main.bounds
+        let kind = isFullscreen ? "Fullscreen" : "Modal"
+        let containerW = currentContainerWidth()
+        let containerH = currentContainerHeight()
+        let innerH = containerW * (isFullscreen
+            ? fullscreenInnerHorizontalPaddingRatio
+            : modalInnerHorizontalPaddingRatio)
+        let innerV = containerH * (isFullscreen
+            ? fullscreenInnerVerticalPaddingRatio
+            : modalInnerVerticalPaddingRatio)
+        print("FCM | InApp | \(kind) Carousel render started — lang=\(defaultLang) pushId=\(pushId ?? "?") slides=\(layouts.count)")
+        if isFullscreen {
+            print("FCM | InApp | Fullscreen Carousel sizing — viewport=\(Int(screen.width))x\(Int(screen.height)) innerPad=\(Int(innerH))x\(Int(innerV)) minSafe=\(Int(fullscreenMinTopInset))/\(Int(fullscreenMinBottomInset)) bottomChrome=\(Int(fullscreenBottomChromeHeight)) slides=\(layouts.count)")
+        } else {
+            print("FCM | InApp | Modal Carousel sizing — modal=\(Int(containerW))x\(Int(containerH)) innerPad=\(Int(innerH))x\(Int(innerV)) slides=\(layouts.count)")
+        }
+
         setupUI()
 
         closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
@@ -208,6 +228,12 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         guard !hasAppliedInitialTransition else { return }
         hasAppliedInitialTransition = true
         applyTransition()
+
+        // Render-complete log — mirrors Android's
+        //   "In-App Modal Carousel sent! <locale>"
+        //   "In-App Fullscreen Carousel sent! <locale>"
+        let kindSent = isFullscreen ? "Fullscreen Carousel" : "Modal Carousel"
+        print("FCM | InApp | In-App \(kindSent) sent! locale=\(Locale.current.identifier) pushId=\(pushId ?? "?")")
     }
 
     override func viewDidLayoutSubviews() {

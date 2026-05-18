@@ -18,13 +18,19 @@ public class PaylisherNativeInAppNotificationManager {
     public static let shared = PaylisherNativeInAppNotificationManager()
 
     public func nativeInAppNotification(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) {
-        
-        
-        guard let nativeString = userInfo["native"] as? String,
-              !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let data = nativeString.data(using: .utf8),
+
+        // Native path is opt-in: only fires when the FCM payload carries a
+        // non-empty `native` field. Log the skip cases explicitly so it's
+        // unambiguous in the trail when the layoutType is non-native (e.g.
+        // banner/modal/fullscreen — those are handled by Custom manager).
+        guard let nativeString = userInfo["native"] as? String, !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            print("FCM | InApp | Native skipped — payload has no `native` field (layoutType=\(userInfo["layoutType"] ?? "?") )")
+            return
+        }
+        guard let data = nativeString.data(using: .utf8),
               let nativeDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               !nativeDict.isEmpty else {
+            print("FCM | InApp | Native skipped — `native` JSON parse failed | raw=\(nativeString.prefix(200))…")
             return
         }
         
@@ -53,7 +59,10 @@ public class PaylisherNativeInAppNotificationManager {
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
 
-
+        // Native parsed — mirrors Android InAppTaskWorker "InApp parsed"
+        // log + "Showing NATIVE" routing log, but compact (single line).
+        print("FCM | InApp | Native parsed | pushId=\(pushId ?? "?") | gcmMessageId=\(gcmMessageID) | titleLen=\(localizedTitle.count) | bodyLen=\(localizedBody.count) | titleAlign=\(titleAlign) | bodyAlign=\(bodyAlign) | hasAction=\(!actionText.isEmpty)")
+        print("FCM | InApp | Showing NATIVE | pushId=\(pushId ?? "?")")
 
         let inAppVC = PaylisherInAppModalViewController(
             title: localizedTitle,
