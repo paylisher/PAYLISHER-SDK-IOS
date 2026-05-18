@@ -103,35 +103,32 @@ class PaylisherInAppModalViewController: UIViewController {
         let buttonFontSize = cardWidth * 0.04
 
         // ── Content stack (title · body · button) ────────────────────────
+        // The stack lives DIRECTLY inside the container (no UIScrollView
+        // wrapper). A UIScrollView's intrinsic content size is `.zero`, so
+        // wrapping the stack in one removed the upward pressure that
+        // pushes the container tall enough to display content — and the
+        // card collapsed to a 0-height white sliver (the bug Yusuf hit).
+        //
+        // With the stack anchored top/bottom directly to the container,
+        // the stack's intrinsic content height pushes the container open
+        // up to the `≤ 70% screen` max constraint. If body text exceeds
+        // that cap, the label truncates — acceptable for a compact native
+        // card; the design contract is "doğal wrap", not "novel-length
+        // scrollable body".
         let stack = UIStackView()
         stack.axis = .vertical
-        // Stretch each row to the full card width; the row's own
+        // Stretch each row to the full card width; per-row
         // `textAlignment` handles left / center / right per-field.
         stack.alignment = .fill
         stack.spacing = 8
         stack.translatesAutoresizingMaskIntoConstraints = false
-        // Scroll wrapper so a long body that exceeds the maxHeight cap
-        // becomes scrollable instead of clipped. Natural wrap stays the
-        // primary mechanism — scroll is only the safety net for extreme
-        // cases (matches the Studio preview's `overflow: auto`).
-        let scrollView = UIScrollView()
-        scrollView.translatesAutoresizingMaskIntoConstraints = false
-        scrollView.alwaysBounceVertical = false
-        scrollView.showsVerticalScrollIndicator = false
-        container.addSubview(scrollView)
-        scrollView.addSubview(stack)
+        container.addSubview(stack)
 
         NSLayoutConstraint.activate([
-            scrollView.topAnchor.constraint(equalTo: container.topAnchor, constant: innerPadding),
-            scrollView.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -innerPadding),
-            scrollView.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: innerPadding),
-            scrollView.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -innerPadding),
-
-            stack.topAnchor.constraint(equalTo: scrollView.contentLayoutGuide.topAnchor),
-            stack.bottomAnchor.constraint(equalTo: scrollView.contentLayoutGuide.bottomAnchor),
-            stack.leadingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.leadingAnchor),
-            stack.trailingAnchor.constraint(equalTo: scrollView.contentLayoutGuide.trailingAnchor),
-            stack.widthAnchor.constraint(equalTo: scrollView.frameLayoutGuide.widthAnchor),
+            stack.topAnchor.constraint(equalTo: container.topAnchor, constant: innerPadding),
+            stack.bottomAnchor.constraint(equalTo: container.bottomAnchor, constant: -innerPadding),
+            stack.leadingAnchor.constraint(equalTo: container.leadingAnchor, constant: innerPadding),
+            stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -innerPadding),
         ])
 
         // Title — only added when non-empty.
@@ -146,11 +143,15 @@ class PaylisherInAppModalViewController: UIViewController {
         }
 
         // Body — only added when non-empty.
+        // Weight is REGULAR (not semibold) — body is supporting copy under
+        // the title, so a lighter weight reads cleanly. Matches Studio
+        // preview (default fontWeight) and Android XML
+        // (no `textStyle="bold"` on `@id/messageBody`).
         if !bodyText.isEmpty {
             let label = UILabel()
             label.text          = bodyText
             label.textColor     = .black
-            label.font          = .systemFont(ofSize: bodyFontSize, weight: .semibold)
+            label.font          = .systemFont(ofSize: bodyFontSize, weight: .regular)
             label.numberOfLines = 0
             label.textAlignment = bodyAlignment
             stack.addArrangedSubview(label)
