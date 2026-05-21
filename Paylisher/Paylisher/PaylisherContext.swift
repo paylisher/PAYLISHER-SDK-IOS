@@ -134,8 +134,14 @@ class PaylisherContext {
             }
         #endif
 
-        if Locale.current.languageCode != nil {
-            properties["$locale"] = Locale.current.languageCode
+        // $locale drives backend push-language selection per device. Use the
+        // device's preferred language (primary subtag, "tr-TR" -> "tr").
+        // Locale.current is app-negotiated and can collapse to the same value
+        // across devices when the host app isn't localized to those languages.
+        if let preferredLocale = Locale.preferredLanguages.first ?? Locale.current.languageCode {
+            properties["$locale"] =
+                preferredLocale.split(separator: "-").first.map(String.init)
+                ?? preferredLocale
         }
         properties["$timezone"] = TimeZone.current.identifier
 
