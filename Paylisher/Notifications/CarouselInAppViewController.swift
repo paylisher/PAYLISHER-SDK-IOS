@@ -523,9 +523,9 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         closeButton.layer.masksToBounds = false
         closeButton.contentEdgeInsets = .zero
 
-        var title = textData?.label?[defaultLang]
+        var title = textData?.label?.localize(defaultLang)
         if let dict = textData?.label {
-            title = dict[defaultLang] ?? dict["en"] ?? "Close"
+            title = dict.localize(defaultLang, fallback: "Close")
         }
         closeButton.setTitle(title, for: .normal)
 
@@ -1016,7 +1016,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
 
     private func renderTextBlock(_ block: CustomInAppPayload.Layout.Blocks.TextBlock) -> UIView {
         let label = UILabel()
-        label.text = block.content?[defaultLang] ?? block.content?.values.first ?? ""
+        label.text = block.content?.localize(defaultLang) ?? ""
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
@@ -1404,7 +1404,7 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         buttonHeight: CGFloat = 44
     ) -> UIButton {
         let button = UIButton(type: .system)
-        let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
+        let title = block.label?.localize(defaultLang) ?? ""
         button.setTitle(title, for: .normal)
 
         // Carousel slide percent parity: authored fontSize is a PERCENT of

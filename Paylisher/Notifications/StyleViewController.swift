@@ -686,9 +686,9 @@ class StyleViewController: UIViewController {
         
         let lang = defaultLang
         
-        var title = close.text?.label?[lang]
+        var title = close.text?.label?.localize(lang)
                if let dict = textData?.label {
-                   title = dict[lang] ?? dict["en"] ?? "Close"
+                   title = dict.localize(lang, fallback: "Close")
                }
                
                closeButton.setTitle(title, for: .normal)
@@ -912,7 +912,7 @@ class StyleViewController: UIViewController {
 
     private func renderTextBlock(_ block: CustomInAppPayload.Layout.Blocks.TextBlock) -> UIView {
         let label = UILabel()
-        label.text = block.content?[defaultLang] ?? block.content?.values.first ?? ""
+        label.text = block.content?.localize(defaultLang) ?? ""
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
@@ -1296,7 +1296,7 @@ class StyleViewController: UIViewController {
         buttonHeight: CGFloat = 44
     ) -> UIButton {
         let button = UIButton(type: .system)
-        let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
+        let title = block.label?.localize(defaultLang) ?? ""
         button.setTitle(title, for: .normal)
 
         // Banner + modal: authored fontSize is a PERCENT of CONTAINER height —

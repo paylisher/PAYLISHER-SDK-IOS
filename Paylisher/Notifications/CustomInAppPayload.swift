@@ -8,6 +8,28 @@
 import Foundation
 
 
+// MARK: - Localized string resolution
+// Mirrors Android's InAppLocalize.localize(): device language first, then the
+// campaign's defaultLang, then any available translation. Keeps push + in-app
+// rendering identical across iOS and Android.
+extension Dictionary where Key == String, Value == String {
+    func localize(_ defaultLang: String? = nil, fallback: String = "") -> String {
+        // True device language, independent of the host app's localizations,
+        // primary subtag only ("tr-TR" -> "tr"). Mirrors Android's
+        // Locale.getDefault().language so iOS and Android resolve identically.
+        let deviceLang = (Locale.preferredLanguages.first ?? Locale.current.languageCode ?? "")
+            .split(separator: "-").first.map { $0.lowercased() }
+        if let deviceLang = deviceLang, let value = self[deviceLang] {
+            return value
+        }
+        if let defaultLang = defaultLang, let value = self[defaultLang] {
+            return value
+        }
+        return self.values.first ?? fallback
+    }
+}
+
+
 fileprivate func decodeIntOrString<K: CodingKey>(
     _ container: KeyedDecodingContainer<K>,
     forKey key: K

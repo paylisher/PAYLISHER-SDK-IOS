@@ -585,17 +585,10 @@ public class NotificationManager {
         }
         
         do {
-            
-            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: String] {
-                
-                if let language = language, let localizedText = jsonDict[language] {
-                    return localizedText
-                }
-                
-                
-                if let firstValue = jsonDict.values.first {
-                    return firstValue
-                }
+
+            if let jsonDict = try JSONSerialization.jsonObject(with: jsonData, options: []) as? [String: String],
+               !jsonDict.isEmpty {
+                return jsonDict.localize(language)
             }
         } catch {
             print("JSON Parsing Error: \(error)")

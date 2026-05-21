@@ -52,9 +52,9 @@ public class PaylisherNativeInAppNotificationManager {
 
         let actionText = nativeDict["actionText"] as? String ?? ""
 
-        let localizedTitle = titleDict[defaultLang] ?? titleDict.values.first ?? ""
+        let localizedTitle = titleDict.localize(defaultLang)
 
-        let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? ""
+        let localizedBody = bodyDict.localize(defaultLang)
 
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
         let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)

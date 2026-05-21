@@ -223,10 +223,14 @@ let maxRetryDelay = 30.0
 
         PaylisherHeartbeatManager.shared.setFCMToken(fcmToken)
 
-        // Capture token registration event for lifecycle tracking
+        // Capture token registration event for lifecycle tracking. Also $sets
+        // the device language as a person property so the backend can pick the
+        // correct language for cohort/audience push (mirrors Android).
         capture("$fcm_token_registered", properties: [
             "platform": "ios",
             "token_length": fcmToken.count,
+        ], userProperties: [
+            "locale": Locale.preferredLanguages.first ?? Locale.current.languageCode ?? "",
         ])
     }
 
