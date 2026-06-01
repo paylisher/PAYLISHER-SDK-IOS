@@ -17,6 +17,10 @@
 		188BA63A2EFBE40D00AC75DA /* PaylisherDeepLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA6362EFBE3F900AC75DA /* PaylisherDeepLinkManager.swift */; };
 		188BA63E2EFBE47500AC75DA /* PaylisherDeepLinkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA63D2EFBE47400AC75DA /* PaylisherDeepLinkConfig.swift */; };
 		188BA6402EFBE48F00AC75DA /* PaylisherConfig+DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA63F2EFBE48E00AC75DA /* PaylisherConfig+DeepLink.swift */; };
+		18C406CD2FCDC3B400E0AD7A /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */; };
+		18C406CE2FCDC3B400E0AD7A /* Inter-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */; };
+		18C406CF2FCDC3B400E0AD7A /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */; };
+		18C406D02FCDC3B400E0AD7A /* Inter-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */; };
 		2242832E811E712B625C5A8B /* PaylisherJourneyContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */; };
 		2A061CB98444D480E4C415C2 /* PaylisherDeeplinkResolvedModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80AE4F11F4E3B2C910275CA /* PaylisherDeeplinkResolvedModel.swift */; };
 		3A0F108329C47940002C0084 /* UIViewExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0F108229C47940002C0084 /* UIViewExample.swift */; };
@@ -364,6 +368,10 @@
 		188BA6362EFBE3F900AC75DA /* PaylisherDeepLinkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkManager.swift; sourceTree = "<group>"; };
 		188BA63D2EFBE47400AC75DA /* PaylisherDeepLinkConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkConfig.swift; sourceTree = "<group>"; };
 		188BA63F2EFBE48E00AC75DA /* PaylisherConfig+DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaylisherConfig+DeepLink.swift"; sourceTree = "<group>"; };
+		18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-BoldItalic.ttf"; sourceTree = "<group>"; };
+		18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Italic.ttf"; sourceTree = "<group>"; };
+		18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeferredDeepLinkConfig.swift; sourceTree = "<group>"; };
 		3A0F108229C47940002C0084 /* UIViewExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewExample.swift; sourceTree = "<group>"; };
 		3A0F108429C9ABB6002C0084 /* ReadWriteLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWriteLock.swift; sourceTree = "<group>"; };
@@ -699,6 +707,17 @@
 			path = Fonts;
 			sourceTree = "<group>";
 		};
+		18C406CC2FCDC3B400E0AD7A /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */,
+				18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */,
+				18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */,
+				18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
 		3A0F108129C4792E002C0084 /* Views */ = {
 			isa = PBXGroup;
 			children = (
@@ -906,6 +925,7 @@
 		69BA38E62B893F2200AA69D6 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				18C406CC2FCDC3B400E0AD7A /* Fonts */,
 				1872693A2FCDBD1100A58BE8 /* Fonts */,
 				69BA38D62B888E8500AA69D6 /* PrivacyInfo.xcprivacy */,
 				FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */,
@@ -1387,6 +1407,10 @@
 			buildActionMask = 2147483647;
 			files = (
 				1872693B2FCDBD1100A58BE8 /* Inter-BoldItalic.ttf in Resources */,
+				18C406CD2FCDC3B400E0AD7A /* Inter-Regular.ttf in Resources */,
+				18C406CE2FCDC3B400E0AD7A /* Inter-Italic.ttf in Resources */,
+				18C406CF2FCDC3B400E0AD7A /* Inter-Bold.ttf in Resources */,
+				18C406D02FCDC3B400E0AD7A /* Inter-BoldItalic.ttf in Resources */,
 				1872693C2FCDBD1100A58BE8 /* Inter-Regular.ttf in Resources */,
 				1872693D2FCDBD1100A58BE8 /* Inter-Italic.ttf in Resources */,
 				1872693E2FCDBD1100A58BE8 /* Inter-Bold.ttf in Resources */,
