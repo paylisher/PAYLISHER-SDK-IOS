@@ -711,6 +711,31 @@ enum PaylisherNotificationEventTracker {
         normalizePushId(userInfo["pushId"] as? String)
     }
 
+    /// Normalize a property value into the wire-compatible form expected by the analytics
+    /// queue and DataStudio. Backend nested object/array payloads — most notably A/B-test
+    /// multi-language fields like `{"tr":"...","en":"..."}` for `abVariantLabel` or `title`
+    /// — arrive as Foundation Dictionary/Array on iOS but as JSON-stringified Strings on
+    /// Android (FCM coerces every `RemoteMessage.data` value to String, so nested JSON is
+    /// already flattened by the time the SDK sees it). Without this step iOS would emit
+    /// the NSDictionary description format (`{tr = "..."; en = "...";}`, "süslü parantezli")
+    /// into the property and DataStudio would render iOS A/B properties differently from
+    /// Android. Match Android by JSON-stringifying anything that is not already a primitive.
+    static func normalizePropertyValue(_ value: Any) -> Any {
+        // Primitives pass straight through. Bool bridges to NSNumber in Swift/ObjC interop,
+        // so we don't need to check it separately.
+        if value is String || value is NSNumber || value is NSNull {
+            return value
+        }
+        // Nested Foundation containers → JSON string (Android parity).
+        if JSONSerialization.isValidJSONObject(value),
+           let data = try? JSONSerialization.data(withJSONObject: value, options: []),
+           let str = String(data: data, encoding: .utf8) {
+            return str
+        }
+        // Fallback for exotic types (shouldn't be reachable for backend payloads).
+        return String(describing: value)
+    }
+
     /// Pull the standard Paylisher push fields out of the FCM `userInfo` and produce the base
     /// property map used by every notification event. Empty / whitespace-only string values
     /// are dropped so they don't pollute the event.
@@ -724,7 +749,9 @@ enum PaylisherNotificationEventTracker {
                     props[key] = trimmed
                 }
             } else {
-                props[key] = raw
+                // Non-String values (e.g. nested A/B label dicts) — JSON-stringify so the
+                // property looks identical to the Android side. See normalizePropertyValue.
+                props[key] = normalizePropertyValue(raw)
             }
         }
         return props
@@ -739,7 +766,9 @@ enum PaylisherNotificationEventTracker {
 
         for (key, value) in properties {
             if let value {
-                result[key] = value
+                // Normalize non-primitive caller values (nested dicts/arrays) into JSON
+                // strings — Android parity, see normalizePropertyValue.
+                result[key] = normalizePropertyValue(value)
             }
         }
 
@@ -757,7 +786,9 @@ enum PaylisherNotificationEventTracker {
         var merged = extractStandardProperties(from: userInfo)
         for (key, value) in properties {
             if let value {
-                merged[key] = value
+                // Caller overrides may carry nested dict/array values too — normalize so
+                // override behavior matches the standard extraction path (Android parity).
+                merged[key] = normalizePropertyValue(value)
             }
         }
         PaylisherSDK.shared.capture(event, properties: merged)

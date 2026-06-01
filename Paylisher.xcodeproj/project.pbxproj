@@ -10,6 +10,10 @@
 		0DADF4C003D80EBECC6C9601 /* PaylisherDeepLinkTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1E9DB2BD7C519B85B7946E /* PaylisherDeepLinkTracker.swift */; };
 		1137105DF30AD7586630A53A /* PaylisherDeviceFingerprint.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3B31FF8EBCB31208C1131A /* PaylisherDeviceFingerprint.swift */; };
 		186B32842EF4403600B12225 /* crashTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B32802EF4401E00B12225 /* crashTest.swift */; };
+		1872693B2FCDBD1100A58BE8 /* Inter-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */; };
+		1872693C2FCDBD1100A58BE8 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269392FCDBD1100A58BE8 /* Inter-Regular.ttf */; };
+		1872693D2FCDBD1100A58BE8 /* Inter-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269382FCDBD1100A58BE8 /* Inter-Italic.ttf */; };
+		1872693E2FCDBD1100A58BE8 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */; };
 		188BA63A2EFBE40D00AC75DA /* PaylisherDeepLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA6362EFBE3F900AC75DA /* PaylisherDeepLinkManager.swift */; };
 		188BA63E2EFBE47500AC75DA /* PaylisherDeepLinkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA63D2EFBE47400AC75DA /* PaylisherDeepLinkConfig.swift */; };
 		188BA6402EFBE48F00AC75DA /* PaylisherConfig+DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA63F2EFBE48E00AC75DA /* PaylisherConfig+DeepLink.swift */; };
@@ -353,6 +357,10 @@
 /* Begin PBXFileReference section */
 		05F65E925C3091D94937E1C8 /* PaylisherCampaignAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherCampaignAPI.swift; sourceTree = "<group>"; };
 		186B32802EF4401E00B12225 /* crashTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = crashTest.swift; sourceTree = "<group>"; };
+		187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-BoldItalic.ttf"; sourceTree = "<group>"; };
+		187269382FCDBD1100A58BE8 /* Inter-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Italic.ttf"; sourceTree = "<group>"; };
+		187269392FCDBD1100A58BE8 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		188BA6362EFBE3F900AC75DA /* PaylisherDeepLinkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkManager.swift; sourceTree = "<group>"; };
 		188BA63D2EFBE47400AC75DA /* PaylisherDeepLinkConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkConfig.swift; sourceTree = "<group>"; };
 		188BA63F2EFBE48E00AC75DA /* PaylisherConfig+DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaylisherConfig+DeepLink.swift"; sourceTree = "<group>"; };
@@ -513,14 +521,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		FA58D32F2D5B5205009A34DB /* Exceptions for "PaylisherNotificationServiceExtension" folder in "PaylisherNotificationServiceExtension" target */ = {
+		FA58D32F2D5B5205009A34DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = FA58D3262D5B5205009A34DB /* PaylisherNotificationServiceExtension */;
 		};
-		FAD0F2A02D92EEAB009D9BD7 /* Exceptions for "PaylisherFramework" folder in "PaylisherFramework" target */ = {
+		FAD0F2A02D92EEAB009D9BD7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			publicHeaders = (
 				PaylisherFramework.h,
@@ -530,52 +538,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0311C2772CD5192E002F62AF /* Error */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = Error;
-			sourceTree = "<group>";
-		};
-		FA58D3282D5B5205009A34DB /* PaylisherNotificationServiceExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				FA58D32F2D5B5205009A34DB /* Exceptions for "PaylisherNotificationServiceExtension" folder in "PaylisherNotificationServiceExtension" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PaylisherNotificationServiceExtension;
-			sourceTree = "<group>";
-		};
-		FAD0F28A2D92EEAB009D9BD7 /* PaylisherFramework */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				FAD0F2A02D92EEAB009D9BD7 /* Exceptions for "PaylisherFramework" folder in "PaylisherFramework" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PaylisherFramework;
-			sourceTree = "<group>";
-		};
-		FAD0F2982D92EEAB009D9BD7 /* PaylisherFrameworkTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PaylisherFrameworkTests;
-			sourceTree = "<group>";
-		};
+		0311C2772CD5192E002F62AF /* Error */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Error; sourceTree = "<group>"; };
+		FA58D3282D5B5205009A34DB /* PaylisherNotificationServiceExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (FA58D32F2D5B5205009A34DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = PaylisherNotificationServiceExtension; sourceTree = "<group>"; };
+		FAD0F28A2D92EEAB009D9BD7 /* PaylisherFramework */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (FAD0F2A02D92EEAB009D9BD7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = PaylisherFramework; sourceTree = "<group>"; };
+		FAD0F2982D92EEAB009D9BD7 /* PaylisherFrameworkTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PaylisherFrameworkTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -720,6 +686,17 @@
 				0341D22D2CE71E6700923E90 /* PaylisherExampleWithPods.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		1872693A2FCDBD1100A58BE8 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */,
+				187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */,
+				187269382FCDBD1100A58BE8 /* Inter-Italic.ttf */,
+				187269392FCDBD1100A58BE8 /* Inter-Regular.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		3A0F108129C4792E002C0084 /* Views */ = {
@@ -929,6 +906,7 @@
 		69BA38E62B893F2200AA69D6 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				1872693A2FCDBD1100A58BE8 /* Fonts */,
 				69BA38D62B888E8500AA69D6 /* PrivacyInfo.xcprivacy */,
 				FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */,
 			);
@@ -1408,6 +1386,10 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1872693B2FCDBD1100A58BE8 /* Inter-BoldItalic.ttf in Resources */,
+				1872693C2FCDBD1100A58BE8 /* Inter-Regular.ttf in Resources */,
+				1872693D2FCDBD1100A58BE8 /* Inter-Italic.ttf in Resources */,
+				1872693E2FCDBD1100A58BE8 /* Inter-Bold.ttf in Resources */,
 				FA857BDA2D81D1F1009E490D /* PaylisherDatabase.xcdatamodeld in Resources */,
 				69BA38D72B888E8500AA69D6 /* PrivacyInfo.xcprivacy in Resources */,
 			);

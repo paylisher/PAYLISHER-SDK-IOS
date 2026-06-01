@@ -131,20 +131,18 @@ class PaylisherInAppModalViewController: UIViewController {
             stack.trailingAnchor.constraint(equalTo: container.trailingAnchor, constant: -innerPadding),
         ])
 
-        // Title — only added when non-empty.
+        // Title — only added when non-empty. Renders with bundled Inter Bold
+        // so the native card's text metrics match Studio preview + Android
+        // SDK exactly (same wrap points on identical strings).
         if !titleText.isEmpty {
             let label = UILabel()
             label.text          = titleText
             label.textColor     = .black
-            label.font          = .boldSystemFont(ofSize: titleFontSize)
+            label.font          = PaylisherFontRegistry.interFont(size: titleFontSize, bold: true, italic: false)
             label.numberOfLines = 0
             label.textAlignment = titleAlignment
             stack.addArrangedSubview(label)
-            // Diagnostic — same shape as Android's `PAYLISHER_NATIVE` line so
-            // logs from the two SDKs line up side-by-side when triaging
-            // alignment / weight issues. `textAlignment` is logged as its
-            // raw rawValue (0=natural, 1=left, 2=center, 3=right, 4=justified).
-            print("PAYLISHER_NATIVE | title: text='\(titleText)' align=\(titleAlignment.rawValue) fontSize=\(Int(titleFontSize)) weight=bold")
+            print("PAYLISHER_NATIVE | title: text='\(titleText)' align=\(titleAlignment.rawValue) fontSize=\(Int(titleFontSize)) weight=bold font=Inter-Bold")
         }
 
         // Body — only added when non-empty.
@@ -156,14 +154,12 @@ class PaylisherInAppModalViewController: UIViewController {
             let label = UILabel()
             label.text          = bodyText
             label.textColor     = .black
-            label.font          = .systemFont(ofSize: bodyFontSize, weight: .regular)
+            label.font          = PaylisherFontRegistry.interFont(size: bodyFontSize, bold: false, italic: false)
             label.numberOfLines = 0
             label.textAlignment = bodyAlignment
             stack.addArrangedSubview(label)
-            // Diagnostic — Android-shape `PAYLISHER_NATIVE` parity. Body
-            // truncated to 40 chars in the log to keep noise down.
             let bodyPreview = bodyText.count > 40 ? String(bodyText.prefix(40)) + "…" : bodyText
-            print("PAYLISHER_NATIVE | body: text='\(bodyPreview)' align=\(bodyAlignment.rawValue) fontSize=\(Int(bodyFontSize)) weight=regular")
+            print("PAYLISHER_NATIVE | body: text='\(bodyPreview)' align=\(bodyAlignment.rawValue) fontSize=\(Int(bodyFontSize)) weight=regular font=Inter-Regular")
         }
 
         // Spacer between text + button only when there's text above it.
@@ -189,7 +185,11 @@ class PaylisherInAppModalViewController: UIViewController {
 
             let btn = UIButton(type: .system)
             btn.setTitle(actionText, for: .normal)
-            btn.titleLabel?.font = .systemFont(ofSize: buttonFontSize, weight: .medium)
+            // Action button uses Inter Bold (medium isn't shipped — bold is
+            // the closest matching weight in our 4-variant bundle) so the
+            // CTA matches the body face. Keeps the card visually cohesive
+            // + parity with Studio preview / Android render.
+            btn.titleLabel?.font = PaylisherFontRegistry.interFont(size: buttonFontSize, bold: true, italic: false)
             btn.backgroundColor  = UIColor(red: 29/255, green: 78/255, blue: 216/255, alpha: 1)
             btn.setTitleColor(.white, for: .normal)
             btn.layer.cornerRadius = 4

@@ -1467,22 +1467,27 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         let isItalic = italic || normalizedWeight == "italic" || normalizedWeight == "bold_italic"
         let fontWeight: UIFont.Weight = isBold ? .bold : .regular
 
-        let baseFont: UIFont
-        switch family?.lowercased() {
+        // Carousel slides resolve `default` to bundled Inter — exact same
+        // contract as StyleViewController.makeFont so a carousel slide and
+        // a single layout authored with identical text render identically.
+        let normalizedFamily = family?.lowercased() ?? "default"
+        switch normalizedFamily {
         case "monospace":
-            baseFont = .monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
+            let mono = UIFont.monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
+            if isItalic, let d = mono.fontDescriptor.withSymbolicTraits(mono.fontDescriptor.symbolicTraits.union(.traitItalic)) {
+                return UIFont(descriptor: d, size: fontSize)
+            }
+            return mono
+        case "default", "":
+            return PaylisherFontRegistry.interFont(size: fontSize, bold: isBold, italic: isItalic)
         default:
-            baseFont = .systemFont(ofSize: fontSize, weight: fontWeight)
-        }
-
-        guard isItalic,
-              let descriptor = baseFont.fontDescriptor.withSymbolicTraits(
-                baseFont.fontDescriptor.symbolicTraits.union(.traitItalic)
-              ) else {
+            let baseFont = UIFont(name: family ?? "", size: fontSize)
+                ?? .systemFont(ofSize: fontSize, weight: fontWeight)
+            if isItalic, let d = baseFont.fontDescriptor.withSymbolicTraits(baseFont.fontDescriptor.symbolicTraits.union(.traitItalic)) {
+                return UIFont(descriptor: d, size: fontSize)
+            }
             return baseFont
         }
-
-        return UIFont(descriptor: descriptor, size: fontSize)
     }
 
     @objc private func handleButtonTap(_ sender: UIButton) {
