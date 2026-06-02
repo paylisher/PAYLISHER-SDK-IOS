@@ -127,6 +127,13 @@ public struct CustomInAppPayload: Codable {
             
             let bgImageColor: String?
 
+            // Background image fit / position / inner inset — parity with image
+            // blocks + Studio + Android. nil → cover / center / 0.
+            let bgImageFit: String?
+            let bgImageAlignX: String?
+            let bgImageAlignY: String?
+            let bgImagePadding: Int?
+
             let bgBottomInset: Int?
 
             let bgBottomColor: String?
@@ -172,6 +179,11 @@ public struct CustomInAppPayload: Codable {
                 }
 
                 self.bgImageColor = try? container.decode(String.self, forKey: .bgImageColor)
+
+                self.bgImageFit = try? container.decode(String.self, forKey: .bgImageFit)
+                self.bgImageAlignX = try? container.decode(String.self, forKey: .bgImageAlignX)
+                self.bgImageAlignY = try? container.decode(String.self, forKey: .bgImageAlignY)
+                self.bgImagePadding = decodeIntOrString(container, forKey: .bgImagePadding)
 
                 // bgBottomInset (accept Int or numeric String)
                 if let intVal = try? container.decode(Int.self, forKey: .bgBottomInset) {
@@ -417,6 +429,13 @@ public struct CustomInAppPayload: Codable {
                 let marginTop: Int?
                 let marginBottom: Int?
 
+                // Image fit / position / inner inset — parity with Studio preview
+                // + Android. nil defaults keep the legacy edge-to-edge cover.
+                let imageFit: String?       // "cover" | "contain" | "fill"
+                let imageAlignX: String?    // "left" | "center" | "right"
+                let imageAlignY: String?    // "top" | "center" | "bottom"
+                let imagePadding: Int?      // INNER inset percent (0–45)
+
                 init(from decoder: Decoder) throws {
 
                     let container = try decoder.container(keyedBy: CodingKeys.self)
@@ -450,13 +469,18 @@ public struct CustomInAppPayload: Codable {
 
                     self.marginTop = decodeIntOrString(container, forKey: .marginTop)
                     self.marginBottom = decodeIntOrString(container, forKey: .marginBottom)
+
+                    self.imageFit = try? container.decode(String.self, forKey: .imageFit)
+                    self.imageAlignX = try? container.decode(String.self, forKey: .imageAlignX)
+                    self.imageAlignY = try? container.decode(String.self, forKey: .imageAlignY)
+                    self.imagePadding = decodeIntOrString(container, forKey: .imagePadding)
                 }
 
             }
-            
-            
-            
-            
+
+
+
+
             struct SpacerBlock: Codable {
                 let type: String?
                 let order: Int? //int olmalı

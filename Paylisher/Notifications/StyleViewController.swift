@@ -7,6 +7,91 @@
 
 import UIKit
 
+/// A fixed-size image container that positions its image INSIDE its bounds per
+/// fit / align / inner-inset — the UIKit equivalent of the Studio preview's CSS
+/// `object-fit` + `object-position` + `padding`. The view's own size never
+/// changes (the component stays put); only the image inside is scaled/placed,
+/// so `contain` + `left` + a padding shows the whole image pulled left with
+/// breathing room — identical to the preview and the Android SDK.
+final class PaylisherImageFitView: UIView {
+    private let imageView = UIImageView()
+    /// "cover" (crop) | "contain" (fit whole) | "fill" (stretch).
+    var fit: String = "cover" { didSet { setNeedsLayout() } }
+    /// "left" | "center" | "right".
+    var alignX: String = "center" { didSet { setNeedsLayout() } }
+    /// "top" | "center" | "bottom".
+    var alignY: String = "center" { didSet { setNeedsLayout() } }
+    /// Inner inset on every side, as a fraction (0–0.45) of the view HEIGHT.
+    var insetRatio: CGFloat = 0 { didSet { setNeedsLayout() } }
+    /// Corner radius (pt). Applied via a CAShapeLayer mask in `layoutSubviews`,
+    /// clamped to half the shorter side (CSS `border-radius` auto-clamp). A
+    /// plain `layer.cornerRadius` chamfered into triangular corners when it had
+    /// to clip the oversized cover image; a path mask clips cleanly.
+    var cornerRadiusPt: CGFloat = 0 { didSet { setNeedsLayout() } }
+
+    var image: UIImage? {
+        get { imageView.image }
+        set { imageView.image = newValue; setNeedsLayout() }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        clipsToBounds = true
+        imageView.clipsToBounds = true
+        // We size the imageView to the EXACT computed display rect (which
+        // preserves the image aspect for cover/contain), so .scaleToFill maps
+        // the image onto that rect 1:1.
+        imageView.contentMode = .scaleToFill
+        addSubview(imageView)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Inner inset keeps THIS view's size fixed and shrinks the image area.
+        // Fraction of HEIGHT on all four sides → matches preview + Android.
+        let inset = bounds.height * max(0, min(0.45, insetRatio))
+        let stage = bounds.insetBy(dx: inset, dy: inset)
+        guard stage.width > 0, stage.height > 0 else { imageView.frame = .zero; return }
+        guard let img = imageView.image, img.size.width > 0, img.size.height > 0 else {
+            imageView.frame = stage
+            return
+        }
+        let iw = img.size.width, ih = img.size.height
+        let dispSize: CGSize
+        switch fit {
+        case "fill":
+            dispSize = stage.size
+        case "contain":
+            let s = min(stage.width / iw, stage.height / ih)
+            dispSize = CGSize(width: iw * s, height: ih * s)
+        default: // cover
+            let s = max(stage.width / iw, stage.height / ih)
+            dispSize = CGSize(width: iw * s, height: ih * s)
+        }
+        // object-position keyword → fraction (left/top 0, center .5, right/bottom 1).
+        let posX: CGFloat = alignX == "left" ? 0 : (alignX == "right" ? 1 : 0.5)
+        let posY: CGFloat = alignY == "top" ? 0 : (alignY == "bottom" ? 1 : 0.5)
+        let x = stage.minX + (stage.width - dispSize.width) * posX
+        let y = stage.minY + (stage.height - dispSize.height) * posY
+        imageView.frame = CGRect(x: x, y: y, width: dispSize.width, height: dispSize.height)
+
+        // Rounded-corner clip via a path mask — artifact-free even when the
+        // cover image overflows the bounds. Radius clamped to half the shorter
+        // side, mirroring the Studio preview's CSS border-radius auto-clamp.
+        // (Plain `layer.cornerRadius` chamfered the corners into triangles when
+        // it had to clip the oversized image.)
+        let r = max(0, min(cornerRadiusPt, min(bounds.width, bounds.height) / 2))
+        if r > 0 {
+            let shape = CAShapeLayer()
+            shape.path = UIBezierPath(roundedRect: bounds, cornerRadius: r).cgPath
+            layer.mask = shape
+        } else {
+            layer.mask = nil
+        }
+    }
+}
+
 class StyleViewController: UIViewController {
     private let baseHorizontalInset: CGFloat = 16
     private let extraHorizontalInset: CGFloat = 6
@@ -56,6 +141,14 @@ class StyleViewController: UIViewController {
     private var modalReferenceHeight: CGFloat { 844 * modalHeightRatio } // 405.12
     private let fullscreenReferenceWidth: CGFloat = 390
     private let fullscreenReferenceHeight: CGFloat = 844
+
+    // Text line-height multiple — mirrors the Studio preview's CSS
+    // `line-height: 1.3` for body text (see `InAppReview.tsx renderTextBlock`).
+    // Applied via `lineHeightAttributes` so an iOS paragraph occupies the same
+    // height as the preview + Android SDK instead of Inter's intrinsic ~1.21x
+    // leading — otherwise the same wrapped text is shorter on device and the
+    // block drifts vertically vs the preview.
+    private let textLineHeightMultiple: CGFloat = 1.3
 
     private let style: CustomInAppPayload.Layout.Style
     
@@ -562,11 +655,34 @@ class StyleViewController: UIViewController {
         stripView.translatesAutoresizingMaskIntoConstraints = false
         stripView.backgroundColor = color
         if topRadius > 0 {
-            stripView.layer.cornerRadius = topRadius
-            stripView.layer.maskedCorners = [.layerMinXMinYCorner, .layerMaxXMinYCorner]
-            stripView.layer.masksToBounds = true
+            // Round ONLY the top corners via a path mask applied once the strip's
+            // frame resolves (viewDidLayoutSubviews → stripViewMixedCornerHook).
+            // Plain `cornerRadius` + `maskedCorners` clamps the radius to half the
+            // SHORTER side (≈ strip height) on iOS, so a wide strip got tight
+            // semicircle corners that read as left/right padding. The Studio
+            // preview rounds the top corners over the full `topRadius` width
+            // (elliptical when topRadius exceeds the strip height) — match that.
+            stripViewMixedCornerHook = { [weak stripView] in
+                guard let stripView = stripView else { return }
+                let w = stripView.bounds.width, h = stripView.bounds.height
+                guard w > 0, h > 0 else { return }
+                let rx = min(topRadius, w / 2)   // horizontal spread (matches CSS)
+                let ry = min(topRadius, h)        // vertical, capped at strip height
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: 0, y: h))
+                path.addLine(to: CGPoint(x: 0, y: ry))
+                path.addQuadCurve(to: CGPoint(x: rx, y: 0), controlPoint: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: w - rx, y: 0))
+                path.addQuadCurve(to: CGPoint(x: w, y: ry), controlPoint: CGPoint(x: w, y: 0))
+                path.addLine(to: CGPoint(x: w, y: h))
+                path.close()
+                let mask = CAShapeLayer()
+                mask.path = path.cgPath
+                stripView.layer.mask = mask
+            }
+        } else {
+            stripViewMixedCornerHook = nil
         }
-        stripViewMixedCornerHook = nil
         containerView.insertSubview(stripView, at: 0)
         NSLayoutConstraint.activate([
             stripView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
@@ -708,10 +824,14 @@ class StyleViewController: UIViewController {
     
     
     private func addBackgroundImage(urlString: String) {
-        let bgImageView = UIImageView()
+        let bgImageView = PaylisherImageFitView()
         bgImageView.translatesAutoresizingMaskIntoConstraints = false
-        bgImageView.contentMode = .scaleAspectFill
-        bgImageView.clipsToBounds = true
+        // Background image fit / position / inner inset — parity with image
+        // blocks + Studio preview + Android. Defaults keep edge-to-edge cover.
+        bgImageView.fit = (style.bgImageFit ?? "cover").lowercased()
+        bgImageView.alignX = (style.bgImageAlignX ?? "center").lowercased()
+        bgImageView.alignY = (style.bgImageAlignY ?? "center").lowercased()
+        bgImageView.insetRatio = max(0, min(45, CGFloat(style.bgImagePadding ?? 0))) / 100
 
         containerView.insertSubview(bgImageView, at: 0)
 
@@ -912,36 +1032,45 @@ class StyleViewController: UIViewController {
 
     private func renderTextBlock(_ block: CustomInAppPayload.Layout.Blocks.TextBlock) -> UIView {
         let label = UILabel()
-        label.text = block.content?.localize(defaultLang) ?? ""
+        let textString = block.content?.localize(defaultLang) ?? ""
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
         // Banner: scale authored fontSize vertically with banner height.
         // Modal/fullscreen pass through unchanged (scaleV is no-op there).
         let scaledFontSize = scaledFontSizeString(block.fontSize)
-        label.font = makeFont(
+        let font = makeFont(
             family: block.fontFamily,
             weight: block.fontWeight,
             size: scaledFontSize,
             italic: block.italic == true
         )
+        label.font = font
 
-        if block.underscore == true {
-            let text = label.text ?? ""
-            label.attributedText = NSAttributedString(string: text, attributes: [
-                .underlineStyle: NSUnderlineStyle.single.rawValue,
-                .font: label.font as Any,
-                .foregroundColor: UIColor(hex: block.color ?? "#000000") ?? .black
-            ])
-        } else if let colorHex = block.color, let color = UIColor(hex: colorHex) {
-            label.textColor = color
-        }
-
+        let alignment: NSTextAlignment
         switch block.textAlignment {
-        case "center": label.textAlignment = .center
-        case "right": label.textAlignment = .right
-        default: label.textAlignment = .left
+        case "center": alignment = .center
+        case "right": alignment = .right
+        default: alignment = .left
         }
+        label.textAlignment = alignment
+
+        // Render through an attributed string so every text block carries the
+        // preview's CSS `line-height: 1.3`. UIKit has no line-height multiple,
+        // so `lineHeightAttributes` pins min == max line height to
+        // `fontSize * 1.3` and re-centers the glyphs. The optional underline
+        // rides along in the same attribute set (previously a separate path).
+        let textColor = UIColor(hex: block.color ?? "#000000") ?? .black
+        label.attributedText = NSAttributedString(
+            string: textString,
+            attributes: lineHeightAttributes(
+                font: font,
+                multiple: textLineHeightMultiple,
+                alignment: alignment,
+                color: textColor,
+                underline: block.underscore == true
+            )
+        )
 
         // Banner: horizontalMargin is a PERCENT of banner width (0–100).
         // Modal/fullscreen pass through raw and add the legacy
@@ -984,11 +1113,17 @@ class StyleViewController: UIViewController {
     }
 
     private func renderImageBlock(_ block: CustomInAppPayload.Layout.Blocks.ImageBlock) -> UIView {
-        let imageView = UIImageView()
+        // PaylisherImageFitView keeps a FIXED-size component and positions the
+        // image INSIDE it per fit / align / inner-inset — parity with the
+        // Studio preview (object-fit / object-position / padding) + Android.
+        let imageView = PaylisherImageFitView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        // Match preview/Android behavior: image fills a fixed frame (cropping if needed).
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
+        imageView.fit = (block.imageFit ?? "cover").lowercased()
+        imageView.alignX = (block.imageAlignX ?? "center").lowercased()
+        imageView.alignY = (block.imageAlignY ?? "center").lowercased()
+        // Inner inset = percent (0–45) of the component HEIGHT — same basis the
+        // preview + Android use, so the image shrinks by the exact same pixels.
+        imageView.insetRatio = max(0, min(45, CGFloat(block.imagePadding ?? 0))) / 100
 
         // Accessibility: expose the alt text to VoiceOver, mirroring Android's
         // contentDescription wiring. Image becomes a VoiceOver-readable element
@@ -1053,27 +1188,22 @@ class StyleViewController: UIViewController {
         let leadingConstant: CGFloat = horizontalMargin
         let trailingConstant: CGFloat = -horizontalMargin
         let wrapper = UIView()
-        let frameView = UIView()
-        frameView.translatesAutoresizingMaskIntoConstraints = false
-        frameView.clipsToBounds = true
+        // The fit view IS the fixed-size component: it clips, carries the corner
+        // radius, and positions the image inside per fit / align / inset.
         if let radius = block.radius {
             // Banner: image radius is a PERCENT of banner height (0–100).
-            // Modal/fullscreen pass through raw pt.
-            frameView.layer.cornerRadius = bannerPctV(CGFloat(radius))
+            // Modal/fullscreen pass through raw pt. Applied (clamped) via a path
+            // mask inside the fit view so the oversized cover image is clipped
+            // cleanly instead of chamfering into triangular corners.
+            imageView.cornerRadiusPt = bannerPctV(CGFloat(radius))
         }
 
-        wrapper.addSubview(frameView)
-        frameView.addSubview(imageView)
+        wrapper.addSubview(imageView)
         NSLayoutConstraint.activate([
-            frameView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: verticalMargin),
-            frameView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -verticalMargin),
-            frameView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: leadingConstant),
-            frameView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: trailingConstant),
-
-            imageView.topAnchor.constraint(equalTo: frameView.topAnchor),
-            imageView.bottomAnchor.constraint(equalTo: frameView.bottomAnchor),
-            imageView.leadingAnchor.constraint(equalTo: frameView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: frameView.trailingAnchor),
+            imageView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: verticalMargin),
+            imageView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -verticalMargin),
+            imageView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: leadingConstant),
+            imageView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: trailingConstant),
         ])
 
         if let link = block.link, !link.isEmpty {
@@ -1384,6 +1514,40 @@ class StyleViewController: UIViewController {
             }
             return baseFont
         }
+    }
+
+    /// Build attributed-string attributes that reproduce the Studio preview's
+    /// CSS unitless `line-height` on iOS. UIKit exposes no line-height
+    /// multiple, so we pin `minimumLineHeight == maximumLineHeight` to
+    /// `font.pointSize * multiple` and nudge the baseline by a quarter of the
+    /// extra leading — TextKit otherwise banks all the extra space above the
+    /// glyphs, which reads as a top gap / vertical drift vs the preview.
+    private func lineHeightAttributes(
+        font: UIFont,
+        multiple: CGFloat,
+        alignment: NSTextAlignment,
+        color: UIColor,
+        underline: Bool
+    ) -> [NSAttributedString.Key: Any] {
+        let lineHeight = font.pointSize * multiple
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.minimumLineHeight = lineHeight
+        paragraph.maximumLineHeight = lineHeight
+        paragraph.lineBreakMode = .byWordWrapping
+        paragraph.alignment = alignment
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color,
+            .paragraphStyle: paragraph,
+            // Re-center the glyphs in the taller line box. TextKit banks the
+            // extra leading above the text, so without this the first line
+            // gains a top gap; a quarter of the delta visually centers it.
+            .baselineOffset: (lineHeight - font.lineHeight) / 4.0,
+        ]
+        if underline {
+            attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        }
+        return attributes
     }
 
     @objc private func handleButtonTap(_ sender: UIButton) {
