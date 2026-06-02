@@ -1174,19 +1174,15 @@ class StyleViewController: UIViewController {
 
         let rawMargin = CGFloat(block.margin ?? 0)
         // Image sits inside the container's inner padding like every other
-        // block. `block.margin` is an additional inset on top of that padding.
-        // Banner + modal: PERCENT of container width (0–100), matching the
-        // Studio preview (`bannerPctH`) + Android (`pctHPx`). Modal previously
-        // used the raw pt value, so the same authored margin applied far less
-        // horizontal padding on iOS than the preview showed. Fullscreen keeps
-        // the baseline pt inset so the image doesn't collide with system safe
-        // areas when margin is 0.
-        let horizontalMargin: CGFloat = {
-            if layoutType == "banner" || layoutType == "modal" {
-                return bannerPctH(rawMargin)
-            }
-            return (layoutType == "fullscreen" && rawMargin <= 0) ? baseHorizontalInset : rawMargin
-        }()
+        // block. `block.margin` is an additional inset on top of that padding,
+        // authored as a PERCENT of container width (0–100) for banner + modal +
+        // fullscreen — matching the Studio preview (`bannerPctH`) + Android
+        // (`pctHPx`). `bannerPctH` resolves the percent against the current
+        // container width (full screen for fullscreen, 0.88× for modal, the
+        // ratio-padded width for banner); unknown layoutTypes fall back to raw.
+        // The fullscreen scrollView already carries its own inner horizontal
+        // padding, so a margin of 0 still never kisses the screen edge.
+        let horizontalMargin = bannerPctH(rawMargin)
         let verticalMargin: CGFloat = 0
         let leadingConstant: CGFloat = horizontalMargin
         let trailingConstant: CGFloat = -horizontalMargin
