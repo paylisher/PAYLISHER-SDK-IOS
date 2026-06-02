@@ -1175,11 +1175,14 @@ class StyleViewController: UIViewController {
         let rawMargin = CGFloat(block.margin ?? 0)
         // Image sits inside the container's inner padding like every other
         // block. `block.margin` is an additional inset on top of that padding.
-        // Banner: percent-of-banner-width (0–100). Fullscreen keeps the
-        // baseline pt inset so the image doesn't collide with system safe
+        // Banner + modal: PERCENT of container width (0–100), matching the
+        // Studio preview (`bannerPctH`) + Android (`pctHPx`). Modal previously
+        // used the raw pt value, so the same authored margin applied far less
+        // horizontal padding on iOS than the preview showed. Fullscreen keeps
+        // the baseline pt inset so the image doesn't collide with system safe
         // areas when margin is 0.
         let horizontalMargin: CGFloat = {
-            if layoutType == "banner" {
+            if layoutType == "banner" || layoutType == "modal" {
                 return bannerPctH(rawMargin)
             }
             return (layoutType == "fullscreen" && rawMargin <= 0) ? baseHorizontalInset : rawMargin
