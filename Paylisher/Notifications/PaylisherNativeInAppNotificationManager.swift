@@ -50,7 +50,16 @@ public class PaylisherNativeInAppNotificationManager {
 
         let type = userInfo["type"] as? String ?? "Native IN-APP"
 
-        let actionText = nativeDict["actionText"] as? String ?? ""
+        // actionText is authored per-language (a { lang: text } map), exactly
+        // like title/body — localize it on-device so the action button matches
+        // the device language. Legacy single-language string payloads still
+        // render via the `as? String` fallback.
+        let actionText: String
+        if let actionTextDict = nativeDict["actionText"] as? [String: String] {
+            actionText = actionTextDict.localize(defaultLang)
+        } else {
+            actionText = nativeDict["actionText"] as? String ?? ""
+        }
 
         let localizedTitle = titleDict.localize(defaultLang)
 

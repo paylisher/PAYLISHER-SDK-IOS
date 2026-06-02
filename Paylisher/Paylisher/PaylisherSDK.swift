@@ -511,12 +511,25 @@ let maxRetryDelay = 30.0
                 "$sdk_package_version": PaylisherSDK.sdkVersion()
             ]
 
+            // Device locale must live on the PERSON, not just the event. The
+            // backend selects per-device push / in-app language from the
+            // person's $locale property. Android already $sets it; iOS only
+            // emitted $locale on the event (dynamicContext), so iOS people had
+            // no $locale and every iOS device fell back to the campaign default
+            // language. Seed the person $set with the freshly computed $locale
+            // (dynamicContext recomputes it each capture, so a device-language
+            // change is reflected on the person on the next event).
+            var personProps = sdkVersionProps
+            if let deviceLocale = dynamicCtx?["$locale"] {
+                personProps["$locale"] = deviceLocale
+            }
+
             if userProperties != nil {
-                var merged = sdkVersionProps
+                var merged = personProps
                 merged.merge(userProperties ?? [:]) { _, new in new }
                 props["$set"] = merged
             } else {
-                props["$set"] = sdkVersionProps
+                props["$set"] = personProps
             }
             if userPropertiesSetOnce != nil {
                 var merged = sdkVersionProps
