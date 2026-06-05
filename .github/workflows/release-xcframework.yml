@@ -24,7 +24,7 @@ jobs:
       - name: Checkout Source Code
         uses: actions/checkout@v4
         with:
-          ref: version-1.8.5 # Doğrudan ana daldan güvenli sürüm çıkışı
+          ref: ${{ github.ref_name }} # Doğrudan ana daldan güvenli sürüm çıkışı
 
       - name: Select Xcode 16.1
         uses: maxim-lobanov/setup-xcode@v1
