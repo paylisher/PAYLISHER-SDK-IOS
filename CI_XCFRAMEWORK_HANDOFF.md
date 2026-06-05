@@ -42,8 +42,8 @@ Tek script her şeyi yapıyor: [`scripts/build_xcframework.sh`](scripts/build_xc
 |---|---|
 | 1 | `xcodebuild clean` + eski çıktıyı yedekler |
 | 2 | SPM paketlerini resolve eder (`-resolvePackageDependencies`) |
-| 3 | **iOS device** archive (`-sdk iphoneos`, `SKIP_INSTALL=NO`) |
-| 4 | **iOS simulator** archive (`-sdk iphonesimulator`) |
+| 3 | **iOS device** archive (`-destination 'generic/platform=iOS'`, `SKIP_INSTALL=NO`) |
+| 4 | **iOS simulator** archive (`-destination 'generic/platform=iOS Simulator'`) |
 | 5 | İkisini `xcodebuild -create-xcframework` ile birleştirir |
 | 6 | Doğrulama (swiftinterface var mı, `_WebKit_SwiftUI` import'u **yok** mu, static lib mi) |
 | 7 | `build/Paylisher.xcframework.zip` üretir + **checksum** hesaplar |
@@ -78,6 +78,8 @@ Tek script her şeyi yapıyor: [`scripts/build_xcframework.sh`](scripts/build_xc
 ### 2.4 İmzalama GEREKMİYOR ✅
 
 Static library XCFramework üretmek Apple sertifikası / provisioning profile / keychain istemez. `xcodebuild -create-xcframework` imzasız çalışır. **CI'da hiçbir Apple secret'ı kurmana gerek yok.** (Aşama 2'de GitHub Release için sadece repo'nun kendi `GITHUB_TOKEN`'ı yeterli.)
+
+> ⚠️ Ama dikkat: `Paylisher` hedefinin **proje ayarlarında imzalama AÇIK** (`CODE_SIGN_IDENTITY = "Apple Development"`, `DEVELOPMENT_TEAM = XK757HMDY9`). Geliştiricinin Mac'inde sorun değil; ama **CI runner'ında sertifika olmadığı için cihaz arşivini patlatır**. Bu yüzden script, arşiv komutlarında imzalamayı `CODE_SIGNING_ALLOWED=NO` ile **kapatıyor** (static lib için zaten gereksiz). Secret yine gerekmiyor.
 
 ---
 
@@ -146,7 +148,7 @@ fi
 | `setup-xcode` "version not found" | Runner image'ında 16.1 yok. `.yml`'de `xcode-version`'ı listelenen bir 16.x'e (ör. `16.2`) çek. Library-evolution sayesinde yeni 16.x tüketiciler için güvenli. Mevcut sürümler: [actions/runner-images](https://github.com/actions/runner-images). |
 | Firebase resolve hatası / "duplicate package" | `firebase-ios-sdk` hâlâ tanımlı (ve birden çok yinelenen referansı var) ama hiçbir hedef kullanmıyor. En temiz çözüm: paketi komple kaldır (Bölüm 2.2). Resolve hatası ortadan kalkar. |
 | Build beklenenden uzun | `timeout-minutes` 30'a ayarlı (bol bol yeter; Firebase derlenmiyor). Süre uzarsa SPM cache'i (Bölüm 6.2) ekle. |
-| `Paylisher.framework not found in archive` | Şema/derived data sorunu; build loglarını (`build-logs` artifact) incele. |
+| `Framework not found in device archive` / `no such module 'UIKit'` | **Dolaylı belirti** — arşiv adımı patlamış, framework üretilmemiştir. İki bilinen sebep (ikisi de çözüldü): **(1) Platform kayması (asıl ilk hata):** `Paylisher` hedefi çok-platformlu (`macosx` dâhil) ve kaynakta `import UIKit` korumasız; `-sdk iphoneos` verilip `-destination` verilmeyince temiz CI **macOS'a kayıp** `no such module 'UIKit'` veriyordu → script artık `-destination 'generic/platform=iOS[ Simulator]'` ile iOS'a **sabitliyor**. **(2) İmzalama:** runner'da sertifika yok (proje `DEVELOPMENT_TEAM` istiyor) → script `CODE_SIGNING_ALLOWED=NO` ile kapatıyor. `set -eo pipefail` sayesinde bu hatalar artık gerçek adımda net mesajla patlar (yanıltıcı "not found" yerine). Detay için `build-logs`'ta `error:` satırlarına bak. |
 
 ---
 

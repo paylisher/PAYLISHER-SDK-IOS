@@ -15,7 +15,10 @@ CYAN='\033[0;36m'
 BOLD='\033[1m'
 NC='\033[0m'
 
-set -e
+# pipefail: 'xcodebuild ... | tee' zincirinde xcodebuild basarisiz olursa pipeline
+# da basarisiz donsun (yoksa tee'nin 0 exit code'u gercek hatayi maskeler ve script
+# yanlis bir asamada patlamis gibi gorunur).
+set -eo pipefail
 
 # ============================================================================
 # Functions
@@ -185,11 +188,13 @@ log_section "Building iOS Device Archive (arm64)"
 xcodebuild archive \
     -project Paylisher.xcodeproj \
     -scheme "$SCHEME_NAME" \
+    -destination 'generic/platform=iOS' \
     -archivePath "$IOS_ARCHIVE" \
-    -sdk iphoneos \
     $TOOLCHAIN_FLAG \
     $DISABLE_PKG_RESOLVE \
-    SKIP_INSTALL=NO 2>&1 | tee -a "$LOG_FILE" || log_error "iOS device archive failed!"
+    SKIP_INSTALL=NO \
+    BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" 2>&1 | tee -a "$LOG_FILE" || log_error "iOS device archive failed!"
 
 log_info "iOS device archive completed"
 
@@ -202,11 +207,13 @@ log_section "Building iOS Simulator Archive (x86_64, arm64)"
 xcodebuild archive \
     -project Paylisher.xcodeproj \
     -scheme "$SCHEME_NAME" \
+    -destination 'generic/platform=iOS Simulator' \
     -archivePath "$SIMULATOR_ARCHIVE" \
-    -sdk iphonesimulator \
     $TOOLCHAIN_FLAG \
     $DISABLE_PKG_RESOLVE \
-    SKIP_INSTALL=NO 2>&1 | tee -a "$LOG_FILE" || log_error "Simulator archive failed!"
+    SKIP_INSTALL=NO \
+    BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+    CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" 2>&1 | tee -a "$LOG_FILE" || log_error "Simulator archive failed!"
 
 log_info "Simulator archive completed"
 
