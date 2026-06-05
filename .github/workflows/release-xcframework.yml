@@ -1,0 +1,100 @@
+name: Release XCFramework
+
+on:
+  workflow_dispatch:
+    inputs:
+      version:
+        description: "Yayınlanacak Sürüm Numarası (Ör: 1.8.5)"
+        required: true
+
+permissions:
+  contents: write # GitHub Releases oluşturabilmek ve Package.swift'i pushlayabilmek için gerekli yetki
+
+concurrency:
+  group: release-xcframework-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  release:
+    name: Build & Deploy New Release
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout Source Code
+        uses: actions/checkout@v4
+        with:
+          ref: ${{ github.ref_name }} # Doğrudan ana daldan güvenli sürüm çıkışı
+
+      - name: Select Xcode 16.1
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.1'
+
+      - name: 1) Sürüm Numarasını Büyüt (Bump Version)
+        # Dökümandaki uyarıya sadık kalarak, versiyon büyütme komutunu tetikliyoruz.
+        run: |
+          chmod +x scripts/bump-version.sh
+          ./scripts/bump-version.sh "${{ github.event.inputs.version }}"
+
+      - name: 2) XCFramework Derlemesini Al (Build)
+        # Aşama 1'de doğruladığımız ve imzalama engellerini bypass ettiğimiz derleme süreci
+        run: |
+          chmod +x scripts/build_xcframework.sh
+          ./scripts/build_xcframework.sh
+        env:
+          CODE_SIGNING_ALLOWED: "NO"
+          CODE_SIGNING_REQUIRED: "NO"
+          CODE_SIGN_IDENTITY: ""
+
+      - name: 3) İsim Tutarsızlığını Çöz (Rename Artifact)
+        # Script Paylisher.xcframework.zip üretiyor ama Package.swift "PaylisherFramework" bekliyor.
+        # Burada dosya adını taşıyarak eşleştiriyoruz.
+        run: |
+          mv build/Paylisher.xcframework.zip build/PaylisherFramework.xcframework.zip
+
+      - name: 4) Yeni Checksum Hesapla
+        # SPM dağıtımının kalbi: Yeni zip dosyasının benzersiz SHA-256 kodunu çıkartıp çıktıya yazıyoruz.
+        id: cs
+        run: |
+          CHECKSUM=$(swift package compute-checksum build/PaylisherFramework.xcframework.zip)
+          echo "checksum=$CHECKSUM" >> "$GITHUB_OUTPUT"
+
+      - name: 5) Package.swift Dosyasını Otomatik Güncelle
+        # Regex (perl) kullanarak Package.swift içindeki eski url ve eski checksum bilgilerini
+        # yeni sürümün bilgileriyle ve yeni hesaplanan SHA şifresiyle değiştiriyoruz.
+        run: |
+          VER="${{ github.event.inputs.version }}"
+          URL="https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/${VER}/PaylisherFramework.xcframework.zip"
+          
+          # URL alanını ve Checksum alanını güncelliyoruz
+          perl -i -pe 's|url:\s*"[^"]*"|url: "'"$URL"'"|' Package.swift
+          perl -i -pe 's|checksum:\s*"[^"]*"|checksum: "'"${{ steps.cs.outputs.checksum }}"'"|' Package.swift
+          
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          echo "📝 Güncellenmiş Package.swift Dosyası:"
+          echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"
+          cat Package.swift
+
+      - name: 6) Değişiklikleri Git'e Commit ve Tag Olarak Pushla
+        # Değişen Package.swift, podspec ve versiyon dosyalarını kalıcı olarak Git geçmişine işliyoruz.
+        # Sıralama kritik: Önce checksum yazıldı, şimdi tag atılıyor (Yumurta-Tavuk çözümü).
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          
+          git add Package.swift Paylisher.podspec
+          # Eğer projedeki bump-version buraları da değiştiriyorsa onları da ekleyelim:
+          git add -A || true 
+          
+          git commit -m "chore(release): ${{ github.event.inputs.version }} [skip ci]"
+          git tag "${{ github.event.inputs.version }}"
+          git push origin HEAD:main --tags
+
+      - name: 7) Resmi GitHub Release Oluştur ve Zip'i Yükle
+        # Hazır topluluk eklentisini kullanarak zip dosyasını internete resmen açıyoruz.
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.event.inputs.version }}
+          files: build/PaylisherFramework.xcframework.zip
+          generate_release_notes: true
