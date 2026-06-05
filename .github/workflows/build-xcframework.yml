@@ -1,0 +1,77 @@
+name: Build XCFramework
+
+# GitHub'in bulutundaki bir macOS makinesinde (runner) Paylisher.xcframework'u
+# derler ve indirilebilir bir "artifact" olarak yukler.
+# Senin bilgisayarinin Xcode surumunden tamamen bagimsizdir: build burada,
+# GitHub'in Mac'inde olur; senin yerel makinen denklemde degildir.
+#
+# Asama 1 (bu dosya): build al + zip'i artifact olarak yukle. Release OLUSTURMAZ,
+# repoya commit ATMAZ. Once bulutta guncel kodun bu tarifle derlendigini kanitlamak icin.
+# Not: Firebase hicbir hedefe link'li degil -> build'e dahil edilmiyor (hafif/hizli).
+
+on:
+  workflow_dispatch: {}              # Actions sekmesinden elle "Run workflow" butonu
+  push:
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+'       # 1.8.5
+      - '[0-9]+.[0-9]+.[0-9]+-*'     # 1.8.5-beta.1, 1.8.5-RC.1 vb.
+
+# Ayni tag/ref icin ust uste tetiklenirse oncekini iptal et (gereksiz dakika yakma)
+concurrency:
+  group: build-xcframework-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  build:
+    name: Build Paylisher.xcframework
+    runs-on: macos-15
+    timeout-minutes: 30              # bol bol yeter; Firebase derlenmiyor (hicbir hedef link'lemiyor)
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.1
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          # Runner'da 16.1 yoksa bu adim hata verir ve mevcut surumleri loglar.
+          # O durumda burayi listelenen bir 16.x'e (or. 16.2) cek; framework
+          # "Build Libraries for Distribution" (library evolution) ile derlendigi
+          # icin yeni bir 16.x tuketiciler acisindan guvenlidir.
+          xcode-version: '16.1'
+
+      - name: Toolchain bilgisi
+        run: |
+          xcodebuild -version
+          swift --version
+
+      - name: SwiftPM onbellegi (paket indirmeyi hizlandirir)
+        uses: actions/cache@v4
+        with:
+          path: ~/Library/Caches/org.swift.swiftpm
+          key: spm-${{ runner.os }}-${{ hashFiles('**/Package.resolved') }}
+          restore-keys: |
+            spm-${{ runner.os }}-
+
+      - name: XCFramework build
+        run: |
+          chmod +x scripts/build_xcframework.sh
+          ./scripts/build_xcframework.sh
+
+      - name: Cikti yukle (indirilebilir artifact)
+        if: success()
+        uses: actions/upload-artifact@v4
+        with:
+          name: Paylisher-xcframework
+          path: build/Paylisher.xcframework.zip
+          retention-days: 14
+          if-no-files-found: error
+
+      - name: Build loglarini yukle (hata ayiklama icin)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: build-logs
+          path: build/logs/
+          retention-days: 7
+          if-no-files-found: ignore

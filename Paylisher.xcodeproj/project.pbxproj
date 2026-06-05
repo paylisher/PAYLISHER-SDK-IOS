@@ -205,10 +205,10 @@
 		FAC8AF5E2D782E5C00531415 /* PaylisherNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FA58D3272D5B5205009A34DB /* PaylisherNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FAD0F2932D92EEAB009D9BD7 /* PaylisherFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAD0F2892D92EEAB009D9BD7 /* PaylisherFramework.framework */; };
 		FAD90ED02D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */; };
+		FADADA010000000000000001 /* PaylisherFontRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADADA010000000000000002 /* PaylisherFontRegistry.swift */; };
 		FAE233002D91A84A007D2774 /* OHHTTPStubs in Frameworks */ = {isa = PBXBuildFile; productRef = FAE232FF2D91A84A007D2774 /* OHHTTPStubs */; };
 		FAE233022D91A84A007D2774 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = FAE233012D91A84A007D2774 /* OHHTTPStubsSwift */; };
 		FAE918C82D672FB000105499 /* StyleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918C72D672FB000105499 /* StyleViewController.swift */; };
-		FADADA010000000000000001 /* PaylisherFontRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADADA010000000000000002 /* PaylisherFontRegistry.swift */; };
 		FAE918CC2D6746EB00105499 /* UIColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918CB2D6746EB00105499 /* UIColorHex.swift */; };
 		FAFCD86D2D7EDFC500341FB1 /* PushPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFCD86C2D7EDFC500341FB1 /* PushPayload.swift */; };
 		FBCED3B76190A780B7B416F7 /* PaylisherEngageInAppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */; };
@@ -524,8 +524,8 @@
 		FAD0F2892D92EEAB009D9BD7 /* PaylisherFramework.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PaylisherFramework.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAD0F2922D92EEAB009D9BD7 /* PaylisherFrameworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PaylisherFrameworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherCustomInAppNotificationManager.swift; sourceTree = "<group>"; };
-		FAE918C72D672FB000105499 /* StyleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleViewController.swift; sourceTree = "<group>"; };
 		FADADA010000000000000002 /* PaylisherFontRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherFontRegistry.swift; sourceTree = "<group>"; };
+		FAE918C72D672FB000105499 /* StyleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleViewController.swift; sourceTree = "<group>"; };
 		FAE918CB2D6746EB00105499 /* UIColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorHex.swift; sourceTree = "<group>"; };
 		FAFCD86C2D7EDFC500341FB1 /* PushPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushPayload.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */

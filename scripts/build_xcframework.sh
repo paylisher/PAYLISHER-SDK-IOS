@@ -109,8 +109,14 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT" || log_error "Could not change to project directory!"
 
-# Use Xcode 16.1
-export DEVELOPER_DIR="/Volumes/Mac/Uygulama 2/Xcode.app/Contents/Developer"
+# Use Xcode 16.1.
+# On CI (e.g. GitHub Actions) the runner's selected Xcode is used: we respect an
+# externally-provided DEVELOPER_DIR and only fall back to the local hard-coded path
+# when nothing is set AND that path actually exists on this machine.
+LOCAL_XCODE="/Volumes/Mac/Uygulama 2/Xcode.app/Contents/Developer"
+if [ -z "${DEVELOPER_DIR:-}" ] && [ -d "$LOCAL_XCODE" ]; then
+    export DEVELOPER_DIR="$LOCAL_XCODE"
+fi
 
 BUILD_DIR="$PROJECT_ROOT/build"
 LOG_DIR="$BUILD_DIR/logs"
