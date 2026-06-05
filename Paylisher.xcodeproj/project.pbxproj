@@ -7,12 +7,22 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
-		1851AC4C2EFD2A7C00A380CD /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = 1851AC4B2EFD2A7C00A380CD /* Paylisher */; };
-		1851AC4E2EFD2A7C00A380CD /* PaylisherFramework in Frameworks */ = {isa = PBXBuildFile; productRef = 1851AC4D2EFD2A7C00A380CD /* PaylisherFramework */; };
+		0DADF4C003D80EBECC6C9601 /* PaylisherDeepLinkTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8C1E9DB2BD7C519B85B7946E /* PaylisherDeepLinkTracker.swift */; };
+		1137105DF30AD7586630A53A /* PaylisherDeviceFingerprint.swift in Sources */ = {isa = PBXBuildFile; fileRef = CC3B31FF8EBCB31208C1131A /* PaylisherDeviceFingerprint.swift */; };
 		186B32842EF4403600B12225 /* crashTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 186B32802EF4401E00B12225 /* crashTest.swift */; };
+		1872693B2FCDBD1100A58BE8 /* Inter-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */; };
+		1872693C2FCDBD1100A58BE8 /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269392FCDBD1100A58BE8 /* Inter-Regular.ttf */; };
+		1872693D2FCDBD1100A58BE8 /* Inter-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269382FCDBD1100A58BE8 /* Inter-Italic.ttf */; };
+		1872693E2FCDBD1100A58BE8 /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */; };
 		188BA63A2EFBE40D00AC75DA /* PaylisherDeepLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA6362EFBE3F900AC75DA /* PaylisherDeepLinkManager.swift */; };
 		188BA63E2EFBE47500AC75DA /* PaylisherDeepLinkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA63D2EFBE47400AC75DA /* PaylisherDeepLinkConfig.swift */; };
 		188BA6402EFBE48F00AC75DA /* PaylisherConfig+DeepLink.swift in Sources */ = {isa = PBXBuildFile; fileRef = 188BA63F2EFBE48E00AC75DA /* PaylisherConfig+DeepLink.swift */; };
+		18C406CD2FCDC3B400E0AD7A /* Inter-Regular.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */; };
+		18C406CE2FCDC3B400E0AD7A /* Inter-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */; };
+		18C406CF2FCDC3B400E0AD7A /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */; };
+		18C406D02FCDC3B400E0AD7A /* Inter-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */; };
+		2242832E811E712B625C5A8B /* PaylisherJourneyContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */; };
+		2A061CB98444D480E4C415C2 /* PaylisherDeeplinkResolvedModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80AE4F11F4E3B2C910275CA /* PaylisherDeeplinkResolvedModel.swift */; };
 		3A0F108329C47940002C0084 /* UIViewExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0F108229C47940002C0084 /* UIViewExample.swift */; };
 		3A0F108529C9ABB6002C0084 /* ReadWriteLock.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0F108429C9ABB6002C0084 /* ReadWriteLock.swift */; };
 		3A0F108929C9BD76002C0084 /* Errors.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0F108829C9BD76002C0084 /* Errors.swift */; };
@@ -35,6 +45,8 @@
 		3AE3FB49299391DF00AFFC18 /* PaylisherStorage.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB48299391DF00AFFC18 /* PaylisherStorage.swift */; };
 		3AE3FB4B2993A68500AFFC18 /* PaylisherStorageTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB4A2993A68500AFFC18 /* PaylisherStorageTest.swift */; };
 		3AE3FB4E2993D1D600AFFC18 /* PaylisherStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */; };
+		4B41DC11CD2534786737C88B /* PaylisherHeartbeatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732CAA15EE90448C4C795F6D /* PaylisherHeartbeatManager.swift */; };
+		64B48B219036E9C2F7F4CFB9 /* PaylisherDeferredDeepLinkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */; };
 		690B2DF32C205B5600AE3B45 /* TimeBasedEpochGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690B2DF22C205B5600AE3B45 /* TimeBasedEpochGenerator.swift */; };
 		690FF05F2AE7E2D400A0B06B /* Data+Gzip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF05E2AE7E2D400A0B06B /* Data+Gzip.swift */; };
 		690FF0AF2AEB9C1400A0B06B /* DateUtils.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF0AE2AEB9C1400A0B06B /* DateUtils.swift */; };
@@ -120,40 +132,17 @@
 		69F518382BB2BA0100F52C14 /* PaylisherSwizzler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F518372BB2BA0100F52C14 /* PaylisherSwizzler.swift */; };
 		69F5183A2BB2BA8300F52C14 /* UIApplicationTracker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 69F518392BB2BA8300F52C14 /* UIApplicationTracker.swift */; };
 		934AB770C4D3455DE2036AB2 /* ProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1096D9F4135180DA6F262C8 /* ProfileView.swift */; };
-		A32E143E2D11F4B800FD15B7 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = A32E143D2D11F4B800FD15B7 /* FirebaseAnalytics */; };
-		A32E14402D11F4B800FD15B7 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = A32E143F2D11F4B800FD15B7 /* FirebaseAnalyticsOnDeviceConversion */; };
-		A32E14422D11F4B800FD15B7 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14412D11F4B800FD15B7 /* FirebaseAnalyticsWithoutAdIdSupport */; };
-		A32E14442D11F4B800FD15B7 /* FirebaseAppCheck in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14432D11F4B800FD15B7 /* FirebaseAppCheck */; };
-		A32E14462D11F4B800FD15B7 /* FirebaseAppDistribution-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14452D11F4B800FD15B7 /* FirebaseAppDistribution-Beta */; };
-		A32E14482D11F4B800FD15B7 /* FirebaseAuth in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14472D11F4B800FD15B7 /* FirebaseAuth */; };
-		A32E144A2D11F4B800FD15B7 /* FirebaseAuthCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14492D11F4B800FD15B7 /* FirebaseAuthCombine-Community */; };
-		A32E144C2D11F4B800FD15B7 /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = A32E144B2D11F4B800FD15B7 /* FirebaseCore */; };
-		A32E144E2D11F4B800FD15B7 /* FirebaseCrashlytics in Frameworks */ = {isa = PBXBuildFile; productRef = A32E144D2D11F4B800FD15B7 /* FirebaseCrashlytics */; };
-		A32E14502D11F4B800FD15B7 /* FirebaseDatabase in Frameworks */ = {isa = PBXBuildFile; productRef = A32E144F2D11F4B800FD15B7 /* FirebaseDatabase */; };
-		A32E14522D11F4B800FD15B7 /* FirebaseDynamicLinks in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14512D11F4B800FD15B7 /* FirebaseDynamicLinks */; };
-		A32E14542D11F4B800FD15B7 /* FirebaseFirestore in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14532D11F4B800FD15B7 /* FirebaseFirestore */; };
-		A32E14562D11F4B800FD15B7 /* FirebaseFirestoreCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14552D11F4B800FD15B7 /* FirebaseFirestoreCombine-Community */; };
-		A32E14582D11F4B800FD15B7 /* FirebaseFunctions in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14572D11F4B800FD15B7 /* FirebaseFunctions */; };
-		A32E145A2D11F4B800FD15B7 /* FirebaseFunctionsCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14592D11F4B800FD15B7 /* FirebaseFunctionsCombine-Community */; };
-		A32E145C2D11F4B800FD15B7 /* FirebaseInAppMessaging-Beta in Frameworks */ = {isa = PBXBuildFile; productRef = A32E145B2D11F4B800FD15B7 /* FirebaseInAppMessaging-Beta */; };
-		A32E145E2D11F4B800FD15B7 /* FirebaseInstallations in Frameworks */ = {isa = PBXBuildFile; productRef = A32E145D2D11F4B800FD15B7 /* FirebaseInstallations */; };
-		A32E14602D11F4B800FD15B7 /* FirebaseMLModelDownloader in Frameworks */ = {isa = PBXBuildFile; productRef = A32E145F2D11F4B800FD15B7 /* FirebaseMLModelDownloader */; };
-		A32E14622D11F4B800FD15B7 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14612D11F4B800FD15B7 /* FirebaseMessaging */; };
-		A32E14642D11F4B800FD15B7 /* FirebasePerformance in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14632D11F4B800FD15B7 /* FirebasePerformance */; };
-		A32E14662D11F4B800FD15B7 /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14652D11F4B800FD15B7 /* FirebaseRemoteConfig */; };
-		A32E14682D11F4B800FD15B7 /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14672D11F4B800FD15B7 /* FirebaseStorage */; };
-		A32E146A2D11F4B800FD15B7 /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = A32E14692D11F4B800FD15B7 /* FirebaseStorageCombine-Community */; };
-		A32E146C2D11F4B800FD15B7 /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = A32E146B2D11F4B800FD15B7 /* FirebaseVertexAI */; };
+		AB47ADF5CC6C19CA26E4A944 /* CarouselInAppViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = C83A3918D92E90C10C816E5A /* CarouselInAppViewController.swift */; };
+		AC7114F3FF51D3794985BE46 /* PaylisherRepeatedIdentifyBehavior.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */; };
+		ADF69114E75AC36797EF7939 /* PaylisherScreenMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7BCFC5140718221B687A43 /* PaylisherScreenMapper.swift */; };
+		B4AC4D8BAC251D253E8C895C /* PaylisherFirstLaunchDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBA2E2967F3ED1D577C16507 /* PaylisherFirstLaunchDetector.swift */; };
+		BB597AD1851CADF8D6385153 /* PaylisherCampaignAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F65E925C3091D94937E1C8 /* PaylisherCampaignAPI.swift */; };
+		BC168DCD643C7536826FDC97 /* PaylisherDeferredDeepLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB018595865E33D6347810B5 /* PaylisherDeferredDeepLinkManager.swift */; };
+		C4790F192FD552F2E435E073 /* PaylisherEngageInAppService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49700524ED382CC00CB3B952 /* PaylisherEngageInAppService.swift */; };
+		DA005F0C543BECA20077698A /* PaylisherDeferredDeepLinkAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6452F95ED29AD7101B5B3C1E /* PaylisherDeferredDeepLinkAPI.swift */; };
 		DAD5DD0C2CB6DEF30087387B /* PaylisherMaskViewModifier.swift in Sources */ = {isa = PBXBuildFile; fileRef = DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */; };
 		E065E2F8DEA04388DBF80B25 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F10C1B689CA5497778DA3B8 /* LoginView.swift */; };
 		F16CFF29E3D739B19C4882FF /* FakeAuthManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = C94370B5BD70157EA02109EE /* FakeAuthManager.swift */; };
-		FA1202752D93E1FB00315648 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA1202742D93E1FB00315648 /* Paylisher */; };
-		FA1D8A102D8D7BED0054B2BE /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA1D8A0F2D8D7BED0054B2BE /* Paylisher */; };
-		FA1EB82A2D9EB9BE002764C8 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA1EB8292D9EB9BE002764C8 /* Paylisher */; };
-		FA308F7A2D928D480064CA0C /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FA308F792D928D480064CA0C /* FirebaseAnalytics */; };
-		FA308F7C2D928D480064CA0C /* FirebaseCore in Frameworks */ = {isa = PBXBuildFile; productRef = FA308F7B2D928D480064CA0C /* FirebaseCore */; };
-		FA308F7E2D928D480064CA0C /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FA308F7D2D928D480064CA0C /* FirebaseMessaging */; };
-		FA308F802D928D480064CA0C /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = FA308F7F2D928D480064CA0C /* FirebaseRemoteConfig */; };
 		FA331A1D2D7883530008BA1B /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FA331A1C2D7883530008BA1B /* Assets.xcassets */; };
 		FA342FF32D42367500A8DA67 /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FA342FF22D42367500A8DA67 /* FirebaseAnalytics */; };
 		FA342FF52D42367500A8DA67 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */ = {isa = PBXBuildFile; productRef = FA342FF42D42367500A8DA67 /* FirebaseAnalyticsOnDeviceConversion */; };
@@ -163,16 +152,13 @@
 		FA342FFD2D42367500A8DA67 /* FirebaseMessaging in Frameworks */ = {isa = PBXBuildFile; productRef = FA342FFC2D42367500A8DA67 /* FirebaseMessaging */; };
 		FA3430042D4238B900A8DA67 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = FA3430032D4238B900A8DA67 /* GoogleService-Info.plist */; };
 		FA37CC062D8ADE7B000C4B7B /* ActionBasedPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA37CC052D8ADE7B000C4B7B /* ActionBasedPayload.swift */; };
-		FA499F8F2D8AF0B400AC1753 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F8E2D8AF0B400AC1753 /* Paylisher */; };
 		FA499F9A2D8AF69500AC1753 /* OHHTTPStubs in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F992D8AF69500AC1753 /* OHHTTPStubs */; };
 		FA499F9C2D8AF69500AC1753 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = FA499F9B2D8AF69500AC1753 /* OHHTTPStubsSwift */; };
 		FA54EF1D2D64C9C4008A04DC /* CustomInAppPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */; };
-		FA58D30C2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */; };
 		FA58D30E2D5B454C009A34DB /* NotificationEntity.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30D2D5B454C009A34DB /* NotificationEntity.swift */; };
 		FA58D3102D5B4613009A34DB /* NotificationStatus.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D30F2D5B4613009A34DB /* NotificationStatus.swift */; };
 		FA58D3122D5B4672009A34DB /* NotificationType.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3112D5B4672009A34DB /* NotificationType.swift */; };
 		FA58D3142D5B46E3009A34DB /* CoreDataManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA58D3132D5B46E3009A34DB /* CoreDataManager.swift */; };
-		FA591E4F2D6DAE1C0003E702 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA591E4E2D6DAE1C0003E702 /* Paylisher */; };
 		FA5C7F5A2D5F442A002B52CE /* PaylisherInAppModalViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */; };
 		FA5C7F5E2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA5C7F5D2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift */; };
 		FA63B8082D8970C700C99A9E /* FirebaseAnalytics in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8072D8970C700C99A9E /* FirebaseAnalytics */; };
@@ -199,13 +185,8 @@
 		FA63B8322D8970C700C99A9E /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8312D8970C700C99A9E /* FirebaseStorage */; };
 		FA63B8342D8970C700C99A9E /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8332D8970C700C99A9E /* FirebaseStorageCombine-Community */; };
 		FA63B8362D8970C700C99A9E /* FirebaseVertexAI in Frameworks */ = {isa = PBXBuildFile; productRef = FA63B8352D8970C700C99A9E /* FirebaseVertexAI */; };
-		FA6D32C42DA65D5300607914 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA6D32C32DA65D5300607914 /* Paylisher */; };
 		FA857BDA2D81D1F1009E490D /* PaylisherDatabase.xcdatamodeld in Resources */ = {isa = PBXBuildFile; fileRef = FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */; };
-		FA8A989A2D81C50700219DF5 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FA8A98992D81C50700219DF5 /* Paylisher */; };
 		FA92C1D82D8AEB76006DA5D6 /* GeofencePayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FA92C1D52D8AEB76006DA5D6 /* GeofencePayload.swift */; };
-		FAA230EF2DA54F7200CD30A3 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAA230EE2DA54F7200CD30A3 /* Paylisher */; };
-		FAA4BFFE2DA67C82000CDCAC /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAA4BFFD2DA67C82000CDCAC /* Paylisher */; };
-		FAA6E4FF2D92BBC300D3E687 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAA6E4FE2D92BBC300D3E687 /* Paylisher */; };
 		FAB993702D75C00C00A232A2 /* NotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAB9936D2D75C00C00A232A2 /* NotificationManager.swift */; };
 		FAC22F8B2D5CDE67001353B7 /* PaylisherActionBaseNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC22F8A2D5CDE67001353B7 /* PaylisherActionBaseNotification.swift */; };
 		FAC22F8D2D5CE114001353B7 /* PaylisherGeofenceNotification.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAC22F8C2D5CE114001353B7 /* PaylisherGeofenceNotification.swift */; };
@@ -221,18 +202,16 @@
 		FAC242582D89751300E2467C /* FirebaseRemoteConfig in Frameworks */ = {isa = PBXBuildFile; productRef = FAC242572D89751300E2467C /* FirebaseRemoteConfig */; };
 		FAC2425A2D89751300E2467C /* FirebaseStorage in Frameworks */ = {isa = PBXBuildFile; productRef = FAC242592D89751300E2467C /* FirebaseStorage */; };
 		FAC2425C2D89751300E2467C /* FirebaseStorageCombine-Community in Frameworks */ = {isa = PBXBuildFile; productRef = FAC2425B2D89751300E2467C /* FirebaseStorageCombine-Community */; };
-		FAC2425F2D89754D00E2467C /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAC2425E2D89754D00E2467C /* Paylisher */; };
 		FAC8AF5E2D782E5C00531415 /* PaylisherNotificationServiceExtension.appex in Embed Foundation Extensions */ = {isa = PBXBuildFile; fileRef = FA58D3272D5B5205009A34DB /* PaylisherNotificationServiceExtension.appex */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		FAD0F2932D92EEAB009D9BD7 /* PaylisherFramework.framework in Frameworks */ = {isa = PBXBuildFile; fileRef = FAD0F2892D92EEAB009D9BD7 /* PaylisherFramework.framework */; };
 		FAD90ED02D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */; };
-		FADBFAEC2D842AA4001CE4A9 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FADBFAEB2D842AA4001CE4A9 /* Paylisher */; };
+		FADADA010000000000000001 /* PaylisherFontRegistry.swift in Sources */ = {isa = PBXBuildFile; fileRef = FADADA010000000000000002 /* PaylisherFontRegistry.swift */; };
 		FAE233002D91A84A007D2774 /* OHHTTPStubs in Frameworks */ = {isa = PBXBuildFile; productRef = FAE232FF2D91A84A007D2774 /* OHHTTPStubs */; };
 		FAE233022D91A84A007D2774 /* OHHTTPStubsSwift in Frameworks */ = {isa = PBXBuildFile; productRef = FAE233012D91A84A007D2774 /* OHHTTPStubsSwift */; };
-		FAE233052D91A884007D2774 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAE233042D91A884007D2774 /* Paylisher */; };
-		FAE5DA852D807A8D00A4A501 /* Paylisher in Frameworks */ = {isa = PBXBuildFile; productRef = FAE5DA842D807A8D00A4A501 /* Paylisher */; };
 		FAE918C82D672FB000105499 /* StyleViewController.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918C72D672FB000105499 /* StyleViewController.swift */; };
 		FAE918CC2D6746EB00105499 /* UIColorHex.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAE918CB2D6746EB00105499 /* UIColorHex.swift */; };
 		FAFCD86D2D7EDFC500341FB1 /* PushPayload.swift in Sources */ = {isa = PBXBuildFile; fileRef = FAFCD86C2D7EDFC500341FB1 /* PushPayload.swift */; };
+		FBCED3B76190A780B7B416F7 /* PaylisherEngageInAppConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -381,10 +360,20 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		05F65E925C3091D94937E1C8 /* PaylisherCampaignAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherCampaignAPI.swift; sourceTree = "<group>"; };
 		186B32802EF4401E00B12225 /* crashTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = crashTest.swift; sourceTree = "<group>"; };
+		187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-BoldItalic.ttf"; sourceTree = "<group>"; };
+		187269382FCDBD1100A58BE8 /* Inter-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Italic.ttf"; sourceTree = "<group>"; };
+		187269392FCDBD1100A58BE8 /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
 		188BA6362EFBE3F900AC75DA /* PaylisherDeepLinkManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkManager.swift; sourceTree = "<group>"; };
 		188BA63D2EFBE47400AC75DA /* PaylisherDeepLinkConfig.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkConfig.swift; sourceTree = "<group>"; };
 		188BA63F2EFBE48E00AC75DA /* PaylisherConfig+DeepLink.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "PaylisherConfig+DeepLink.swift"; sourceTree = "<group>"; };
+		18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
+		18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-BoldItalic.ttf"; sourceTree = "<group>"; };
+		18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Italic.ttf"; sourceTree = "<group>"; };
+		18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
+		2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeferredDeepLinkConfig.swift; sourceTree = "<group>"; };
 		3A0F108229C47940002C0084 /* UIViewExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewExample.swift; sourceTree = "<group>"; };
 		3A0F108429C9ABB6002C0084 /* ReadWriteLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWriteLock.swift; sourceTree = "<group>"; };
 		3A0F108829C9BD76002C0084 /* Errors.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Errors.swift; sourceTree = "<group>"; };
@@ -410,6 +399,8 @@
 		3AE3FB48299391DF00AFFC18 /* PaylisherStorage.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherStorage.swift; sourceTree = "<group>"; };
 		3AE3FB4A2993A68500AFFC18 /* PaylisherStorageTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherStorageTest.swift; sourceTree = "<group>"; };
 		3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherStorageManager.swift; sourceTree = "<group>"; };
+		49700524ED382CC00CB3B952 /* PaylisherEngageInAppService.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherEngageInAppService.swift; sourceTree = "<group>"; };
+		6452F95ED29AD7101B5B3C1E /* PaylisherDeferredDeepLinkAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeferredDeepLinkAPI.swift; sourceTree = "<group>"; };
 		690B2DF22C205B5600AE3B45 /* TimeBasedEpochGenerator.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TimeBasedEpochGenerator.swift; sourceTree = "<group>"; };
 		690FF02F2AE7C5BA00A0B06B /* PaylisherExampleWithPods.xcodeproj */ = {isa = PBXFileReference; lastKnownFileType = "wrapper.pb-project"; name = PaylisherExampleWithPods.xcodeproj; path = PaylisherExampleWithPods/PaylisherExampleWithPods.xcodeproj; sourceTree = "<group>"; };
 		690FF05E2AE7E2D400A0B06B /* Data+Gzip.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "Data+Gzip.swift"; sourceTree = "<group>"; };
@@ -497,10 +488,21 @@
 		69F518192BAC81FC00F52C14 /* UITextInputTraits+Util.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = "UITextInputTraits+Util.swift"; sourceTree = "<group>"; };
 		69F518372BB2BA0100F52C14 /* PaylisherSwizzler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherSwizzler.swift; sourceTree = "<group>"; };
 		69F518392BB2BA8300F52C14 /* UIApplicationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIApplicationTracker.swift; sourceTree = "<group>"; };
+		732CAA15EE90448C4C795F6D /* PaylisherHeartbeatManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherHeartbeatManager.swift; sourceTree = "<group>"; };
+		75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherEngageInAppConfig.swift; sourceTree = "<group>"; };
+		892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherRepeatedIdentifyBehavior.swift; sourceTree = "<group>"; };
+		8C1E9DB2BD7C519B85B7946E /* PaylisherDeepLinkTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkTracker.swift; sourceTree = "<group>"; };
 		9F10C1B689CA5497778DA3B8 /* LoginView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		9F7BCFC5140718221B687A43 /* PaylisherScreenMapper.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherScreenMapper.swift; sourceTree = "<group>"; };
+		B80AE4F11F4E3B2C910275CA /* PaylisherDeeplinkResolvedModel.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeeplinkResolvedModel.swift; sourceTree = "<group>"; };
+		C83A3918D92E90C10C816E5A /* CarouselInAppViewController.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = CarouselInAppViewController.swift; sourceTree = "<group>"; };
 		C94370B5BD70157EA02109EE /* FakeAuthManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = FakeAuthManager.swift; sourceTree = "<group>"; };
+		CC3B31FF8EBCB31208C1131A /* PaylisherDeviceFingerprint.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeviceFingerprint.swift; sourceTree = "<group>"; };
 		D1096D9F4135180DA6F262C8 /* ProfileView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherMaskViewModifier.swift; sourceTree = "<group>"; };
+		DB018595865E33D6347810B5 /* PaylisherDeferredDeepLinkManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeferredDeepLinkManager.swift; sourceTree = "<group>"; };
+		E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherJourneyContext.swift; sourceTree = "<group>"; };
+		EBA2E2967F3ED1D577C16507 /* PaylisherFirstLaunchDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherFirstLaunchDetector.swift; sourceTree = "<group>"; };
 		FA331A1C2D7883530008BA1B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
 		FA342FFE2D42368A00A8DA67 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		FA3430032D4238B900A8DA67 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
@@ -522,20 +524,21 @@
 		FAD0F2892D92EEAB009D9BD7 /* PaylisherFramework.framework */ = {isa = PBXFileReference; explicitFileType = wrapper.framework; includeInIndex = 0; path = PaylisherFramework.framework; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAD0F2922D92EEAB009D9BD7 /* PaylisherFrameworkTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = PaylisherFrameworkTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherCustomInAppNotificationManager.swift; sourceTree = "<group>"; };
+		FADADA010000000000000002 /* PaylisherFontRegistry.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherFontRegistry.swift; sourceTree = "<group>"; };
 		FAE918C72D672FB000105499 /* StyleViewController.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StyleViewController.swift; sourceTree = "<group>"; };
 		FAE918CB2D6746EB00105499 /* UIColorHex.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIColorHex.swift; sourceTree = "<group>"; };
 		FAFCD86C2D7EDFC500341FB1 /* PushPayload.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PushPayload.swift; sourceTree = "<group>"; };
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		FA58D32F2D5B5205009A34DB /* Exceptions for "PaylisherNotificationServiceExtension" folder in "PaylisherNotificationServiceExtension" target */ = {
+		FA58D32F2D5B5205009A34DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = FA58D3262D5B5205009A34DB /* PaylisherNotificationServiceExtension */;
 		};
-		FAD0F2A02D92EEAB009D9BD7 /* Exceptions for "PaylisherFramework" folder in "PaylisherFramework" target */ = {
+		FAD0F2A02D92EEAB009D9BD7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			publicHeaders = (
 				PaylisherFramework.h,
@@ -545,52 +548,10 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0311C2772CD5192E002F62AF /* Error */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = Error;
-			sourceTree = "<group>";
-		};
-		FA58D3282D5B5205009A34DB /* PaylisherNotificationServiceExtension */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				FA58D32F2D5B5205009A34DB /* Exceptions for "PaylisherNotificationServiceExtension" folder in "PaylisherNotificationServiceExtension" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PaylisherNotificationServiceExtension;
-			sourceTree = "<group>";
-		};
-		FAD0F28A2D92EEAB009D9BD7 /* PaylisherFramework */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-				FAD0F2A02D92EEAB009D9BD7 /* Exceptions for "PaylisherFramework" folder in "PaylisherFramework" target */,
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PaylisherFramework;
-			sourceTree = "<group>";
-		};
-		FAD0F2982D92EEAB009D9BD7 /* PaylisherFrameworkTests */ = {
-			isa = PBXFileSystemSynchronizedRootGroup;
-			exceptions = (
-			);
-			explicitFileTypes = {
-			};
-			explicitFolders = (
-			);
-			path = PaylisherFrameworkTests;
-			sourceTree = "<group>";
-		};
+		0311C2772CD5192E002F62AF /* Error */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Error; sourceTree = "<group>"; };
+		FA58D3282D5B5205009A34DB /* PaylisherNotificationServiceExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (FA58D32F2D5B5205009A34DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = PaylisherNotificationServiceExtension; sourceTree = "<group>"; };
+		FAD0F28A2D92EEAB009D9BD7 /* PaylisherFramework */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (FAD0F2A02D92EEAB009D9BD7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = PaylisherFramework; sourceTree = "<group>"; };
+		FAD0F2982D92EEAB009D9BD7 /* PaylisherFrameworkTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PaylisherFrameworkTests; sourceTree = "<group>"; };
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -598,17 +559,13 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				FAA6E4FF2D92BBC300D3E687 /* Paylisher in Frameworks */,
 				FA342FF32D42367500A8DA67 /* FirebaseAnalytics in Frameworks */,
 				FA499F9A2D8AF69500AC1753 /* OHHTTPStubs in Frameworks */,
 				FA63B8122D8970C700C99A9E /* FirebaseAuth in Frameworks */,
-				FA1D8A102D8D7BED0054B2BE /* Paylisher in Frameworks */,
 				FAE233022D91A84A007D2774 /* OHHTTPStubsSwift in Frameworks */,
 				FAC2425A2D89751300E2467C /* FirebaseStorage in Frameworks */,
 				FA63B8162D8970C700C99A9E /* FirebaseCore in Frameworks */,
-				FA499F8F2D8AF0B400AC1753 /* Paylisher in Frameworks */,
 				FAC242582D89751300E2467C /* FirebaseRemoteConfig in Frameworks */,
-				FA1EB82A2D9EB9BE002764C8 /* Paylisher in Frameworks */,
 				FA63B80E2D8970C700C99A9E /* FirebaseAppCheck in Frameworks */,
 				FAC2424E2D89751300E2467C /* FirebaseAppCheck in Frameworks */,
 				FA63B8322D8970C700C99A9E /* FirebaseStorage in Frameworks */,
@@ -619,25 +576,18 @@
 				FA342FF52D42367500A8DA67 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
 				FA63B8202D8970C700C99A9E /* FirebaseFirestoreCombine-Community in Frameworks */,
 				FA63B80A2D8970C700C99A9E /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
-				FA6D32C42DA65D5300607914 /* Paylisher in Frameworks */,
-				FAA230EF2DA54F7200CD30A3 /* Paylisher in Frameworks */,
-				1851AC4C2EFD2A7C00A380CD /* Paylisher in Frameworks */,
 				FA63B8342D8970C700C99A9E /* FirebaseStorageCombine-Community in Frameworks */,
 				FAC242522D89751300E2467C /* FirebaseFirestore in Frameworks */,
 				FA63B8302D8970C700C99A9E /* FirebaseRemoteConfig in Frameworks */,
-				FAE5DA852D807A8D00A4A501 /* Paylisher in Frameworks */,
-				FADBFAEC2D842AA4001CE4A9 /* Paylisher in Frameworks */,
 				FA342FFD2D42367500A8DA67 /* FirebaseMessaging in Frameworks */,
 				FA63B8102D8970C700C99A9E /* FirebaseAppDistribution-Beta in Frameworks */,
 				FAC2425C2D89751300E2467C /* FirebaseStorageCombine-Community in Frameworks */,
 				FAC2424A2D89751300E2467C /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
 				FA63B8362D8970C700C99A9E /* FirebaseVertexAI in Frameworks */,
-				FA591E4F2D6DAE1C0003E702 /* Paylisher in Frameworks */,
 				FA63B80C2D8970C700C99A9E /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
 				FA342FF92D42367500A8DA67 /* FirebaseAppCheck in Frameworks */,
 				FA63B8282D8970C700C99A9E /* FirebaseInstallations in Frameworks */,
 				FA63B82C2D8970C700C99A9E /* FirebaseMessaging in Frameworks */,
-				FAC2425F2D89754D00E2467C /* Paylisher in Frameworks */,
 				FAC242542D89751300E2467C /* FirebaseFunctions in Frameworks */,
 				FAE233002D91A84A007D2774 /* OHHTTPStubs in Frameworks */,
 				FAC242502D89751300E2467C /* FirebaseCore in Frameworks */,
@@ -646,13 +596,9 @@
 				FA499F9C2D8AF69500AC1753 /* OHHTTPStubsSwift in Frameworks */,
 				FA63B8082D8970C700C99A9E /* FirebaseAnalytics in Frameworks */,
 				FA63B8182D8970C700C99A9E /* FirebaseCrashlytics in Frameworks */,
-				FA1202752D93E1FB00315648 /* Paylisher in Frameworks */,
-				FAA4BFFE2DA67C82000CDCAC /* Paylisher in Frameworks */,
 				FA63B8222D8970C700C99A9E /* FirebaseFunctions in Frameworks */,
 				FA63B81A2D8970C700C99A9E /* FirebaseDatabase in Frameworks */,
 				FA342FF72D42367500A8DA67 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
-				1851AC4E2EFD2A7C00A380CD /* PaylisherFramework in Frameworks */,
-				FAE233052D91A884007D2774 /* Paylisher in Frameworks */,
 				FA63B8142D8970C700C99A9E /* FirebaseAuthCombine-Community in Frameworks */,
 				FA63B81C2D8970C700C99A9E /* FirebaseDynamicLinks in Frameworks */,
 				FA63B82A2D8970C700C99A9E /* FirebaseMLModelDownloader in Frameworks */,
@@ -665,35 +611,6 @@
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A32E14562D11F4B800FD15B7 /* FirebaseFirestoreCombine-Community in Frameworks */,
-				A32E146C2D11F4B800FD15B7 /* FirebaseVertexAI in Frameworks */,
-				A32E14582D11F4B800FD15B7 /* FirebaseFunctions in Frameworks */,
-				A32E14642D11F4B800FD15B7 /* FirebasePerformance in Frameworks */,
-				FA308F7A2D928D480064CA0C /* FirebaseAnalytics in Frameworks */,
-				A32E146A2D11F4B800FD15B7 /* FirebaseStorageCombine-Community in Frameworks */,
-				A32E14662D11F4B800FD15B7 /* FirebaseRemoteConfig in Frameworks */,
-				A32E14502D11F4B800FD15B7 /* FirebaseDatabase in Frameworks */,
-				A32E14522D11F4B800FD15B7 /* FirebaseDynamicLinks in Frameworks */,
-				A32E14442D11F4B800FD15B7 /* FirebaseAppCheck in Frameworks */,
-				A32E14482D11F4B800FD15B7 /* FirebaseAuth in Frameworks */,
-				A32E143E2D11F4B800FD15B7 /* FirebaseAnalytics in Frameworks */,
-				A32E14542D11F4B800FD15B7 /* FirebaseFirestore in Frameworks */,
-				A32E14622D11F4B800FD15B7 /* FirebaseMessaging in Frameworks */,
-				A32E145E2D11F4B800FD15B7 /* FirebaseInstallations in Frameworks */,
-				A32E145A2D11F4B800FD15B7 /* FirebaseFunctionsCombine-Community in Frameworks */,
-				FA308F7E2D928D480064CA0C /* FirebaseMessaging in Frameworks */,
-				A32E14462D11F4B800FD15B7 /* FirebaseAppDistribution-Beta in Frameworks */,
-				A32E14422D11F4B800FD15B7 /* FirebaseAnalyticsWithoutAdIdSupport in Frameworks */,
-				FA308F802D928D480064CA0C /* FirebaseRemoteConfig in Frameworks */,
-				A32E145C2D11F4B800FD15B7 /* FirebaseInAppMessaging-Beta in Frameworks */,
-				A32E144A2D11F4B800FD15B7 /* FirebaseAuthCombine-Community in Frameworks */,
-				A32E144E2D11F4B800FD15B7 /* FirebaseCrashlytics in Frameworks */,
-				FA8A989A2D81C50700219DF5 /* Paylisher in Frameworks */,
-				A32E14602D11F4B800FD15B7 /* FirebaseMLModelDownloader in Frameworks */,
-				A32E14682D11F4B800FD15B7 /* FirebaseStorage in Frameworks */,
-				A32E144C2D11F4B800FD15B7 /* FirebaseCore in Frameworks */,
-				FA308F7C2D928D480064CA0C /* FirebaseCore in Frameworks */,
-				A32E14402D11F4B800FD15B7 /* FirebaseAnalyticsOnDeviceConversion in Frameworks */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -779,6 +696,28 @@
 				0341D22D2CE71E6700923E90 /* PaylisherExampleWithPods.app */,
 			);
 			name = Products;
+			sourceTree = "<group>";
+		};
+		1872693A2FCDBD1100A58BE8 /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */,
+				187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */,
+				187269382FCDBD1100A58BE8 /* Inter-Italic.ttf */,
+				187269392FCDBD1100A58BE8 /* Inter-Regular.ttf */,
+			);
+			path = Fonts;
+			sourceTree = "<group>";
+		};
+		18C406CC2FCDC3B400E0AD7A /* Fonts */ = {
+			isa = PBXGroup;
+			children = (
+				18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */,
+				18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */,
+				18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */,
+				18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */,
+			);
+			path = Fonts;
 			sourceTree = "<group>";
 		};
 		3A0F108129C4792E002C0084 /* Views */ = {
@@ -988,6 +927,8 @@
 		69BA38E62B893F2200AA69D6 /* Resources */ = {
 			isa = PBXGroup;
 			children = (
+				18C406CC2FCDC3B400E0AD7A /* Fonts */,
+				1872693A2FCDBD1100A58BE8 /* Fonts */,
 				69BA38D62B888E8500AA69D6 /* PrivacyInfo.xcprivacy */,
 				FA58D30A2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld */,
 			);
@@ -1061,6 +1002,20 @@
 				DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */,
 				69ED1A872C89B73100FE7A91 /* PaylisherSwiftUIViewModifiers.swift */,
 				69ED1A9E2C8F451B00FE7A91 /* PaylisherPersonProfiles.swift */,
+				05F65E925C3091D94937E1C8 /* PaylisherCampaignAPI.swift */,
+				8C1E9DB2BD7C519B85B7946E /* PaylisherDeepLinkTracker.swift */,
+				B80AE4F11F4E3B2C910275CA /* PaylisherDeeplinkResolvedModel.swift */,
+				6452F95ED29AD7101B5B3C1E /* PaylisherDeferredDeepLinkAPI.swift */,
+				2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */,
+				DB018595865E33D6347810B5 /* PaylisherDeferredDeepLinkManager.swift */,
+				CC3B31FF8EBCB31208C1131A /* PaylisherDeviceFingerprint.swift */,
+				EBA2E2967F3ED1D577C16507 /* PaylisherFirstLaunchDetector.swift */,
+				732CAA15EE90448C4C795F6D /* PaylisherHeartbeatManager.swift */,
+				E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */,
+				892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */,
+				9F7BCFC5140718221B687A43 /* PaylisherScreenMapper.swift */,
+				75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */,
+				49700524ED382CC00CB3B952 /* PaylisherEngageInAppService.swift */,
 			);
 			path = Paylisher;
 			sourceTree = "<group>";
@@ -1090,8 +1045,10 @@
 				FAD90ECF2D63420D0093D287 /* PaylisherCustomInAppNotificationManager.swift */,
 				FA54EF1C2D64C9C4008A04DC /* CustomInAppPayload.swift */,
 				FAE918C72D672FB000105499 /* StyleViewController.swift */,
+				FADADA010000000000000002 /* PaylisherFontRegistry.swift */,
 				FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */,
 				FAB9936D2D75C00C00A232A2 /* NotificationManager.swift */,
+				C83A3918D92E90C10C816E5A /* CarouselInAppViewController.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -1385,7 +1342,6 @@
 				3A867B7129C1DFEF009D0852 /* XCRemoteSwiftPackageReference "Nimble" */,
 				FAE232FE2D91A84A007D2774 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */,
 				FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */,
-				1851AC4A2EFD2A7C00A380CD /* XCLocalSwiftPackageReference "PAYLISHER-SDK-IOS" */,
 			);
 			productRefGroup = 3AC745B6296D6FE60025C109 /* Products */;
 			projectDirPath = "";
@@ -1453,6 +1409,14 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				1872693B2FCDBD1100A58BE8 /* Inter-BoldItalic.ttf in Resources */,
+				18C406CD2FCDC3B400E0AD7A /* Inter-Regular.ttf in Resources */,
+				18C406CE2FCDC3B400E0AD7A /* Inter-Italic.ttf in Resources */,
+				18C406CF2FCDC3B400E0AD7A /* Inter-Bold.ttf in Resources */,
+				18C406D02FCDC3B400E0AD7A /* Inter-BoldItalic.ttf in Resources */,
+				1872693C2FCDBD1100A58BE8 /* Inter-Regular.ttf in Resources */,
+				1872693D2FCDBD1100A58BE8 /* Inter-Italic.ttf in Resources */,
+				1872693E2FCDBD1100A58BE8 /* Inter-Bold.ttf in Resources */,
 				FA857BDA2D81D1F1009E490D /* PaylisherDatabase.xcdatamodeld in Resources */,
 				69BA38D72B888E8500AA69D6 /* PrivacyInfo.xcprivacy in Resources */,
 			);
@@ -1564,7 +1528,6 @@
 				69779BEC2AE68E6900D7A48E /* UIViewController.swift in Sources */,
 				3A0F108929C9BD76002C0084 /* Errors.swift in Sources */,
 				3AE3FB37299162EA00AFFC18 /* PaylisherApi.swift in Sources */,
-				FA58D30C2D5B3ECC009A34DB /* PaylisherDatabase.xcdatamodeld in Sources */,
 				6926DA8E2ADD2876005760D2 /* PaylisherContext.swift in Sources */,
 				690FF0AF2AEB9C1400A0B06B /* DateUtils.swift in Sources */,
 				69F518162BAC7F9200F52C14 /* UIView+Util.swift in Sources */,
@@ -1599,6 +1562,7 @@
 				690FF0B52AEBBD3C00A0B06B /* DictUtils.swift in Sources */,
 				69F23A7A2BB309F3001194F6 /* MethodSwizzler.swift in Sources */,
 				FAE918C82D672FB000105499 /* StyleViewController.swift in Sources */,
+				FADADA010000000000000001 /* PaylisherFontRegistry.swift in Sources */,
 				FA5C7F5E2D5F4FD0002B52CE /* PaylisherNativeInAppNotificationManager.swift in Sources */,
 				FA37CC062D8ADE7B000C4B7B /* ActionBasedPayload.swift in Sources */,
 				69261D1B2AD9678C00232EC7 /* PaylisherEvent.swift in Sources */,
@@ -1619,6 +1583,21 @@
 				69261D1D2AD967CD00232EC7 /* PaylisherFileBackedQueue.swift in Sources */,
 				3AE3FB432992985A00AFFC18 /* Reachability.swift in Sources */,
 				69F518122BAC783300F52C14 /* CGColor+Util.swift in Sources */,
+				AB47ADF5CC6C19CA26E4A944 /* CarouselInAppViewController.swift in Sources */,
+				BB597AD1851CADF8D6385153 /* PaylisherCampaignAPI.swift in Sources */,
+				0DADF4C003D80EBECC6C9601 /* PaylisherDeepLinkTracker.swift in Sources */,
+				2A061CB98444D480E4C415C2 /* PaylisherDeeplinkResolvedModel.swift in Sources */,
+				DA005F0C543BECA20077698A /* PaylisherDeferredDeepLinkAPI.swift in Sources */,
+				64B48B219036E9C2F7F4CFB9 /* PaylisherDeferredDeepLinkConfig.swift in Sources */,
+				BC168DCD643C7536826FDC97 /* PaylisherDeferredDeepLinkManager.swift in Sources */,
+				1137105DF30AD7586630A53A /* PaylisherDeviceFingerprint.swift in Sources */,
+				B4AC4D8BAC251D253E8C895C /* PaylisherFirstLaunchDetector.swift in Sources */,
+				4B41DC11CD2534786737C88B /* PaylisherHeartbeatManager.swift in Sources */,
+				2242832E811E712B625C5A8B /* PaylisherJourneyContext.swift in Sources */,
+				AC7114F3FF51D3794985BE46 /* PaylisherRepeatedIdentifyBehavior.swift in Sources */,
+				ADF69114E75AC36797EF7939 /* PaylisherScreenMapper.swift in Sources */,
+				FBCED3B76190A780B7B416F7 /* PaylisherEngageInAppConfig.swift in Sources */,
+				C4790F192FD552F2E435E073 /* PaylisherEngageInAppService.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -2032,7 +2011,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACH_O_TYPE = mh_dylib;
+				MACH_O_TYPE = staticlib;
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
@@ -2079,7 +2058,7 @@
 					"@executable_path/Frameworks",
 					"@loader_path/Frameworks",
 				);
-				MACH_O_TYPE = mh_dylib;
+				MACH_O_TYPE = staticlib;
 				MACOSX_DEPLOYMENT_TARGET = 10.15;
 				MARKETING_VERSION = 1.0;
 				MODULE_VERIFIER_SUPPORTED_LANGUAGES = "objective-c objective-c++";
@@ -2719,13 +2698,6 @@
 		};
 /* End XCConfigurationList section */
 
-/* Begin XCLocalSwiftPackageReference section */
-		1851AC4A2EFD2A7C00A380CD /* XCLocalSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCLocalSwiftPackageReference;
-			relativePath = "../PAYLISHER-SDK-IOS";
-		};
-/* End XCLocalSwiftPackageReference section */
-
 /* Begin XCRemoteSwiftPackageReference section */
 		3A867B6E29C1DF73009D0852 /* XCRemoteSwiftPackageReference "Quick" */ = {
 			isa = XCRemoteSwiftPackageReference;
@@ -2751,44 +2723,12 @@
 				minimumVersion = 11.9.0;
 			};
 		};
-		FA1202732D93E1FB00315648 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
-		FA1D8A0E2D8D7BED0054B2BE /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.0;
-			};
-		};
-		FA1EB8282D9EB9BE002764C8 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
 		FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 11.10.0;
-			};
-		};
-		FA499F8D2D8AF0B400AC1753 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = main;
-				kind = branch;
 			};
 		};
 		FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
@@ -2799,68 +2739,12 @@
 				minimumVersion = 9.1.0;
 			};
 		};
-		FA591E4D2D6DAE040003E702 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		FA6D32C22DA65D5300607914 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
-		FAA230ED2DA54F7200CD30A3 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
-		FAA4BFFC2DA67C82000CDCAC /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
-		FAA6E4FD2D92BBC300D3E687 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = develop;
-				kind = branch;
-			};
-		};
 		FAC242462D89751300E2467C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */ = {
 			isa = XCRemoteSwiftPackageReference;
 			repositoryURL = "https://github.com/firebase/firebase-ios-sdk.git";
 			requirement = {
 				kind = upToNextMajorVersion;
 				minimumVersion = 11.10.0;
-			};
-		};
-		FAC2425D2D89754D00E2467C /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
-		FADBFAEA2D842AA4001CE4A9 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = main;
-				kind = branch;
 			};
 		};
 		FAE232FE2D91A84A007D2774 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */ = {
@@ -2871,33 +2755,9 @@
 				minimumVersion = 9.1.0;
 			};
 		};
-		FAE233032D91A884007D2774 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				kind = upToNextMajorVersion;
-				minimumVersion = 1.0.1;
-			};
-		};
-		FAE5DA832D807A8D00A4A501 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */ = {
-			isa = XCRemoteSwiftPackageReference;
-			repositoryURL = "https://github.com/paylisher/PAYLISHER-SDK-IOS";
-			requirement = {
-				branch = main;
-				kind = branch;
-			};
-		};
 /* End XCRemoteSwiftPackageReference section */
 
 /* Begin XCSwiftPackageProductDependency section */
-		1851AC4B2EFD2A7C00A380CD /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = Paylisher;
-		};
-		1851AC4D2EFD2A7C00A380CD /* PaylisherFramework */ = {
-			isa = XCSwiftPackageProductDependency;
-			productName = PaylisherFramework;
-		};
 		690FF0EA2AEFF22F00A0B06B /* Quick */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = 3A867B6E29C1DF73009D0852 /* XCRemoteSwiftPackageReference "Quick" */;
@@ -2907,161 +2767,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = 3A867B7129C1DFEF009D0852 /* XCRemoteSwiftPackageReference "Nimble" */;
 			productName = Nimble;
-		};
-		A32E143D2D11F4B800FD15B7 /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
-		A32E143F2D11F4B800FD15B7 /* FirebaseAnalyticsOnDeviceConversion */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalyticsOnDeviceConversion;
-		};
-		A32E14412D11F4B800FD15B7 /* FirebaseAnalyticsWithoutAdIdSupport */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalyticsWithoutAdIdSupport;
-		};
-		A32E14432D11F4B800FD15B7 /* FirebaseAppCheck */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAppCheck;
-		};
-		A32E14452D11F4B800FD15B7 /* FirebaseAppDistribution-Beta */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseAppDistribution-Beta";
-		};
-		A32E14472D11F4B800FD15B7 /* FirebaseAuth */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAuth;
-		};
-		A32E14492D11F4B800FD15B7 /* FirebaseAuthCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseAuthCombine-Community";
-		};
-		A32E144B2D11F4B800FD15B7 /* FirebaseCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
-		};
-		A32E144D2D11F4B800FD15B7 /* FirebaseCrashlytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCrashlytics;
-		};
-		A32E144F2D11F4B800FD15B7 /* FirebaseDatabase */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDatabase;
-		};
-		A32E14512D11F4B800FD15B7 /* FirebaseDynamicLinks */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseDynamicLinks;
-		};
-		A32E14532D11F4B800FD15B7 /* FirebaseFirestore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFirestore;
-		};
-		A32E14552D11F4B800FD15B7 /* FirebaseFirestoreCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseFirestoreCombine-Community";
-		};
-		A32E14572D11F4B800FD15B7 /* FirebaseFunctions */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseFunctions;
-		};
-		A32E14592D11F4B800FD15B7 /* FirebaseFunctionsCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseFunctionsCombine-Community";
-		};
-		A32E145B2D11F4B800FD15B7 /* FirebaseInAppMessaging-Beta */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseInAppMessaging-Beta";
-		};
-		A32E145D2D11F4B800FD15B7 /* FirebaseInstallations */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseInstallations;
-		};
-		A32E145F2D11F4B800FD15B7 /* FirebaseMLModelDownloader */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseMLModelDownloader;
-		};
-		A32E14612D11F4B800FD15B7 /* FirebaseMessaging */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseMessaging;
-		};
-		A32E14632D11F4B800FD15B7 /* FirebasePerformance */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebasePerformance;
-		};
-		A32E14652D11F4B800FD15B7 /* FirebaseRemoteConfig */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseRemoteConfig;
-		};
-		A32E14672D11F4B800FD15B7 /* FirebaseStorage */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseStorage;
-		};
-		A32E14692D11F4B800FD15B7 /* FirebaseStorageCombine-Community */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = "FirebaseStorageCombine-Community";
-		};
-		A32E146B2D11F4B800FD15B7 /* FirebaseVertexAI */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseVertexAI;
-		};
-		FA1202742D93E1FB00315648 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA1202732D93E1FB00315648 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FA1D8A0F2D8D7BED0054B2BE /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA1D8A0E2D8D7BED0054B2BE /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FA1EB8292D9EB9BE002764C8 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA1EB8282D9EB9BE002764C8 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FA308F792D928D480064CA0C /* FirebaseAnalytics */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseAnalytics;
-		};
-		FA308F7B2D928D480064CA0C /* FirebaseCore */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseCore;
-		};
-		FA308F7D2D928D480064CA0C /* FirebaseMessaging */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseMessaging;
-		};
-		FA308F7F2D928D480064CA0C /* FirebaseRemoteConfig */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA308F782D928D480064CA0C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
-			productName = FirebaseRemoteConfig;
 		};
 		FA342FF22D42367500A8DA67 /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -3093,11 +2798,6 @@
 			package = A32E143C2D11F4B800FD15B7 /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = FirebaseMessaging;
 		};
-		FA499F8E2D8AF0B400AC1753 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA499F8D2D8AF0B400AC1753 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
 		FA499F992D8AF69500AC1753 /* OHHTTPStubs */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
@@ -3107,11 +2807,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FA499F982D8AF69500AC1753 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
 			productName = OHHTTPStubsSwift;
-		};
-		FA591E4E2D6DAE1C0003E702 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA591E4D2D6DAE040003E702 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
 		};
 		FA63B8072D8970C700C99A9E /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
@@ -3209,31 +2904,6 @@
 			isa = XCSwiftPackageProductDependency;
 			productName = FirebaseVertexAI;
 		};
-		FA6D32C32DA65D5300607914 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FA6D32C22DA65D5300607914 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FA8A98992D81C50700219DF5 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAE5DA832D807A8D00A4A501 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FAA230EE2DA54F7200CD30A3 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAA230ED2DA54F7200CD30A3 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FAA4BFFD2DA67C82000CDCAC /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAA4BFFC2DA67C82000CDCAC /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FAA6E4FE2D92BBC300D3E687 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAA6E4FD2D92BBC300D3E687 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
 		FAC242472D89751300E2467C /* FirebaseAnalytics */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FAC242462D89751300E2467C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
@@ -3289,16 +2959,6 @@
 			package = FAC242462D89751300E2467C /* XCRemoteSwiftPackageReference "firebase-ios-sdk" */;
 			productName = "FirebaseStorageCombine-Community";
 		};
-		FAC2425E2D89754D00E2467C /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAC2425D2D89754D00E2467C /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FADBFAEB2D842AA4001CE4A9 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FADBFAEA2D842AA4001CE4A9 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
 		FAE232FF2D91A84A007D2774 /* OHHTTPStubs */ = {
 			isa = XCSwiftPackageProductDependency;
 			package = FAE232FE2D91A84A007D2774 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
@@ -3308,16 +2968,6 @@
 			isa = XCSwiftPackageProductDependency;
 			package = FAE232FE2D91A84A007D2774 /* XCRemoteSwiftPackageReference "OHHTTPStubs" */;
 			productName = OHHTTPStubsSwift;
-		};
-		FAE233042D91A884007D2774 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAE233032D91A884007D2774 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
-		};
-		FAE5DA842D807A8D00A4A501 /* Paylisher */ = {
-			isa = XCSwiftPackageProductDependency;
-			package = FAE5DA832D807A8D00A4A501 /* XCRemoteSwiftPackageReference "PAYLISHER-SDK-IOS" */;
-			productName = Paylisher;
 		};
 /* End XCSwiftPackageProductDependency section */
 

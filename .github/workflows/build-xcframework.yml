@@ -1,7 +1,14 @@
 name: Build XCFramework
 
-# GitHub'ın bulutundaki bir macOS makinesinde (runner) Paylisher.xcframework'ü
-# derler ve indirilebilir bir "artifact" olarak yükler.
+# GitHub'in bulutundaki bir macOS makinesinde (runner) Paylisher.xcframework'u
+# derler ve indirilebilir bir "artifact" olarak yukler.
+# Senin bilgisayarinin Xcode surumunden tamamen bagimsizdir: build burada,
+# GitHub'in Mac'inde olur; senin yerel makinen denklemde degildir.
+#
+# Asama 1 (bu dosya): build al + zip'i artifact olarak yukle. Release OLUSTURMAZ,
+# repoya commit ATMAZ. Once bulutta guncel kodun bu tarifle derlendigini kanitlamak icin.
+# Not: Firebase hicbir hedefe link'li degil -> build'e dahil edilmiyor (hafif/hizli).
+
 on:
   workflow_dispatch: {}              # Actions sekmesinden elle "Run workflow" butonu
   push:
@@ -9,7 +16,7 @@ on:
       - '[0-9]+.[0-9]+.[0-9]+'       # 1.8.5
       - '[0-9]+.[0-9]+.[0-9]+-*'     # 1.8.5-beta.1, 1.8.5-RC.1 vb.
 
-# Aynı tag/ref için üst üste tetiklenirse öncekini iptal et
+# Ayni tag/ref icin ust uste tetiklenirse oncekini iptal et (gereksiz dakika yakma)
 concurrency:
   group: build-xcframework-${{ github.ref }}
   cancel-in-progress: true
@@ -18,7 +25,7 @@ jobs:
   build:
     name: Build Paylisher.xcframework
     runs-on: macos-15
-    timeout-minutes: 30
+    timeout-minutes: 30              # bol bol yeter; Firebase derlenmiyor (hicbir hedef link'lemiyor)
 
     steps:
       - name: Checkout
@@ -27,12 +34,31 @@ jobs:
       - name: Select Xcode 16.1
         uses: maxim-lobanov/setup-xcode@v1
         with:
+          # Runner'da 16.1 yoksa bu adim hata verir ve mevcut surumleri loglar.
+          # O durumda burayi listelenen bir 16.x'e (or. 16.2) cek; framework
+          # "Build Libraries for Distribution" (library evolution) ile derlendigi
+          # icin yeni bir 16.x tuketiciler acisindan guvenlidir.
           xcode-version: '16.1'
 
-      - name: Toolchain bilgisi
+      - name: Ortam teshisi (iOS SDK/platform var mi?)
         run: |
+          echo "=== Secili Xcode ==="
           xcodebuild -version
           swift --version
+          echo "=== Kurulu Xcode'lar ==="
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
+          echo "=== Mevcut SDK'lar (iOS burada gorunmeli) ==="
+          xcodebuild -showsdks 2>&1 || true
+          echo "=== iOS SDK yolu ==="
+          xcrun --sdk iphoneos --show-sdk-path 2>&1 || echo "!!! iOS SDK BULUNAMADI"
+          echo "=== Paylisher semasi icin mevcut destination'lar (iOS burada olmali) ==="
+          xcodebuild -showdestinations -project Paylisher.xcodeproj -scheme Paylisher 2>&1 | head -60 || true
+
+      - name: iOS platformunu indir (16.1'de iOS SDK kirpilmissa)
+        run: |
+          # Xcode 16+ ile platformlar indirilebilir. Runner'daki 16.1'de iOS SDK yoksa cek.
+          # Zaten varsa bu adim hizlica gecer / zararsizdir.
+          xcodebuild -downloadPlatform iOS 2>&1 || echo "downloadPlatform basarisiz/gereksiz olabilir - yukaridaki teshis ciktisina bak"
 
       - name: SwiftPM onbellegi (paket indirmeyi hizlandirir)
         uses: actions/cache@v4
@@ -43,15 +69,9 @@ jobs:
             spm-${{ runner.os }}-
 
       - name: XCFramework build
-        # xcodebuild komutlarının Apple Sertifikası istemesini engellemek için
-        # imzalama zorunluluğunu ortam değişkenleri (env) seviyesinde kapatıyoruz.
         run: |
           chmod +x scripts/build_xcframework.sh
           ./scripts/build_xcframework.sh
-        env:
-          CODE_SIGNING_ALLOWED: "NO"
-          CODE_SIGNING_REQUIRED: "NO"
-          CODE_SIGN_IDENTITY: ""
 
       - name: Cikti yukle (indirilebilir artifact)
         if: success()

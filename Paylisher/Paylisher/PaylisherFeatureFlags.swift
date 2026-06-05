@@ -251,4 +251,16 @@ class PaylisherFeatureFlags {
             sessionReplayFlagActive
         }
     #endif
+
+    func clear() {
+        featureFlagsLock.withLock {
+            featureFlags = nil
+            featureFlagPayloads = nil
+            sessionReplayFlagActive = false
+
+            storage.remove(key: .enabledFeatureFlags)
+            storage.remove(key: .enabledFeatureFlagPayloads)
+            storage.remove(key: .sessionReplay)
+        }
+    }
 }

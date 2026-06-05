@@ -31,6 +31,13 @@ jobs:
         with:
           xcode-version: '16.1'
 
+      - name: iOS platformunu indir (16.1'de iOS SDK kırpılmışsa)
+        # Aşama 1 build workflow'undaki ile AYNI adım. macos-15 runner'daki Xcode 16.1'de
+        # iOS platformu kurulu olmayabilir; build_xcframework.sh'ın -destination 'generic/platform=iOS'
+        # komutu bu yüzden "Unable to find a destination" verir. Build'den ÖNCE iOS'u indiriyoruz.
+        run: |
+          xcodebuild -downloadPlatform iOS 2>&1 || echo "downloadPlatform basarisiz/gereksiz olabilir"
+
       - name: 1) Sürüm Numarasını Büyüt (Bump Version)
         # Dökümandaki uyarıya sadık kalarak, versiyon büyütme komutunu tetikliyoruz.
         run: |
@@ -67,8 +74,10 @@ jobs:
           VER="${{ github.event.inputs.version }}"
           URL="https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/${VER}/PaylisherFramework.xcframework.zip"
           
-          # URL alanını ve Checksum alanını güncelliyoruz
-          perl -i -pe 's|url:\s*"[^"]*"|url: "'"$URL"'"|' Package.swift
+          # URL ve Checksum alanlarını güncelliyoruz.
+          # ⚠️ DİKKAT: url regex'i SADECE binaryTarget'ın releases/download URL'sini hedefliyor.
+          # Genel "url:" deseni Quick/Nimble/OHHTTPStubs .package(url:) satırlarını da bozardı!
+          perl -i -pe 's|url:\s*"https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/[^"]*"|url: "'"$URL"'"|' Package.swift
           perl -i -pe 's|checksum:\s*"[^"]*"|checksum: "'"${{ steps.cs.outputs.checksum }}"'"|' Package.swift
           
           echo "━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━"

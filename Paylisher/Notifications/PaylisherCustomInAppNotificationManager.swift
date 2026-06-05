@@ -78,6 +78,21 @@ public class PaylisherCustomInAppNotificationManager {
         UserDefaults.standard.set(cache, forKey: inAppShownCacheKey)
         return true
     }
+
+    private func readEventType(for layoutType: String) -> String {
+        switch layoutType {
+        case "banner":
+            return "Banner"
+        case "fullscreen":
+            return "Fullscreen"
+        case "modal-carousel":
+            return "ModalCarousel"
+        case "fullscreen-carousel":
+            return "FullscreenCarousel"
+        default:
+            return "Modal"
+        }
+    }
     
    public func parseInAppPayload(from userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) -> CustomInAppPayload? {
        
@@ -367,45 +382,69 @@ public class PaylisherCustomInAppNotificationManager {
     /// Direct show method — accepts a pre-built CustomInAppPayload without JSON parsing.
     /// Mirrors Android's InAppMessageHelper.showCustomInAppMessage* API for programmatic use.
     public func showCustomInApp(_ payload: CustomInAppPayload, windowScene: UIWindowScene?) {
-        guard shouldPresentInApp(payload) else { return }
+        guard shouldPresentInApp(payload) else {
+            print("FCM | InAppRouter | shouldPresentInApp=false → skip | pushId=\(normalizedPushId(payload))")
+            return
+        }
 
         let lang       = payload.defaultLang ?? "en"
         let layoutType = payload.layoutType ?? "modal"
+        let pushId = normalizedPushId(payload)
 
         guard let layouts = payload.layouts, !layouts.isEmpty else {
-            print("[Paylisher] showCustomInApp: payload has no layouts")
+            print("FCM | InAppRouter | payload has no layouts | pushId=\(pushId) | layoutType=\(layoutType)")
             return
         }
+
+        // InApp parsed — mirrors Android InAppTaskWorker line "InApp parsed".
+        print("FCM | InAppRouter | InApp parsed | pushId=\(pushId) | layoutType=\(layoutType) | lang=\(lang) | layoutCount=\(layouts.count)")
 
         let vcToPresent: UIViewController
 
         switch layoutType {
         case "modal-carousel":
+            print("FCM | InAppRouter | Showing MODAL_CAROUSEL | pushId=\(pushId) | slides=\(layouts.count)")
             let carouselVC = CarouselInAppViewController(
-                layouts: layouts, defaultLang: lang, isFullscreen: false
+                layouts: layouts, defaultLang: lang, isFullscreen: false, pushId: pushId
             )
             carouselVC.modalPresentationStyle = .overFullScreen
             vcToPresent = carouselVC
 
         case "fullscreen-carousel":
+            print("FCM | InAppRouter | Showing FULLSCREEN_CAROUSEL | pushId=\(pushId) | slides=\(layouts.count)")
             let carouselVC = CarouselInAppViewController(
-                layouts: layouts, defaultLang: lang, isFullscreen: true
+                layouts: layouts, defaultLang: lang, isFullscreen: true, pushId: pushId
             )
             carouselVC.modalPresentationStyle = .overFullScreen
             vcToPresent = carouselVC
 
         default:
+            // BANNER / MODAL / FULLSCREEN — single layout.
+            // Android distinguishes these in the worker; on iOS the
+            // distinction is the `layoutType` string carried into
+            // StyleViewController. Log the resolved branch so the iOS
+            // trail matches "Showing BANNER" / "Showing MODAL" /
+            // "Showing FULLSCREEN" on Android.
+            let resolvedTag: String = {
+                switch layoutType {
+                case "banner":     return "BANNER"
+                case "fullscreen": return "FULLSCREEN"
+                case "modal":      return "MODAL"
+                default:           return "MODAL (default)"
+                }
+            }()
+            print("FCM | InAppRouter | Showing \(resolvedTag) | pushId=\(pushId)")
             guard let firstLayout = layouts.first,
                   let style  = firstLayout.style,
                   let close  = firstLayout.close,
                   let extra  = firstLayout.extra,
                   let blocks = firstLayout.blocks else {
-                print("[Paylisher] showCustomInApp: payload missing required layout fields")
+                print("FCM | InAppRouter | payload missing required layout fields | pushId=\(pushId) | layoutType=\(layoutType)")
                 return
             }
             let styleVC = StyleViewController(
                 style: style, close: close, extra: extra,
-                blocks: blocks, defaultLang: lang, layoutType: layoutType
+                blocks: blocks, defaultLang: lang, layoutType: layoutType, pushId: pushId
             )
             styleVC.modalPresentationStyle = .overFullScreen
             vcToPresent = styleVC
@@ -416,7 +455,13 @@ public class PaylisherCustomInAppNotificationManager {
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
             guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
                   let rootVC = keyWindow.rootViewController else { return }
-            rootVC.present(vcToPresent, animated: false)
+            rootVC.present(vcToPresent, animated: false) {
+                PaylisherNotificationEventTracker.capture(
+                    "inappMessageRead",
+                    pushId: pushId,
+                    properties: ["type": self.readEventType(for: layoutType)]
+                )
+            }
         }
     }
 

@@ -40,4 +40,9 @@ class PaylisherScreenMapper {
         loadMapping()
         return screenMap[className]
     }
+
+    func mappedName(for rawName: String) -> String? {
+        loadMapping()
+        return screenMap[rawName]
+    }
 }

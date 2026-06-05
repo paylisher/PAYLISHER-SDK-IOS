@@ -18,42 +18,66 @@ public class PaylisherNativeInAppNotificationManager {
     public static let shared = PaylisherNativeInAppNotificationManager()
 
     public func nativeInAppNotification(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) {
-        
-        
-        guard let nativeString = userInfo["native"] as? String,
-              !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
-              let data = nativeString.data(using: .utf8),
+
+        // Native path is opt-in: only fires when the FCM payload carries a
+        // non-empty `native` field. Log the skip cases explicitly so it's
+        // unambiguous in the trail when the layoutType is non-native (e.g.
+        // banner/modal/fullscreen — those are handled by Custom manager).
+        guard let nativeString = userInfo["native"] as? String, !nativeString.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty else {
+            print("FCM | InApp | Native skipped — payload has no `native` field (layoutType=\(userInfo["layoutType"] ?? "?") )")
+            return
+        }
+        guard let data = nativeString.data(using: .utf8),
               let nativeDict = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
               !nativeDict.isEmpty else {
+            print("FCM | InApp | Native skipped — `native` JSON parse failed | raw=\(nativeString.prefix(200))…")
             return
         }
         
         let defaultLang = userInfo["defaultLang"] as! String
         
         let titleDict = nativeDict["title"] as? [String: String] ?? [:]
-        
-        let bodyDict  = nativeDict["body"]  as? [String: String] ?? [:]
-        
-        let imageUrl = nativeDict["imageUrl"] as? String ?? ""
-        
-        let actionUrl = nativeDict["actionUrl"] as? String ?? ""
-        
-        let type = userInfo["type"] as? String ?? "Native IN-APP"
-        
-        let actionText = nativeDict["actionText"] as? String ?? ""
-        
-        let localizedTitle = titleDict[defaultLang] ?? titleDict.values.first ?? ""
 
-        let localizedBody = bodyDict[defaultLang]  ?? bodyDict.values.first ?? ""
-        
+        let bodyDict  = nativeDict["body"]  as? [String: String] ?? [:]
+
+        // Per-field text alignment — authored on Studio
+        // ("left" | "center" | "right"). Falls back to "center" on
+        // missing / unknown values; same default the Studio preview uses.
+        let titleAlign = (nativeDict["titleAlign"] as? String) ?? "center"
+        let bodyAlign  = (nativeDict["bodyAlign"]  as? String) ?? "center"
+
+        let actionUrl = nativeDict["actionUrl"] as? String ?? ""
+
+        let type = userInfo["type"] as? String ?? "Native IN-APP"
+
+        // actionText is authored per-language (a { lang: text } map), exactly
+        // like title/body — localize it on-device so the action button matches
+        // the device language. Legacy single-language string payloads still
+        // render via the `as? String` fallback.
+        let actionText: String
+        if let actionTextDict = nativeDict["actionText"] as? [String: String] {
+            actionText = actionTextDict.localize(defaultLang)
+        } else {
+            actionText = nativeDict["actionText"] as? String ?? ""
+        }
+
+        let localizedTitle = titleDict.localize(defaultLang)
+
+        let localizedBody = bodyDict.localize(defaultLang)
+
         let gcmMessageID = userInfo["gcm.message_id"] as? String ?? ""
-        
-        
-       
+        let pushId = PaylisherNotificationEventTracker.pushId(from: userInfo)
+
+        // Native parsed — mirrors Android InAppTaskWorker "InApp parsed"
+        // log + "Showing NATIVE" routing log, but compact (single line).
+        print("FCM | InApp | Native parsed | pushId=\(pushId ?? "?") | gcmMessageId=\(gcmMessageID) | titleLen=\(localizedTitle.count) | bodyLen=\(localizedBody.count) | titleAlign=\(titleAlign) | bodyAlign=\(bodyAlign) | hasAction=\(!actionText.isEmpty)")
+        print("FCM | InApp | Showing NATIVE | pushId=\(pushId ?? "?")")
+
         let inAppVC = PaylisherInAppModalViewController(
             title: localizedTitle,
             body: localizedBody,
-            imageUrl: imageUrl,
+            titleAlign: titleAlign,
+            bodyAlign: bodyAlign,
             actionUrl: actionUrl,
             actionText: actionText,
             gcmMessageID: gcmMessageID
@@ -88,7 +112,13 @@ public class PaylisherNativeInAppNotificationManager {
             if windowScene != nil,
                let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                let rootVC = keyWindow.rootViewController {
-                   rootVC.present(inAppVC, animated: true, completion: nil)
+                   rootVC.present(inAppVC, animated: true) {
+                       PaylisherNotificationEventTracker.capture(
+                           "inappMessageRead",
+                           pushId: pushId,
+                           properties: ["type": "Native"]
+                       )
+                   }
             }
         }
 //        #endif
@@ -114,5 +144,4 @@ public class PaylisherNativeInAppNotificationManager {
 
     
 }
-
 

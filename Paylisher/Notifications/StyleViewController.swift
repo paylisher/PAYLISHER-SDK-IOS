@@ -7,12 +7,148 @@
 
 import UIKit
 
+/// A fixed-size image container that positions its image INSIDE its bounds per
+/// fit / align / inner-inset — the UIKit equivalent of the Studio preview's CSS
+/// `object-fit` + `object-position` + `padding`. The view's own size never
+/// changes (the component stays put); only the image inside is scaled/placed,
+/// so `contain` + `left` + a padding shows the whole image pulled left with
+/// breathing room — identical to the preview and the Android SDK.
+final class PaylisherImageFitView: UIView {
+    private let imageView = UIImageView()
+    /// "cover" (crop) | "contain" (fit whole) | "fill" (stretch).
+    var fit: String = "cover" { didSet { setNeedsLayout() } }
+    /// "left" | "center" | "right".
+    var alignX: String = "center" { didSet { setNeedsLayout() } }
+    /// "top" | "center" | "bottom".
+    var alignY: String = "center" { didSet { setNeedsLayout() } }
+    /// Inner inset on every side, as a fraction (0–0.45) of the view HEIGHT.
+    var insetRatio: CGFloat = 0 { didSet { setNeedsLayout() } }
+    /// Corner radius (pt). Applied via a CAShapeLayer mask in `layoutSubviews`,
+    /// clamped to half the shorter side (CSS `border-radius` auto-clamp). A
+    /// plain `layer.cornerRadius` chamfered into triangular corners when it had
+    /// to clip the oversized cover image; a path mask clips cleanly.
+    var cornerRadiusPt: CGFloat = 0 { didSet { setNeedsLayout() } }
+
+    var image: UIImage? {
+        get { imageView.image }
+        set { imageView.image = newValue; setNeedsLayout() }
+    }
+
+    override init(frame: CGRect) {
+        super.init(frame: frame)
+        clipsToBounds = true
+        imageView.clipsToBounds = true
+        // We size the imageView to the EXACT computed display rect (which
+        // preserves the image aspect for cover/contain), so .scaleToFill maps
+        // the image onto that rect 1:1.
+        imageView.contentMode = .scaleToFill
+        addSubview(imageView)
+    }
+    required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
+
+    override func layoutSubviews() {
+        super.layoutSubviews()
+        // Inner inset keeps THIS view's size fixed and shrinks the image area.
+        // Fraction of HEIGHT on all four sides → matches preview + Android.
+        let inset = bounds.height * max(0, min(0.45, insetRatio))
+        let stage = bounds.insetBy(dx: inset, dy: inset)
+        guard stage.width > 0, stage.height > 0 else { imageView.frame = .zero; return }
+        guard let img = imageView.image, img.size.width > 0, img.size.height > 0 else {
+            imageView.frame = stage
+            return
+        }
+        let iw = img.size.width, ih = img.size.height
+        let dispSize: CGSize
+        switch fit {
+        case "fill":
+            dispSize = stage.size
+        case "contain":
+            let s = min(stage.width / iw, stage.height / ih)
+            dispSize = CGSize(width: iw * s, height: ih * s)
+        default: // cover
+            let s = max(stage.width / iw, stage.height / ih)
+            dispSize = CGSize(width: iw * s, height: ih * s)
+        }
+        // object-position keyword → fraction (left/top 0, center .5, right/bottom 1).
+        let posX: CGFloat = alignX == "left" ? 0 : (alignX == "right" ? 1 : 0.5)
+        let posY: CGFloat = alignY == "top" ? 0 : (alignY == "bottom" ? 1 : 0.5)
+        let x = stage.minX + (stage.width - dispSize.width) * posX
+        let y = stage.minY + (stage.height - dispSize.height) * posY
+        imageView.frame = CGRect(x: x, y: y, width: dispSize.width, height: dispSize.height)
+
+        // Rounded-corner clip via a path mask — artifact-free even when the
+        // cover image overflows the bounds. Radius clamped to half the shorter
+        // side, mirroring the Studio preview's CSS border-radius auto-clamp.
+        // (Plain `layer.cornerRadius` chamfered the corners into triangles when
+        // it had to clip the oversized image.)
+        let r = max(0, min(cornerRadiusPt, min(bounds.width, bounds.height) / 2))
+        if r > 0 {
+            let shape = CAShapeLayer()
+            shape.path = UIBezierPath(roundedRect: bounds, cornerRadius: r).cgPath
+            layer.mask = shape
+        } else {
+            layer.mask = nil
+        }
+    }
+}
+
 class StyleViewController: UIViewController {
-    private let modalHeightRatio: CGFloat = 0.48
-    private let modalImageHeightRatio: CGFloat = 0.36
-    private let modalImageMinHeight: CGFloat = 72
     private let baseHorizontalInset: CGFloat = 16
     private let extraHorizontalInset: CGFloat = 6
+
+    // Banner geometry — mirrors `lib/banner-layout-constants.ts` in the
+    // Studio repo and `InAppMessageHelper.kt` / `InAppMessagingBanner.kt`
+    // in the Android SDK. Keep these in sync — the same proportions must
+    // render on every platform so banners look identical at any device size.
+    private let bannerHeightRatio: CGFloat = 0.26
+    private let bannerOuterHorizontalInsetRatio: CGFloat = 0.04
+    private let bannerInnerHorizontalPaddingRatio: CGFloat = 0.04
+    private let bannerInnerVerticalPaddingRatio: CGFloat = 0.04
+    private let bannerOuterVerticalInsetRatio: CGFloat = 0.02
+
+    // Modal geometry — mirrors `lib/modal-layout-constants.ts` (Studio) and
+    // Android's `InAppMessageHelper.kt`. Modal is now ratio-driven the same
+    // way banner is, so authored fields (margins, font sizes, gaps) read as
+    // percents of modal geometry and the same proportions render on every
+    // device.
+    private let modalHeightRatio: CGFloat = 0.48
+    private let modalWidthRatio: CGFloat = 0.88
+    private let modalInnerHorizontalPaddingRatio: CGFloat = 0.05
+    private let modalInnerVerticalPaddingRatio: CGFloat = 0.05
+    private let modalImageHeightRatio: CGFloat = 0.36
+    private let modalImageMinHeight: CGFloat = 72
+
+    // Fullscreen geometry — mirrors `lib/fullscreen-layout-constants.ts`.
+    // Same authoring contract as banner / modal: every authored field is a
+    // percent of container geometry. Container here = full device viewport.
+    // Min top/bottom insets are layered ON TOP OF the device's own safeArea
+    // so a notch-less device still has breathing room — content lands in a
+    // comfortable zone whether the phone has a notch / dynamic island or not.
+    private let fullscreenInnerHorizontalPaddingRatio: CGFloat = 0.04
+    private let fullscreenInnerVerticalPaddingRatio: CGFloat = 0.04
+    private let fullscreenImageHeightRatio: CGFloat = 0.32
+    private let fullscreenMinTopInset: CGFloat = 60
+    private let fullscreenMinBottomInset: CGFloat = 35
+
+    // Container content scale — authored pt values are interpreted against
+    // an iPhone-13 reference container (banner: 358.8 × 219.44pt;
+    // modal: 343.2 × 405.12pt; fullscreen: 390 × 844pt). Render time scales
+    // them to the current device so visual proportions stay identical on
+    // every device. Mirrors the Studio + Android helpers.
+    private let bannerReferenceWidth: CGFloat = 358.8    // 390 * (1 - 2 * 0.04)
+    private let bannerReferenceHeight: CGFloat = 219.44  // 844 * 0.26
+    private var modalReferenceWidth: CGFloat { 390 * modalWidthRatio }   // 343.2
+    private var modalReferenceHeight: CGFloat { 844 * modalHeightRatio } // 405.12
+    private let fullscreenReferenceWidth: CGFloat = 390
+    private let fullscreenReferenceHeight: CGFloat = 844
+
+    // Text line-height multiple — mirrors the Studio preview's CSS
+    // `line-height: 1.3` for body text (see `InAppReview.tsx renderTextBlock`).
+    // Applied via `lineHeightAttributes` so an iOS paragraph occupies the same
+    // height as the preview + Android SDK instead of Inter's intrinsic ~1.21x
+    // leading — otherwise the same wrapped text is shorter on device and the
+    // block drifts vertically vs the preview.
+    private let textLineHeightMultiple: CGFloat = 1.3
 
     private let style: CustomInAppPayload.Layout.Style
     
@@ -23,10 +159,18 @@ class StyleViewController: UIViewController {
     private let blocks: CustomInAppPayload.Layout.Blocks
 
     private let layoutType: String
+    private let pushId: String?
 
     private let containerView = UIView()
 
     private var containerHeightConstraint: NSLayoutConstraint?
+
+    /// When the bottom strip needs mixed top + bottom radii, we can't use
+    /// `maskedCorners` (UIKit only allows one radius per CALayer), so we
+    /// install a CAShapeLayer mask built from a per-corner path. The hook
+    /// is invoked from `viewDidLayoutSubviews` so the path follows the
+    /// strip's resolved frame.
+    private var stripViewMixedCornerHook: (() -> Void)?
 
     private let overlayView = UIView()
 
@@ -47,7 +191,139 @@ class StyleViewController: UIViewController {
     private let defaultLang: String
 
     private var contentHorizontalInset: CGFloat {
-        baseHorizontalInset + extraHorizontalInset
+        // Banner / modal / fullscreen all apply their own ratio-based inner
+        // horizontal padding at the scrollView level, so the per-block
+        // wrappers must NOT add another inset on top — otherwise a `full`
+        // width button or button-row would lose width to double padding.
+        // Fallback (unknown layoutType) keeps the legacy 22pt inset.
+        if layoutType == "banner" || layoutType == "modal" || layoutType == "fullscreen" { return 0 }
+        return baseHorizontalInset + extraHorizontalInset
+    }
+
+    // MARK: - Container content scaling
+
+    /// Whether this layout uses percent-based authoring. Banner / modal /
+    /// fullscreen all do now — only unknown layoutTypes fall back to raw pt.
+    private var isPercentContainer: Bool {
+        return layoutType == "banner" || layoutType == "modal" || layoutType == "fullscreen"
+    }
+
+    /// Current container frame width (pt) — derived from the device screen
+    /// and the container's outer geometry ratio.
+    private func currentContainerWidth() -> CGFloat {
+        if layoutType == "banner" {
+            return UIScreen.main.bounds.width * (1 - 2 * bannerOuterHorizontalInsetRatio)
+        }
+        if layoutType == "modal" {
+            return UIScreen.main.bounds.width * modalWidthRatio
+        }
+        return UIScreen.main.bounds.width
+    }
+
+    /// Current container frame height (pt).
+    private func currentContainerHeight() -> CGFloat {
+        if layoutType == "banner" {
+            return UIScreen.main.bounds.height * bannerHeightRatio
+        }
+        if layoutType == "modal" {
+            return UIScreen.main.bounds.height * modalHeightRatio
+        }
+        return UIScreen.main.bounds.height
+    }
+
+    /// Back-compat alias — banner-specific call sites still use this name.
+    private func currentBannerWidth() -> CGFloat { return currentContainerWidth() }
+    private func currentBannerHeight() -> CGFloat { return currentContainerHeight() }
+
+    /// Reference width of the current container on the iPhone-13 baseline.
+    private func referenceContainerWidth() -> CGFloat {
+        if layoutType == "banner" { return bannerReferenceWidth }
+        if layoutType == "modal" { return modalReferenceWidth }
+        if layoutType == "fullscreen" { return fullscreenReferenceWidth }
+        return UIScreen.main.bounds.width
+    }
+    /// Reference height of the current container on the iPhone-13 baseline.
+    private func referenceContainerHeight() -> CGFloat {
+        if layoutType == "banner" { return bannerReferenceHeight }
+        if layoutType == "modal" { return modalReferenceHeight }
+        if layoutType == "fullscreen" { return fullscreenReferenceHeight }
+        return UIScreen.main.bounds.height
+    }
+
+    /// Scale a horizontal authored pt value (margins, horizontal insets) to
+    /// the current container's coordinate space. No-op for fullscreen.
+    private func scaleH(_ pt: CGFloat) -> CGFloat {
+        guard isPercentContainer else { return pt }
+        let scale = currentContainerWidth() / referenceContainerWidth()
+        return pt * scale
+    }
+
+    /// Scale a vertical authored pt value (font size, image height, button
+    /// height, spacers, vertical margins) to the current container's
+    /// coordinate space. No-op for fullscreen.
+    ///
+    /// Kept for categorical / intrinsic renderer constants (image 60pt,
+    /// button 32/44/56pt, group wrapper paddings). Authored fields go through
+    /// `bannerPctH` / `bannerPctV` instead — they are now percent-based.
+    private func scaleV(_ pt: CGFloat) -> CGFloat {
+        guard isPercentContainer else { return pt }
+        let scale = currentContainerHeight() / referenceContainerHeight()
+        return pt * scale
+    }
+
+    // MARK: - Container percent helpers
+    //
+    // Authored payload spacing/sizing fields are expressed as a percent of
+    // the current container's dimensions (0–100). Banner + modal share this
+    // contract; fullscreen passes the raw pt through (legacy semantics).
+    // Mirrors `bannerPctH/V` in Studio's `InAppReview.tsx` and the
+    // `bannerPctVPx/HPx` helpers in the Android SDKs.
+
+    private func clampPct(_ value: CGFloat) -> CGFloat {
+        return max(0, min(100, value))
+    }
+
+    /// Resolve a percent value (0–100) to pt against the current container's
+    /// width. Fullscreen returns the raw value (legacy pt). Name kept as
+    /// `bannerPctH` for diff legibility — both banner and modal flow here.
+    private func bannerPctH(_ raw: CGFloat) -> CGFloat {
+        guard isPercentContainer else { return raw }
+        return currentContainerWidth() * clampPct(raw) / 100
+    }
+
+    /// Same against the current container's height.
+    private func bannerPctV(_ raw: CGFloat) -> CGFloat {
+        guard isPercentContainer else { return raw }
+        return currentContainerHeight() * clampPct(raw) / 100
+    }
+
+    /// Resolve an authored fontSize string (`"16"` / `"16px"`) — banner +
+    /// modal treat it as a percent of container height, fullscreen returns
+    /// it raw. Returns the same shape `makeFont` consumes. Used for TEXT
+    /// blocks; button blocks now use `resolveButtonFontSizeString` instead
+    /// so the font scales with the button itself, not the container.
+    private func scaledFontSizeString(_ raw: String?) -> String? {
+        guard let raw = raw else { return nil }
+        guard isPercentContainer else { return raw }
+        let trimmed = raw.replacingOccurrences(of: "px", with: "")
+        guard let value = Double(trimmed) else { return raw }
+        let resolved = bannerPctV(CGFloat(value))
+        return String(format: "%g", Double(resolved))
+    }
+
+    /// Resolve a button's authored fontSize as a PERCENT of that button's
+    /// own height. Banner + modal: same contract — `50` means "half of the
+    /// button's height". Fullscreen returns the raw string for legacy pt
+    /// semantics. Keeps the text inside the button regardless of container
+    /// (a 10% value reads as 10% of 32/44/56pt, never 10% of a 405pt modal).
+    private func resolveButtonFontSizeString(_ raw: String?, buttonHeight: CGFloat) -> String? {
+        guard let raw = raw else { return nil }
+        guard isPercentContainer else { return raw }
+        let trimmed = raw.replacingOccurrences(of: "px", with: "")
+        guard let value = Double(trimmed) else { return raw }
+        let pct = max(0, min(100, CGFloat(value)))
+        let resolved = buttonHeight * pct / 100
+        return String(format: "%g", Double(resolved))
     }
 
 
@@ -56,33 +332,86 @@ class StyleViewController: UIViewController {
          extra: CustomInAppPayload.Layout.Extra,
          blocks: CustomInAppPayload.Layout.Blocks,
          defaultLang: String,
-         layoutType: String = "modal") {
+         layoutType: String = "modal",
+         pushId: String? = nil) {
         self.style = style
         self.close = close
         self.extra = extra
         self.blocks = blocks
         self.defaultLang = defaultLang
         self.layoutType = layoutType
+        self.pushId = pushId
         super.init(nibName: nil, bundle: nil)
     }
     required init?(coder: NSCoder) { fatalError("init(coder:) has not been implemented") }
     
     override func viewDidLoad() {
         super.viewDidLoad()
-        
-        setupUI()
-        
-        closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
 
+        // Render-start log — mirrors Android InAppMessageHelper's
+        //   "InApp Banner render started — layoutType=… lang=…"
+        //   "InApp Modal render started — layoutType=… lang=…"
+        //   "InApp Fullscreen render started — layoutType=… lang=…"
+        // and the geometry log line that follows it. Single-shot per
+        // presentation so the trail is easy to follow.
+        let screen = UIScreen.main.bounds
+        switch layoutType {
+        case "banner":
+            let bannerH = screen.height * bannerHeightRatio
+            let outerV = screen.height * bannerOuterVerticalInsetRatio
+            let innerH = screen.width * (1 - 2 * bannerOuterHorizontalInsetRatio) * bannerInnerHorizontalPaddingRatio
+            let innerV = bannerH * bannerInnerVerticalPaddingRatio
+            print("FCM | InApp | Banner render started — layoutType=\(layoutType) lang=\(defaultLang) pushId=\(pushId ?? "?")")
+            print("FCM | InApp | Banner sizing — screen=\(Int(screen.width))x\(Int(screen.height)) bannerH=\(Int(bannerH)) outerV=\(Int(outerV)) innerPad=\(Int(innerH))x\(Int(innerV))")
+        case "fullscreen":
+            let innerH = screen.width * fullscreenInnerHorizontalPaddingRatio
+            let innerV = screen.height * fullscreenInnerVerticalPaddingRatio
+            print("FCM | InApp | Fullscreen render started — layoutType=\(layoutType) lang=\(defaultLang) pushId=\(pushId ?? "?")")
+            print("FCM | InApp | Fullscreen sizing — viewport=\(Int(screen.width))x\(Int(screen.height)) innerPad=\(Int(innerH))x\(Int(innerV)) minSafe=\(Int(fullscreenMinTopInset))/\(Int(fullscreenMinBottomInset))")
+        default:
+            let modalW = screen.width * modalWidthRatio
+            let modalH = screen.height * modalHeightRatio
+            let innerH = modalW * modalInnerHorizontalPaddingRatio
+            let innerV = modalH * modalInnerVerticalPaddingRatio
+            print("FCM | InApp | Modal render started — layoutType=\(layoutType) lang=\(defaultLang) pushId=\(pushId ?? "?")")
+            print("FCM | InApp | Modal sizing — screen=\(Int(screen.width))x\(Int(screen.height)) modal=\(Int(modalW))x\(Int(modalH)) innerPad=\(Int(innerH))x\(Int(innerV))")
+        }
+
+        setupUI()
+
+        closeButton.addTarget(self, action: #selector(didTapClose), for: .touchUpInside)
     }
     
+    override func viewDidLayoutSubviews() {
+        super.viewDidLayoutSubviews()
+        // Bottom strip with mixed top + bottom radii needs its CAShapeLayer
+        // mask rebuilt whenever the strip's frame resolves / changes.
+        stripViewMixedCornerHook?()
+    }
+
     override func viewDidAppear(_ animated: Bool) {
         super.viewDidAppear(animated)
         applyTransition()
 
+        // Render-complete log — mirrors Android InAppMessageHelper's
+        // "In-App Banner sent!" / "In-App Modal sent!" / "In-App Fullscreen sent!"
+        // line emitted after dialog.show(). Includes locale info on the same
+        // log line so the trail captures both the layout and the language
+        // that was rendered.
+        let locale = Locale.current.identifier
+        let sentTag: String = {
+            switch layoutType {
+            case "banner":     return "Banner"
+            case "fullscreen": return "Fullscreen"
+            case "modal":      return "Modal"
+            default:           return "Modal (default)"
+            }
+        }()
+        print("FCM | InApp | In-App \(sentTag) sent! locale=\(locale) pushId=\(pushId ?? "?")")
+
         if layoutType == "banner", let duration = extra.banner?.duration, duration > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(duration)) { [weak self] in
-                self?.didTapClose()
+                self?.dismissInApp(via: "timeout")
             }
         }
     }
@@ -153,62 +482,97 @@ class StyleViewController: UIViewController {
 
         switch layoutType {
         case "fullscreen":
-            // Fullscreen: container fills the entire screen
+            // Fullscreen: container fills the screen. The scrollView is
+            // inset by max(safeArea, fullscreenMinInset) on each axis so
+            // notch-less devices still get a comfortable top/bottom inset,
+            // plus a ratio-based horizontal + vertical padding for visual
+            // breathing room (matches Studio + Android).
+            let screenSize = UIScreen.main.bounds
+            let fullscreenInnerH = screenSize.width * fullscreenInnerHorizontalPaddingRatio
+            let fullscreenInnerV = screenSize.height * fullscreenInnerVerticalPaddingRatio
+            // We resolve safeAreaInsets at layout time via the top-level
+            // view, but UIKit only fills those after layout — using the
+            // safeAreaLayoutGuide anchor plus our minimum constants gives
+            // us the right behaviour on every device automatically.
+            let topPadding = max(view.safeAreaInsets.top, fullscreenMinTopInset) + fullscreenInnerV
+            let bottomPadding = max(view.safeAreaInsets.bottom, fullscreenMinBottomInset) + fullscreenInnerV
             NSLayoutConstraint.activate([
                 containerView.topAnchor.constraint(equalTo: view.topAnchor),
                 containerView.bottomAnchor.constraint(equalTo: view.bottomAnchor),
                 containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor),
                 containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor),
 
-                scrollView.topAnchor.constraint(equalTo: containerView.safeAreaLayoutGuide.topAnchor),
-                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                scrollView.bottomAnchor.constraint(equalTo: containerView.safeAreaLayoutGuide.bottomAnchor),
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: topPadding),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: fullscreenInnerH),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -fullscreenInnerH),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -bottomPadding),
             ])
 
         case "banner":
-            // Banner: floating pill, fixed 26% height, position-aware
+            // Banner: floating pill, ratio-driven geometry so the visual
+            // proportion is identical on every device. Width / inner pad /
+            // outer pad are all multipliers of the device viewport rather
+            // than fixed pt — mirrors Studio (`computeBannerGeometry`) and
+            // Android SDK.
             let verticalPos = style.verticalPosition ?? "center"
+            let screenSize = UIScreen.main.bounds
+            let bannerHeight = screenSize.height * bannerHeightRatio
+            let outerVerticalInset = screenSize.height * bannerOuterVerticalInsetRatio
+            let innerHorizontalPadding = screenSize.width
+                * (1 - 2 * bannerOuterHorizontalInsetRatio)
+                * bannerInnerHorizontalPaddingRatio
+            let innerVerticalPadding = bannerHeight * bannerInnerVerticalPaddingRatio
 
             NSLayoutConstraint.activate([
-                containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 16),
-                containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -16),
-                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
+                containerView.widthAnchor.constraint(
+                    equalTo: view.widthAnchor,
+                    multiplier: 1 - 2 * bannerOuterHorizontalInsetRatio
+                ),
+                containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: innerHorizontalPadding),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -innerHorizontalPadding),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -innerVerticalPadding),
             ])
 
             switch verticalPos {
             case "top":
-                containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: 16).isActive = true
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16).isActive = true
+                containerView.topAnchor.constraint(equalTo: view.safeAreaLayoutGuide.topAnchor, constant: outerVerticalInset).isActive = true
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding).isActive = true
             case "bottom":
-                containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -16).isActive = true
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16).isActive = true
+                containerView.bottomAnchor.constraint(equalTo: view.safeAreaLayoutGuide.bottomAnchor, constant: -outerVerticalInset).isActive = true
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding).isActive = true
             default: // center
                 containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor).isActive = true
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16).isActive = true
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding).isActive = true
             }
 
-            // Fixed height: 26% of screen height
-            containerView.heightAnchor.constraint(equalToConstant: UIScreen.main.bounds.height * 0.26).isActive = true
+            containerView.heightAnchor.constraint(equalToConstant: bannerHeight).isActive = true
 
         default:
-            // Modal (default): centered, screen-based frame
+            // Modal (default): centered, ratio-driven frame so the same
+            // proportions render on every device — mirrors banner's contract.
             let cY = containerView.centerYAnchor.constraint(equalTo: view.centerYAnchor)
             cY.identifier = "containerCenterY"
             centerYConstraint = cY
 
+            let modalHeightPt = UIScreen.main.bounds.height * modalHeightRatio
+            let modalWidthPt = UIScreen.main.bounds.width * modalWidthRatio
+            let innerHorizontalPadding = modalWidthPt * modalInnerHorizontalPaddingRatio
+            let innerVerticalPadding = modalHeightPt * modalInnerVerticalPaddingRatio
+
             NSLayoutConstraint.activate([
-                containerView.leadingAnchor.constraint(equalTo: view.leadingAnchor, constant: 6),
-                containerView.trailingAnchor.constraint(equalTo: view.trailingAnchor, constant: -6),
+                containerView.widthAnchor.constraint(
+                    equalTo: view.widthAnchor,
+                    multiplier: modalWidthRatio
+                ),
+                containerView.centerXAnchor.constraint(equalTo: view.centerXAnchor),
                 cY,
                 containerView.heightAnchor.constraint(equalTo: view.heightAnchor, multiplier: modalHeightRatio),
 
-                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: 16),
-                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
-                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
-                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -16),
+                scrollView.topAnchor.constraint(equalTo: containerView.topAnchor, constant: innerVerticalPadding),
+                scrollView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor, constant: innerHorizontalPadding),
+                scrollView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor, constant: -innerHorizontalPadding),
+                scrollView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor, constant: -innerVerticalPadding),
             ])
         }
 
@@ -247,11 +611,85 @@ class StyleViewController: UIViewController {
 
         containerView.clipsToBounds = true
 
+        addBottomStripIfNeeded()
+
         if let bgImageStr = style.bgImage, !bgImageStr.isEmpty {
             addBackgroundImage(urlString: bgImageStr)
         }
 
         // Modal position is fixed to center by product rule.
+    }
+
+    private func addBottomStripIfNeeded() {
+        // `bgBottomInset` is authored as a PERCENT of the container's height
+        // (0–100) — same contract as Studio + Android. Banner / modal resolve
+        // against the current container height; fullscreen passes raw pt
+        // through so legacy layouts there stay unchanged.
+        let rawValue = CGFloat(style.bgBottomInset ?? 0)
+        let bottomInset: CGFloat = {
+            if isPercentContainer {
+                let clampedPct = max(0, min(100, rawValue))
+                return currentContainerHeight() * clampedPct / 100
+            }
+            return rawValue
+        }()
+        guard bottomInset > 0 else { return }
+
+        let stripColorHex = style.bgBottomColor ?? style.bgColor
+        guard let hex = stripColorHex, let color = UIColor(hex: hex) else { return }
+
+        // `bgBottomRadiusTop` is authored as % container height (0–100).
+        // Softens the strip's top-left + top-right corners via
+        // `maskedCorners` — the cheap CALayer path. Bottom corners sit
+        // flush with the container's outer edge.
+        let rawTopRadius = CGFloat(style.bgBottomRadiusTop ?? 0)
+        let topRadius: CGFloat = {
+            if isPercentContainer {
+                let pct = max(0, min(100, rawTopRadius))
+                return currentContainerHeight() * pct / 100
+            }
+            return rawTopRadius
+        }()
+
+        let stripView = UIView()
+        stripView.translatesAutoresizingMaskIntoConstraints = false
+        stripView.backgroundColor = color
+        if topRadius > 0 {
+            // Round ONLY the top corners via a path mask applied once the strip's
+            // frame resolves (viewDidLayoutSubviews → stripViewMixedCornerHook).
+            // Plain `cornerRadius` + `maskedCorners` clamps the radius to half the
+            // SHORTER side (≈ strip height) on iOS, so a wide strip got tight
+            // semicircle corners that read as left/right padding. The Studio
+            // preview rounds the top corners over the full `topRadius` width
+            // (elliptical when topRadius exceeds the strip height) — match that.
+            stripViewMixedCornerHook = { [weak stripView] in
+                guard let stripView = stripView else { return }
+                let w = stripView.bounds.width, h = stripView.bounds.height
+                guard w > 0, h > 0 else { return }
+                let rx = min(topRadius, w / 2)   // horizontal spread (matches CSS)
+                let ry = min(topRadius, h)        // vertical, capped at strip height
+                let path = UIBezierPath()
+                path.move(to: CGPoint(x: 0, y: h))
+                path.addLine(to: CGPoint(x: 0, y: ry))
+                path.addQuadCurve(to: CGPoint(x: rx, y: 0), controlPoint: CGPoint(x: 0, y: 0))
+                path.addLine(to: CGPoint(x: w - rx, y: 0))
+                path.addQuadCurve(to: CGPoint(x: w, y: ry), controlPoint: CGPoint(x: w, y: 0))
+                path.addLine(to: CGPoint(x: w, y: h))
+                path.close()
+                let mask = CAShapeLayer()
+                mask.path = path.cgPath
+                stripView.layer.mask = mask
+            }
+        } else {
+            stripViewMixedCornerHook = nil
+        }
+        containerView.insertSubview(stripView, at: 0)
+        NSLayoutConstraint.activate([
+            stripView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
+            stripView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
+            stripView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor),
+            stripView.heightAnchor.constraint(equalToConstant: bottomInset)
+        ])
     }
     
     private func applyClose() {
@@ -364,9 +802,9 @@ class StyleViewController: UIViewController {
         
         let lang = defaultLang
         
-        var title = close.text?.label?[lang]
+        var title = close.text?.label?.localize(lang)
                if let dict = textData?.label {
-                   title = dict[lang] ?? dict["en"] ?? "Close"
+                   title = dict.localize(lang, fallback: "Close")
                }
                
                closeButton.setTitle(title, for: .normal)
@@ -386,19 +824,27 @@ class StyleViewController: UIViewController {
     
     
     private func addBackgroundImage(urlString: String) {
-        let bgImageView = UIImageView()
+        let bgImageView = PaylisherImageFitView()
         bgImageView.translatesAutoresizingMaskIntoConstraints = false
-        bgImageView.contentMode = .scaleAspectFill
-        bgImageView.clipsToBounds = true
-        
+        // Background image fit / position / inner inset — parity with image
+        // blocks + Studio preview + Android. Defaults keep edge-to-edge cover.
+        bgImageView.fit = (style.bgImageFit ?? "cover").lowercased()
+        bgImageView.alignX = (style.bgImageAlignX ?? "center").lowercased()
+        bgImageView.alignY = (style.bgImageAlignY ?? "center").lowercased()
+        bgImageView.insetRatio = max(0, min(45, CGFloat(style.bgImagePadding ?? 0))) / 100
+
         containerView.insertSubview(bgImageView, at: 0)
-        
+
+        // bgImage fills the ENTIRE container — the bottom strip is a
+        // decorative overlay inserted on top of bgImage (via
+        // `addBottomStripIfNeeded` later in the same pipeline). Keeps the
+        // image visually continuous so there's no seam between the
+        // image's bottom and the strip's top.
         NSLayoutConstraint.activate([
             bgImageView.topAnchor.constraint(equalTo: containerView.topAnchor),
             bgImageView.leadingAnchor.constraint(equalTo: containerView.leadingAnchor),
             bgImageView.trailingAnchor.constraint(equalTo: containerView.trailingAnchor),
             bgImageView.bottomAnchor.constraint(equalTo: containerView.bottomAnchor)
-            
         ])
         
         if let url = URL(string: urlString) {
@@ -436,7 +882,7 @@ class StyleViewController: UIViewController {
         
         if extra.overlay?.action == "close" {
             
-            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(didTapClose))
+            let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleOverlayClose))
             overlayView.isUserInteractionEnabled = true
             overlayView.addGestureRecognizer(tapGesture)
         }
@@ -488,70 +934,157 @@ class StyleViewController: UIViewController {
     
     // MARK: - Block Rendering
 
+    private func wrapBlockWithMargins(_ blockView: UIView, marginTop: Int?, marginBottom: Int?) -> UIView {
+        // Banner: per-block vertical spacing is a PERCENT of banner height
+        // (0–100). Modal / fullscreen keeps raw pt (legacy semantics).
+        let top = bannerPctV(CGFloat(marginTop ?? 0))
+        let bottom = bannerPctV(CGFloat(marginBottom ?? 0))
+        if top == 0 && bottom == 0 { return blockView }
+        let wrapper = UIView()
+        wrapper.translatesAutoresizingMaskIntoConstraints = false
+        blockView.translatesAutoresizingMaskIntoConstraints = false
+        wrapper.addSubview(blockView)
+        NSLayoutConstraint.activate([
+            blockView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: top),
+            blockView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -bottom),
+            blockView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor),
+            blockView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor),
+        ])
+        return wrapper
+    }
+
     private func applyBlocks() {
         guard let orderArray = blocks.order else { return }
 
+        let hasFlexibleSpacer = orderArray.contains {
+            if case .spacer(let sb) = $0 { return sb.fillAvailableSpacing == true }
+            return false
+        }
+
+        let topSpacer = UIView()
+        let bottomSpacer = UIView()
+
+        if !hasFlexibleSpacer {
+            topSpacer.translatesAutoresizingMaskIntoConstraints = false
+            bottomSpacer.translatesAutoresizingMaskIntoConstraints = false
+            contentStackView.addArrangedSubview(topSpacer)
+        }
+
         for block in orderArray {
             var blockView: UIView?
+            var marginTop: Int? = nil
+            var marginBottom: Int? = nil
             switch block {
             case .text(let tb):
                 blockView = renderTextBlock(tb)
+                marginTop = tb.marginTop
+                marginBottom = tb.marginBottom
             case .image(let ib):
                 blockView = renderImageBlock(ib)
+                marginTop = ib.marginTop
+                marginBottom = ib.marginBottom
             case .spacer(let sb):
                 blockView = renderSpacerBlock(sb)
+                marginTop = sb.marginTop
+                marginBottom = sb.marginBottom
             case .button(let bb):
                 blockView = renderButtonBlock(bb)
             case .buttonGroup(let bg):
                 blockView = renderButtonGroupBlock(bg)
+                marginTop = bg.marginTop
+                marginBottom = bg.marginBottom
             case .unknown:
                 continue
             }
             if let v = blockView {
-                contentStackView.addArrangedSubview(v)
+                contentStackView.addArrangedSubview(wrapBlockWithMargins(v, marginTop: marginTop, marginBottom: marginBottom))
             }
+        }
+
+        if !hasFlexibleSpacer {
+            contentStackView.addArrangedSubview(bottomSpacer)
+            applyContentAlignment(blocks.align, topSpacer: topSpacer, bottomSpacer: bottomSpacer)
+        }
+    }
+
+    private func applyContentAlignment(_ align: String?, topSpacer: UIView, bottomSpacer: UIView) {
+        let normalized = (align ?? "top").lowercased()
+
+        switch normalized {
+        case "center":
+            NSLayoutConstraint.activate([
+                topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+                bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+                topSpacer.heightAnchor.constraint(equalTo: bottomSpacer.heightAnchor),
+            ])
+        case "bottom":
+            NSLayoutConstraint.activate([
+                topSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+                bottomSpacer.heightAnchor.constraint(equalToConstant: 0),
+            ])
+        default: // "top"
+            NSLayoutConstraint.activate([
+                topSpacer.heightAnchor.constraint(equalToConstant: 0),
+                bottomSpacer.heightAnchor.constraint(greaterThanOrEqualToConstant: 0),
+            ])
         }
     }
 
     private func renderTextBlock(_ block: CustomInAppPayload.Layout.Blocks.TextBlock) -> UIView {
         let label = UILabel()
-        label.text = block.content?[defaultLang] ?? block.content?.values.first ?? ""
+        let textString = block.content?.localize(defaultLang) ?? ""
         label.numberOfLines = 0
         label.lineBreakMode = .byWordWrapping
 
-        let font = makeFont(family: block.fontFamily, weight: block.fontWeight, size: block.fontSize)
-        if block.italic == true {
-            label.font = UIFont.italicSystemFont(ofSize: font.pointSize)
-        } else {
-            label.font = font
-        }
+        // Banner: scale authored fontSize vertically with banner height.
+        // Modal/fullscreen pass through unchanged (scaleV is no-op there).
+        let scaledFontSize = scaledFontSizeString(block.fontSize)
+        let font = makeFont(
+            family: block.fontFamily,
+            weight: block.fontWeight,
+            size: scaledFontSize,
+            italic: block.italic == true
+        )
+        label.font = font
 
-        if block.underscore == true {
-            let text = label.text ?? ""
-            label.attributedText = NSAttributedString(string: text, attributes: [
-                .underlineStyle: NSUnderlineStyle.single.rawValue,
-                .font: label.font as Any,
-                .foregroundColor: UIColor(hex: block.color ?? "#000000") ?? .black
-            ])
-        } else if let colorHex = block.color, let color = UIColor(hex: colorHex) {
-            label.textColor = color
-        }
-
+        let alignment: NSTextAlignment
         switch block.textAlignment {
-        case "center": label.textAlignment = .center
-        case "right": label.textAlignment = .right
-        default: label.textAlignment = .left
+        case "center": alignment = .center
+        case "right": alignment = .right
+        default: alignment = .left
         }
+        label.textAlignment = alignment
 
-        let margin = CGFloat(block.horizontalMargin ?? 0)
-        if margin > 0 {
-            let adjustedMargin = margin + extraHorizontalInset
+        // Render through an attributed string so every text block carries the
+        // preview's CSS `line-height: 1.3`. UIKit has no line-height multiple,
+        // so `lineHeightAttributes` pins min == max line height to
+        // `fontSize * 1.3` and re-centers the glyphs. The optional underline
+        // rides along in the same attribute set (previously a separate path).
+        let textColor = UIColor(hex: block.color ?? "#000000") ?? .black
+        label.attributedText = NSAttributedString(
+            string: textString,
+            attributes: lineHeightAttributes(
+                font: font,
+                multiple: textLineHeightMultiple,
+                alignment: alignment,
+                color: textColor,
+                underline: block.underscore == true
+            )
+        )
+
+        // Banner: horizontalMargin is a PERCENT of banner width (0–100).
+        // Modal/fullscreen pass through raw and add the legacy
+        // `extraHorizontalInset` (see `adjustedMargin` below).
+        let scaledHorizontalMargin = bannerPctH(CGFloat(block.horizontalMargin ?? 0))
+        let scaledVerticalPadding = scaleV(4)
+        if (block.horizontalMargin ?? 0) > 0 {
+            let adjustedMargin = scaledHorizontalMargin + (layoutType == "banner" ? 0 : extraHorizontalInset)
             let wrapper = UIView()
             label.translatesAutoresizingMaskIntoConstraints = false
             wrapper.addSubview(label)
             NSLayoutConstraint.activate([
-                label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 4),
-                label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -4),
+                label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: scaledVerticalPadding),
+                label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -scaledVerticalPadding),
                 label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: adjustedMargin),
                 label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -adjustedMargin),
             ])
@@ -562,8 +1095,8 @@ class StyleViewController: UIViewController {
         label.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(label)
         NSLayoutConstraint.activate([
-            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 4),
-            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -4),
+            label.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: scaledVerticalPadding),
+            label.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -scaledVerticalPadding),
             label.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset),
             label.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset),
         ])
@@ -572,6 +1105,7 @@ class StyleViewController: UIViewController {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
             wrapper.isUserInteractionEnabled = true
             wrapper.accessibilityIdentifier = action
+            wrapper.accessibilityValue = "text"
             wrapper.addGestureRecognizer(tap)
         }
 
@@ -579,14 +1113,45 @@ class StyleViewController: UIViewController {
     }
 
     private func renderImageBlock(_ block: CustomInAppPayload.Layout.Blocks.ImageBlock) -> UIView {
-        let imageView = UIImageView()
+        // PaylisherImageFitView keeps a FIXED-size component and positions the
+        // image INSIDE it per fit / align / inner-inset — parity with the
+        // Studio preview (object-fit / object-position / padding) + Android.
+        let imageView = PaylisherImageFitView()
         imageView.translatesAutoresizingMaskIntoConstraints = false
-        // Match preview/Android behavior: image fills a fixed frame (cropping if needed).
-        imageView.contentMode = .scaleAspectFill
-        imageView.clipsToBounds = true
+        imageView.fit = (block.imageFit ?? "cover").lowercased()
+        imageView.alignX = (block.imageAlignX ?? "center").lowercased()
+        imageView.alignY = (block.imageAlignY ?? "center").lowercased()
+        // Inner inset = percent (0–45) of the component HEIGHT — same basis the
+        // preview + Android use, so the image shrinks by the exact same pixels.
+        imageView.insetRatio = max(0, min(45, CGFloat(block.imagePadding ?? 0))) / 100
+
+        // Accessibility: expose the alt text to VoiceOver, mirroring Android's
+        // contentDescription wiring. Image becomes a VoiceOver-readable element
+        // only when an alt text is provided.
+        if let altText = block.alt, !altText.isEmpty {
+            imageView.isAccessibilityElement = true
+            imageView.accessibilityLabel = altText
+            imageView.accessibilityTraits.insert(.image)
+        } else {
+            imageView.isAccessibilityElement = false
+        }
 
         if layoutType == "banner" {
-            let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: 60)
+            // Banner image intrinsic height = 60pt on the iPhone 13 reference
+            // banner; scale vertically so it stays proportional everywhere.
+            let bannerImageHeight = scaleV(60)
+            let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: bannerImageHeight)
+            heightConstraint.priority = .required
+            heightConstraint.isActive = true
+        } else if layoutType == "fullscreen" {
+            // Fullscreen image: 32% of the device viewport (image is meant
+            // to dominate). 72pt floor matches modal so tiny devices never
+            // collapse the image to nothing.
+            let fullscreenImageHeight = max(
+                UIScreen.main.bounds.height * fullscreenImageHeightRatio,
+                modalImageMinHeight
+            )
+            let heightConstraint = imageView.heightAnchor.constraint(equalToConstant: fullscreenImageHeight)
             heightConstraint.priority = .required
             heightConstraint.isActive = true
         } else {
@@ -608,36 +1173,43 @@ class StyleViewController: UIViewController {
         }
 
         let rawMargin = CGFloat(block.margin ?? 0)
-        // Preview/Android contract: keep image inset on X axis only.
-        let horizontalMarginBase: CGFloat = (layoutType == "fullscreen" && rawMargin <= 0) ? baseHorizontalInset : rawMargin
-        let horizontalMargin: CGFloat = horizontalMarginBase + extraHorizontalInset
+        // Image sits inside the container's inner padding like every other
+        // block. `block.margin` is an additional inset on top of that padding,
+        // authored as a PERCENT of container width (0–100) for banner + modal +
+        // fullscreen — matching the Studio preview (`bannerPctH`) + Android
+        // (`pctHPx`). `bannerPctH` resolves the percent against the current
+        // container width (full screen for fullscreen, 0.88× for modal, the
+        // ratio-padded width for banner); unknown layoutTypes fall back to raw.
+        // The fullscreen scrollView already carries its own inner horizontal
+        // padding, so a margin of 0 still never kisses the screen edge.
+        let horizontalMargin = bannerPctH(rawMargin)
         let verticalMargin: CGFloat = 0
+        let leadingConstant: CGFloat = horizontalMargin
+        let trailingConstant: CGFloat = -horizontalMargin
         let wrapper = UIView()
-        let frameView = UIView()
-        frameView.translatesAutoresizingMaskIntoConstraints = false
-        frameView.clipsToBounds = true
+        // The fit view IS the fixed-size component: it clips, carries the corner
+        // radius, and positions the image inside per fit / align / inset.
         if let radius = block.radius {
-            frameView.layer.cornerRadius = CGFloat(radius)
+            // Banner: image radius is a PERCENT of banner height (0–100).
+            // Modal/fullscreen pass through raw pt. Applied (clamped) via a path
+            // mask inside the fit view so the oversized cover image is clipped
+            // cleanly instead of chamfering into triangular corners.
+            imageView.cornerRadiusPt = bannerPctV(CGFloat(radius))
         }
 
-        wrapper.addSubview(frameView)
-        frameView.addSubview(imageView)
+        wrapper.addSubview(imageView)
         NSLayoutConstraint.activate([
-            frameView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: verticalMargin),
-            frameView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -verticalMargin),
-            frameView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: horizontalMargin),
-            frameView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -horizontalMargin),
-
-            imageView.topAnchor.constraint(equalTo: frameView.topAnchor),
-            imageView.bottomAnchor.constraint(equalTo: frameView.bottomAnchor),
-            imageView.leadingAnchor.constraint(equalTo: frameView.leadingAnchor),
-            imageView.trailingAnchor.constraint(equalTo: frameView.trailingAnchor),
+            imageView.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: verticalMargin),
+            imageView.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -verticalMargin),
+            imageView.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: leadingConstant),
+            imageView.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: trailingConstant),
         ])
 
         if let link = block.link, !link.isEmpty {
             let tap = UITapGestureRecognizer(target: self, action: #selector(handleTapAction(_:)))
             wrapper.isUserInteractionEnabled = true
             wrapper.accessibilityIdentifier = link
+            wrapper.accessibilityValue = "image"
             wrapper.addGestureRecognizer(tap)
         }
 
@@ -653,29 +1225,47 @@ class StyleViewController: UIViewController {
             return spacer
         }
 
-        let height = CGFloat(block.verticalSpacing ?? 8)
+        // `verticalSpacing` is a PERCENT of the container's height (0–100)
+        // for banner + modal. Fullscreen passes raw pt through.
+        let rawValue = CGFloat(block.verticalSpacing ?? 8)
+        let height: CGFloat = {
+            if isPercentContainer {
+                let pct = max(0, min(100, rawValue))
+                return currentContainerHeight() * pct / 100
+            }
+            return rawValue
+        }()
         spacer.heightAnchor.constraint(equalToConstant: height).isActive = true
         return spacer
     }
 
     private func renderButtonBlock(_ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock) -> UIView {
-        let button = createStyledButton(block)
-        let margin = CGFloat(block.margin ?? 8)
+        // `block.margin` is a HORIZONTAL-ONLY outer spacing — pads left/right
+        // (and shrinks the button accordingly). Vertical gap between buttons
+        // is controlled by per-block `marginTop` / `marginBottom`.
+        // Banner: PERCENT of banner width (0–100). Modal/fullscreen: raw pt.
+        let marginH = bannerPctH(CGFloat(block.margin ?? 8))
 
+        // Resolve intrinsic button height BEFORE building the styled button —
+        // the button's font is now a percent of its own height, so we need
+        // the final height ready when `createStyledButton` is called.
+        let baseHeight: CGFloat
+        switch block.verticalSize {
+        case "small": baseHeight = 32
+        case "large": baseHeight = 56
+        default: baseHeight = 44
+        }
+        let heightValue: CGFloat = scaleV(baseHeight)
+
+        let button = createStyledButton(block, buttonHeight: heightValue)
         let wrapper = UIView()
         button.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(button)
-
-        let heightValue: CGFloat
-        switch block.verticalSize {
-        case "small": heightValue = 32
-        case "large": heightValue = 56
-        default: heightValue = 44
-        }
+        button.layer.cornerRadius = resolveButtonCornerRadius(block, height: heightValue)
 
         var constraints = [
-            button.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: margin),
-            button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -margin),
+            button.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            button.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
             button.heightAnchor.constraint(equalToConstant: heightValue),
         ]
 
@@ -689,25 +1279,27 @@ class StyleViewController: UIViewController {
         }
 
         if normalizedHSize == "full" {
-            // Full width - buttonPosition is irrelevant
-            constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset))
-            constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset))
+            // Full width - buttonPosition is irrelevant. Horizontal margin
+            // shrinks the button on both sides.
+            constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset + marginH))
+            constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -(contentHorizontalInset + marginH)))
         } else {
             // half or auto: apply width then position
             if normalizedHSize == "half" {
-                constraints.append(button.widthAnchor.constraint(equalTo: wrapper.widthAnchor, multiplier: 0.5))
+                // 50% of wrapper minus margin on each side
+                constraints.append(button.widthAnchor.constraint(equalTo: wrapper.widthAnchor, multiplier: 0.5, constant: -2 * marginH))
             } else {
                 // auto: content-hugging size with min padding
-                constraints.append(button.leadingAnchor.constraint(greaterThanOrEqualTo: wrapper.leadingAnchor, constant: contentHorizontalInset))
-                constraints.append(button.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -contentHorizontalInset))
-                button.contentEdgeInsets = UIEdgeInsets(top: 8, left: 24, bottom: 8, right: 24)
+                constraints.append(button.leadingAnchor.constraint(greaterThanOrEqualTo: wrapper.leadingAnchor, constant: contentHorizontalInset + marginH))
+                constraints.append(button.trailingAnchor.constraint(lessThanOrEqualTo: wrapper.trailingAnchor, constant: -(contentHorizontalInset + marginH)))
+                button.contentEdgeInsets = UIEdgeInsets(top: 0, left: 24, bottom: 0, right: 24)
             }
 
             switch block.buttonPosition {
             case "left":
-                constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset))
+                constraints.append(button.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset + marginH))
             case "right":
-                constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset))
+                constraints.append(button.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -(contentHorizontalInset + marginH)))
             default:
                 constraints.append(button.centerXAnchor.constraint(equalTo: wrapper.centerXAnchor))
             }
@@ -728,7 +1320,11 @@ class StyleViewController: UIViewController {
             let wrapper = UIView()
             let stack = UIStackView()
             stack.axis = .vertical
-            stack.spacing = 0
+            // `buttonGap` is the inter-button vertical gap. Banner: percent of banner
+            // height (0–100); modal/fullscreen passes raw pt straight through. Only
+            // applied to vertical groups — horizontal groups stay 50/50 butted.
+            let rawGap = CGFloat(block.buttonGap ?? 0)
+            stack.spacing = bannerPctV(rawGap)
             stack.alignment = .fill
             stack.distribution = .fill
             stack.translatesAutoresizingMaskIntoConstraints = false
@@ -750,40 +1346,98 @@ class StyleViewController: UIViewController {
 
         let stack = UIStackView()
         stack.axis = .horizontal
-        stack.spacing = 8
-        stack.alignment = .fill
+        // Horizontal group: `buttonGap` is interpreted as % of container width
+        // (vs % of container height for vertical groups). Same authored value,
+        // container-aware axis — mirrors Studio + Android.
+        stack.spacing = bannerPctH(CGFloat(block.buttonGap ?? 0))
+        stack.alignment = .center
         stack.distribution = .fillEqually
 
         for btnData in buttons {
-            let btn = createStyledButton(btnData)
-            let heightValue: CGFloat
+            let baseHeight: CGFloat
             switch btnData.verticalSize {
-            case "small": heightValue = 32
-            case "large": heightValue = 56
-            default: heightValue = 44
+            case "small": baseHeight = 32
+            case "large": baseHeight = 56
+            default: baseHeight = 44
             }
+            // Banner / modal: scale button intrinsic height with container height.
+            let heightValue: CGFloat = scaleV(baseHeight)
+            let btn = createStyledButton(btnData, buttonHeight: heightValue)
+            btn.layer.cornerRadius = resolveButtonCornerRadius(btnData, height: heightValue)
             btn.heightAnchor.constraint(equalToConstant: heightValue).isActive = true
-            stack.addArrangedSubview(btn)
+
+            // Wrap each button so per-button margin can shrink its width and the
+            // stack's .fillEqually still splits the row 50/50 between wrappers.
+            let buttonWrapper = UIView()
+            btn.translatesAutoresizingMaskIntoConstraints = false
+            buttonWrapper.translatesAutoresizingMaskIntoConstraints = false
+            buttonWrapper.addSubview(btn)
+            // Banner: per-button horizontal margin is a PERCENT of banner width
+            // (0–100). Modal/fullscreen pass through raw pt.
+            let buttonMargin = bannerPctH(CGFloat(btnData.margin ?? 8))
+            let hSize = (btnData.horizontalSize ?? "").lowercased()
+            // `auto` buttons sit at their intrinsic width inside the half
+            // wrapper (centered) so the user can pair a wide button on one
+            // side with a compact one on the other. Every other size stretches
+            // the button to the wrapper edge (minus margin) — matches the
+            // Studio + Android renderers.
+            if hSize == "auto" {
+                btn.titleEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+                btn.contentEdgeInsets = UIEdgeInsets(top: 0, left: 12, bottom: 0, right: 12)
+                NSLayoutConstraint.activate([
+                    btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
+                    btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
+                    btn.centerXAnchor.constraint(equalTo: buttonWrapper.centerXAnchor),
+                    btn.leadingAnchor.constraint(greaterThanOrEqualTo: buttonWrapper.leadingAnchor, constant: buttonMargin),
+                    btn.trailingAnchor.constraint(lessThanOrEqualTo: buttonWrapper.trailingAnchor, constant: -buttonMargin),
+                ])
+                stack.addArrangedSubview(buttonWrapper)
+                continue
+            }
+            NSLayoutConstraint.activate([
+                btn.topAnchor.constraint(equalTo: buttonWrapper.topAnchor),
+                btn.bottomAnchor.constraint(equalTo: buttonWrapper.bottomAnchor),
+                btn.leadingAnchor.constraint(equalTo: buttonWrapper.leadingAnchor, constant: buttonMargin),
+                btn.trailingAnchor.constraint(equalTo: buttonWrapper.trailingAnchor, constant: -buttonMargin),
+            ])
+            stack.addArrangedSubview(buttonWrapper)
         }
 
         let wrapper = UIView()
         stack.translatesAutoresizingMaskIntoConstraints = false
         wrapper.addSubview(stack)
+        // No more hardcoded vertical wrapper padding. Each block already gets
+        // its own per-block `marginTop` / `marginBottom` via `wrapBlockWithMargins`,
+        // so the button group now butts up to the previous/next block by default
+        // — the user controls the gap explicitly through those margins (banner:
+        // percent of banner height; modal/fullscreen: raw pt).
         NSLayoutConstraint.activate([
-            stack.topAnchor.constraint(equalTo: wrapper.topAnchor, constant: 8),
-            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor, constant: -8),
+            stack.topAnchor.constraint(equalTo: wrapper.topAnchor),
+            stack.bottomAnchor.constraint(equalTo: wrapper.bottomAnchor),
             stack.leadingAnchor.constraint(equalTo: wrapper.leadingAnchor, constant: contentHorizontalInset),
             stack.trailingAnchor.constraint(equalTo: wrapper.trailingAnchor, constant: -contentHorizontalInset),
         ])
         return wrapper
     }
 
-    private func createStyledButton(_ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock) -> UIButton {
+    private func createStyledButton(
+        _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
+        buttonHeight: CGFloat = 44
+    ) -> UIButton {
         let button = UIButton(type: .system)
-        let title = block.label?[defaultLang] ?? block.label?.values.first ?? ""
+        let title = block.label?.localize(defaultLang) ?? ""
         button.setTitle(title, for: .normal)
 
-        let font = makeFont(family: block.fontFamily, weight: block.fontWeight, size: block.fontSize)
+        // Banner + modal: authored fontSize is a PERCENT of CONTAINER height —
+        // same contract text blocks use. Fullscreen keeps the raw string for
+        // legacy pt semantics. (`buttonHeight` param kept for future use.)
+        _ = buttonHeight
+        let font = makeFont(
+            family: block.fontFamily,
+            weight: block.fontWeight,
+            size: scaledFontSizeString(block.fontSize),
+            italic: block.italic == true
+        )
         button.titleLabel?.font = font
 
         if let hex = block.textColor, let color = UIColor(hex: hex) {
@@ -801,51 +1455,156 @@ class StyleViewController: UIViewController {
             button.layer.borderWidth = 1
         }
 
-        button.layer.cornerRadius = CGFloat(block.borderRadius ?? 8)
+        // Banner: borderRadius is a PERCENT of banner height (0–100).
+        // Modal/fullscreen pass through raw pt.
+        button.layer.cornerRadius = bannerPctV(CGFloat(block.borderRadius ?? 8))
         button.clipsToBounds = true
 
         let action = block.action ?? ""
         button.accessibilityIdentifier = action
+        button.accessibilityValue = "button"
         button.addTarget(self, action: #selector(handleButtonTap(_:)), for: .touchUpInside)
 
         return button
     }
 
-    private func makeFont(family: String?, weight: String?, size: String?) -> UIFont {
-        let fontSize = CGFloat(Double(size ?? "16") ?? 16)
-        let fontWeight: UIFont.Weight = weight == "bold" ? .bold : .regular
+    private func resolveButtonCornerRadius(
+        _ block: CustomInAppPayload.Layout.Blocks.ButtonGroupBlock.ButtonBlock,
+        height: CGFloat
+    ) -> CGFloat {
+        // Banner: borderRadius is a PERCENT of banner height (0–100).
+        // Modal/fullscreen pass through raw pt. Cap at height/2 so the radius
+        // never exceeds a "pill" shape regardless of authored value.
+        let resolved = bannerPctV(CGFloat(block.borderRadius ?? 8))
+        return min(resolved, height / 2)
+    }
 
-        switch family {
+    private func makeFont(family: String?, weight: String?, size: String?, italic: Bool = false) -> UIFont {
+        let rawSize = (size ?? "16").replacingOccurrences(of: "px", with: "")
+        let fontSize = CGFloat(Double(rawSize) ?? 16)
+        let normalizedWeight = (weight ?? "").lowercased()
+        let isBold = normalizedWeight == "bold" || normalizedWeight == "bold_italic"
+        let isItalic = italic || normalizedWeight == "italic" || normalizedWeight == "bold_italic"
+        let fontWeight: UIFont.Weight = isBold ? .bold : .regular
+
+        // `default` (and missing family) resolves to bundled Inter — the
+        // SAME face Studio preview + Android SDK use. This is the keystone
+        // of cross-platform pixel parity: identical glyph metrics ⇒
+        // identical wrap points ⇒ same word at the end of every line on
+        // every device. `monospace` keeps the system mono behavior; any
+        // other explicit family value passes through unchanged so a host
+        // app can still author a custom face if they want.
+        let normalizedFamily = family?.lowercased() ?? "default"
+        switch normalizedFamily {
         case "monospace":
-            return .monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
+            let mono = UIFont.monospacedSystemFont(ofSize: fontSize, weight: fontWeight)
+            if isItalic, let d = mono.fontDescriptor.withSymbolicTraits(mono.fontDescriptor.symbolicTraits.union(.traitItalic)) {
+                return UIFont(descriptor: d, size: fontSize)
+            }
+            return mono
+        case "default", "":
+            return PaylisherFontRegistry.interFont(size: fontSize, bold: isBold, italic: isItalic)
         default:
-            return .systemFont(ofSize: fontSize, weight: fontWeight)
+            // Host-app-authored explicit family — keep the legacy lookup.
+            let baseFont = UIFont(name: family ?? "", size: fontSize)
+                ?? .systemFont(ofSize: fontSize, weight: fontWeight)
+            if isItalic, let d = baseFont.fontDescriptor.withSymbolicTraits(baseFont.fontDescriptor.symbolicTraits.union(.traitItalic)) {
+                return UIFont(descriptor: d, size: fontSize)
+            }
+            return baseFont
         }
+    }
+
+    /// Build attributed-string attributes that reproduce the Studio preview's
+    /// CSS unitless `line-height` on iOS. UIKit exposes no line-height
+    /// multiple, so we pin `minimumLineHeight == maximumLineHeight` to
+    /// `font.pointSize * multiple` and nudge the baseline by a quarter of the
+    /// extra leading — TextKit otherwise banks all the extra space above the
+    /// glyphs, which reads as a top gap / vertical drift vs the preview.
+    private func lineHeightAttributes(
+        font: UIFont,
+        multiple: CGFloat,
+        alignment: NSTextAlignment,
+        color: UIColor,
+        underline: Bool
+    ) -> [NSAttributedString.Key: Any] {
+        let lineHeight = font.pointSize * multiple
+        let paragraph = NSMutableParagraphStyle()
+        paragraph.minimumLineHeight = lineHeight
+        paragraph.maximumLineHeight = lineHeight
+        paragraph.lineBreakMode = .byWordWrapping
+        paragraph.alignment = alignment
+        var attributes: [NSAttributedString.Key: Any] = [
+            .font: font,
+            .foregroundColor: color,
+            .paragraphStyle: paragraph,
+            // Re-center the glyphs in the taller line box. TextKit banks the
+            // extra leading above the text, so without this the first line
+            // gains a top gap; a quarter of the delta visually centers it.
+            .baselineOffset: (lineHeight - font.lineHeight) / 4.0,
+        ]
+        if underline {
+            attributes[.underlineStyle] = NSUnderlineStyle.single.rawValue
+        }
+        return attributes
     }
 
     @objc private func handleButtonTap(_ sender: UIButton) {
         let action = sender.accessibilityIdentifier ?? ""
+        captureButtonClick(action: action, type: "button", label: sender.currentTitle)
         handleBlockAction(action)
     }
 
     @objc private func handleTapAction(_ gesture: UITapGestureRecognizer) {
         let action = gesture.view?.accessibilityIdentifier ?? ""
+        let type = gesture.view?.accessibilityValue ?? "button"
+        captureButtonClick(action: action, type: type)
         handleBlockAction(action)
     }
 
     private func handleBlockAction(_ action: String) {
         if action.isEmpty || action == "close" {
-            didTapClose()
+            dismissInApp(via: "closeButton")
             return
         }
 
         if let url = URL(string: action) {
             UIApplication.shared.open(url)
         }
-        didTapClose()
+        dismissInApp(via: "intent")
     }
 
     @objc private func didTapClose() {
+        dismissInApp(via: "closeButton")
+    }
+
+    @objc private func handleOverlayClose() {
+        dismissInApp(via: "overlay")
+    }
+
+    private func captureButtonClick(action: String, type: String, label: String? = nil) {
+        var properties: [String: Any?] = [
+            "action": action,
+            "type": type,
+        ]
+        if let label, !label.isEmpty {
+            properties["label"] = label
+        }
+
+        PaylisherNotificationEventTracker.capture(
+            "inappMessageButtonClick",
+            pushId: pushId,
+            properties: properties
+        )
+    }
+
+    private func dismissInApp(via: String) {
+        PaylisherNotificationEventTracker.capture(
+            "inappMessageClose",
+            pushId: pushId,
+            properties: ["via": via]
+        )
+
         guard let transitionType = extra.transition else {
             dismiss(animated: true)
             return
