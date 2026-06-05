@@ -74,7 +74,6 @@ TOOLCHAIN_FLAG=""
 TOOLCHAIN_DISPLAY="Default (Xcode built-in)"
 
 if [ -n "$TOOLCHAIN_ID" ]; then
-    # Shorthand aliases
     case "$TOOLCHAIN_ID" in
         swift6|swift6.0|swift60)
             TOOLCHAIN_ID="org.swift.600202409101a"
@@ -84,7 +83,6 @@ if [ -n "$TOOLCHAIN_ID" ]; then
             ;;
     esac
 
-    # Verify toolchain exists
     TOOLCHAIN_PATH=$(find /Library/Developer/Toolchains -name "*.xctoolchain" -maxdepth 1 2>/dev/null | while read tc; do
         if plutil -p "$tc/Info.plist" 2>/dev/null | grep -q "$TOOLCHAIN_ID"; then
             echo "$tc"
@@ -99,7 +97,6 @@ if [ -n "$TOOLCHAIN_ID" ]; then
     TOOLCHAIN_DISPLAY="$TOOLCHAIN_ID"
     TOOLCHAIN_FLAG="-toolchain $TOOLCHAIN_ID"
 
-    # Show toolchain Swift version
     TOOLCHAIN_SWIFT_VERSION=$("$TOOLCHAIN_PATH/usr/bin/swift" --version 2>/dev/null | head -1)
     log_info "Using toolchain: $TOOLCHAIN_SWIFT_VERSION"
 fi
@@ -112,10 +109,6 @@ SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"
 PROJECT_ROOT="$(dirname "$SCRIPT_DIR")"
 cd "$PROJECT_ROOT" || log_error "Could not change to project directory!"
 
-# Use Xcode 16.1.
-# On CI (e.g. GitHub Actions) the runner's selected Xcode is used: we respect an
-# externally-provided DEVELOPER_DIR and only fall back to the local hard-coded path
-# when nothing is set AND that path actually exists on this machine.
 LOCAL_XCODE="/Volumes/Mac/Uygulama 2/Xcode.app/Contents/Developer"
 if [ -z "${DEVELOPER_DIR:-}" ] && [ -d "$LOCAL_XCODE" ]; then
     export DEVELOPER_DIR="$LOCAL_XCODE"
@@ -129,7 +122,6 @@ XCFRAMEWORK_OUTPUT="$BUILD_DIR/${SCHEME_NAME}.xcframework"
 IOS_ARCHIVE="$BUILD_DIR/ios_devices.xcarchive"
 SIMULATOR_ARCHIVE="$BUILD_DIR/ios_simulator.xcarchive"
 
-# Create directories
 mkdir -p "$LOG_DIR"
 rm -f "$LOG_FILE"
 touch "$LOG_FILE"
@@ -148,23 +140,20 @@ echo ""
 
 log_section "Cleaning Previous Builds"
 
-# Clean Xcode cache
 log_info "Cleaning Xcode build cache..."
-xcodebuild clean -project Paylisher.xcodeproj -scheme "$SCHEME_NAME" 2>&1 | tee -a "$LOG_FILE" || true
+xcodebuild clean -project Paylisher.xcodeproj -scheme "$SCHEME_NAME" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" 2>&1 | tee -a "$LOG_FILE" || true
 
-# Backup existing XCFramework
 if [ -d "$XCFRAMEWORK_OUTPUT" ]; then
     BACKUP_NAME="${SCHEME_NAME}_$(date +%Y%m%d_%H%M%S).xcframework"
     log_warning "Backing up existing XCFramework: $BACKUP_NAME"
     mv "$XCFRAMEWORK_OUTPUT" "$BUILD_DIR/$BACKUP_NAME"
 fi
 
-# Remove old archives
 rm -rf "$IOS_ARCHIVE" "$SIMULATOR_ARCHIVE"
 log_info "Cleanup complete"
 
 # ============================================================================
-# Resolve SPM Packages (with default toolchain)
+# Resolve SPM Packages
 # ============================================================================
 
 if [ -n "$TOOLCHAIN_FLAG" ]; then
@@ -172,7 +161,7 @@ if [ -n "$TOOLCHAIN_FLAG" ]; then
     log_info "SPM packages must be resolved with Xcode's default toolchain..."
     xcodebuild -resolvePackageDependencies \
         -project Paylisher.xcodeproj \
-        -scheme "$SCHEME_NAME" 2>&1 | tee -a "$LOG_FILE" || log_error "Package resolution failed!"
+        -scheme "$SCHEME_NAME" CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" 2>&1 | tee -a "$LOG_FILE" || log_error "Package resolution failed!"
     log_info "SPM packages resolved successfully"
     DISABLE_PKG_RESOLVE="-disableAutomaticPackageResolution"
 else
@@ -223,7 +212,6 @@ log_info "Simulator archive completed"
 
 log_section "Creating XCFramework"
 
-# Dynamically find the framework path inside the archive (location may vary with staticlib)
 IOS_FW_PATH=$(find "$IOS_ARCHIVE/Products" -name "${SCHEME_NAME}.framework" -type d 2>/dev/null | head -1)
 SIM_FW_PATH=$(find "$SIMULATOR_ARCHIVE/Products" -name "${SCHEME_NAME}.framework" -type d 2>/dev/null | head -1)
 
@@ -246,19 +234,17 @@ log_info "XCFramework created successfully"
 
 log_section "Validating XCFramework"
 
-# Check 1: Swift Interface exists
 log_info "Checking Swift interface files..."
 SWIFTINTERFACE_FILES=$(find "$XCFRAMEWORK_OUTPUT" -name "*.swiftinterface" 2>/dev/null | head -5)
 if [ -n "$SWIFTINTERFACE_FILES" ]; then
     echo "  Found swift interfaces:"
     echo "$SWIFTINTERFACE_FILES" | while read -r file; do
-        echo "    📄 $(basename "$file")"
+        echo "     $(basename "$file")"
     done
 else
     log_warning "No Swift interface files found!"
 fi
 
-# Check 2: _WebKit_SwiftUI import (CRITICAL)
 log_info "Checking for _WebKit_SwiftUI import (CRITICAL)..."
 if grep -r "_WebKit_SwiftUI" "$XCFRAMEWORK_OUTPUT" 2>/dev/null; then
     echo ""
@@ -267,7 +253,6 @@ else
     log_info "No _WebKit_SwiftUI import found ✅"
 fi
 
-# Check 3: Static library verification
 log_info "Verifying static library..."
 BINARY_PATH=$(find "$XCFRAMEWORK_OUTPUT" -name "$SCHEME_NAME" -type f | head -1)
 if [ -n "$BINARY_PATH" ]; then
@@ -283,12 +268,11 @@ else
     log_warning "Could not find binary for type check"
 fi
 
-# Check 4: Swift compiler version
 log_info "Swift interface header info:"
 FIRST_INTERFACE=$(echo "$SWIFTINTERFACE_FILES" | head -1)
 if [ -n "$FIRST_INTERFACE" ]; then
     head -5 "$FIRST_INTERFACE" | while read -r line; do
-        echo "    $line"
+        echo "     $line"
     done
 fi
 
@@ -300,7 +284,6 @@ log_section "Build Complete"
 
 FRAMEWORK_SIZE=$(du -sh "$XCFRAMEWORK_OUTPUT" | cut -f1)
 
-# Compute checksum
 CHECKSUM=""
 if [ -f "$XCFRAMEWORK_OUTPUT/../${SCHEME_NAME}.xcframework.zip" ]; then
     rm "$XCFRAMEWORK_OUTPUT/../${SCHEME_NAME}.xcframework.zip"
@@ -313,12 +296,11 @@ cd "$PROJECT_ROOT"
 echo -e "${BOLD}${GREEN}🎉 XCFramework Build Successful!${NC}"
 echo ""
 echo -e "  📦 ${BOLD}Output:${NC}     $XCFRAMEWORK_OUTPUT"
-echo -e "  📏 ${BOLD}Size:${NC}       $FRAMEWORK_SIZE"
+echo -e "  📏 ${BOLD}Size:${NC}        $FRAMEWORK_SIZE"
 echo -e "  🔑 ${BOLD}Checksum:${NC}   $CHECKSUM"
-echo -e "  📝 ${BOLD}Log:${NC}        $LOG_FILE"
+echo -e "  📝 ${BOLD}Log:${NC}         $LOG_FILE"
 echo ""
 
-# Cleanup archives
 log_info "Cleaning up archive files..."
 rm -rf "$IOS_ARCHIVE" "$SIMULATOR_ARCHIVE"
 
@@ -326,9 +308,4 @@ echo -e "\n${CYAN}📋 Next Steps:${NC}"
 echo "  1. Test import in Xcode 15.x/16.x project"
 echo "  2. Update Package.swift checksum if publishing"
 echo "  3. Create GitHub release with ${SCHEME_NAME}.xcframework.zip"
-if [ -n "$TOOLCHAIN_FLAG" ]; then
-    echo ""
-    echo -e "  ${YELLOW}ℹ️  Built with custom toolchain: $TOOLCHAIN_DISPLAY${NC}"
-    echo -e "  ${YELLOW}   This build targets backward compatibility with older Xcode versions.${NC}"
-fi
 echo ""
