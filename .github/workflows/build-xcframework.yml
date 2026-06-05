@@ -40,10 +40,25 @@ jobs:
           # icin yeni bir 16.x tuketiciler acisindan guvenlidir.
           xcode-version: '16.1'
 
-      - name: Toolchain bilgisi
+      - name: Ortam teshisi (iOS SDK/platform var mi?)
         run: |
+          echo "=== Secili Xcode ==="
           xcodebuild -version
           swift --version
+          echo "=== Kurulu Xcode'lar ==="
+          ls -d /Applications/Xcode*.app 2>/dev/null || true
+          echo "=== Mevcut SDK'lar (iOS burada gorunmeli) ==="
+          xcodebuild -showsdks 2>&1 || true
+          echo "=== iOS SDK yolu ==="
+          xcrun --sdk iphoneos --show-sdk-path 2>&1 || echo "!!! iOS SDK BULUNAMADI"
+          echo "=== Paylisher semasi icin mevcut destination'lar (iOS burada olmali) ==="
+          xcodebuild -showdestinations -project Paylisher.xcodeproj -scheme Paylisher 2>&1 | head -60 || true
+
+      - name: iOS platformunu indir (16.1'de iOS SDK kirpilmissa)
+        run: |
+          # Xcode 16+ ile platformlar indirilebilir. Runner'daki 16.1'de iOS SDK yoksa cek.
+          # Zaten varsa bu adim hizlica gecer / zararsizdir.
+          xcodebuild -downloadPlatform iOS 2>&1 || echo "downloadPlatform basarisiz/gereksiz olabilir - yukaridaki teshis ciktisina bak"
 
       - name: SwiftPM onbellegi (paket indirmeyi hizlandirir)
         uses: actions/cache@v4
