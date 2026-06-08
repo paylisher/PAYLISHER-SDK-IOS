@@ -10,6 +10,115 @@ import UIKit
 import CryptoKit
 
 //@available(iOSApplicationExtension, unavailable)
+/// Shared memory (NSCache) + disk image cache for in-app messages. In-app
+/// images used to be fetched from their URL at render time with no cache, so
+/// the in-app appeared empty and images "popped in" late. The prefetcher
+/// (below) warms this cache BEFORE the in-app is presented; renderers consult
+/// the synchronous memory tier first for an instant, flash-free paint.
+final class PaylisherImageCache {
+    static let shared = PaylisherImageCache()
+
+    private let memory = NSCache<NSString, UIImage>()
+    private let session: URLSession
+    private let diskDir: URL
+    private let ioQueue = DispatchQueue(label: "com.paylisher.imageCache.io", qos: .utility)
+
+    private init() {
+        let urlCache = URLCache(memoryCapacity: 16 * 1024 * 1024,
+                                diskCapacity: 64 * 1024 * 1024,
+                                diskPath: "PaylisherImageURLCache")
+        let cfg = URLSessionConfiguration.default
+        cfg.urlCache = urlCache
+        cfg.requestCachePolicy = .returnCacheDataElseLoad
+        cfg.timeoutIntervalForRequest = 10
+        session = URLSession(configuration: cfg)
+
+        let caches = FileManager.default.urls(for: .cachesDirectory, in: .userDomainMask).first
+            ?? URL(fileURLWithPath: NSTemporaryDirectory())
+        diskDir = caches.appendingPathComponent("PaylisherImageCache", isDirectory: true)
+        try? FileManager.default.createDirectory(at: diskDir, withIntermediateDirectories: true)
+    }
+
+    /// Stable filename for a URL — SHA256 hex of the absolute string.
+    private func diskKey(for url: URL) -> String {
+        let digest = SHA256.hash(data: Data(url.absoluteString.utf8))
+        return digest.map { String(format: "%02x", $0) }.joined()
+    }
+
+    /// Synchronous MEMORY-only hit for render time (no disk I/O on the caller).
+    func cachedImage(for url: URL) -> UIImage? {
+        memory.object(forKey: url.absoluteString as NSString)
+    }
+
+    /// Async load: memory → disk → network. Populates both tiers. `completion`
+    /// is ALWAYS called on the main queue.
+    func image(for url: URL, completion: @escaping (UIImage?) -> Void) {
+        if let mem = memory.object(forKey: url.absoluteString as NSString) {
+            DispatchQueue.main.async { completion(mem) }
+            return
+        }
+        ioQueue.async { [weak self] in
+            guard let self = self else { DispatchQueue.main.async { completion(nil) }; return }
+            let file = self.diskDir.appendingPathComponent(self.diskKey(for: url))
+            if let data = try? Data(contentsOf: file), let img = UIImage(data: data) {
+                self.memory.setObject(img, forKey: url.absoluteString as NSString)
+                DispatchQueue.main.async { completion(img) }
+                return
+            }
+            self.session.dataTask(with: url) { data, _, _ in
+                guard let data = data, let img = UIImage(data: data) else {
+                    DispatchQueue.main.async { completion(nil) }
+                    return
+                }
+                self.memory.setObject(img, forKey: url.absoluteString as NSString)
+                self.ioQueue.async { try? data.write(to: file, options: .atomic) }
+                DispatchQueue.main.async { completion(img) }
+            }.resume()
+        }
+    }
+}
+
+/// Collects every image URL in an in-app payload and warms `PaylisherImageCache`
+/// before the in-app is presented, so images are already painted on first show.
+enum PaylisherImagePrefetcher {
+    /// Each layout's `style.bgImage` + every image block's `url`, de-duped,
+    /// empties/invalid dropped.
+    static func imageURLs(in payload: CustomInAppPayload) -> [URL] {
+        var seen = Set<String>()
+        var urls: [URL] = []
+        func add(_ s: String?) {
+            guard let s = s, !s.isEmpty, !seen.contains(s), let u = URL(string: s) else { return }
+            seen.insert(s); urls.append(u)
+        }
+        for layout in payload.layouts ?? [] {
+            add(layout.style?.bgImage)
+            for block in layout.blocks?.order ?? [] {
+                if case .image(let imageBlock) = block { add(imageBlock.url) }
+            }
+        }
+        return urls
+    }
+
+    /// Warm the cache for `urls` in parallel; call `completion` on MAIN when ALL
+    /// finish OR `timeout` elapses — whichever first, exactly once.
+    static func prefetch(_ urls: [URL], timeout: TimeInterval, completion: @escaping () -> Void) {
+        guard !urls.isEmpty else { DispatchQueue.main.async { completion() }; return }
+        var fired = false
+        func fireOnce() {
+            if fired { return }
+            fired = true
+            completion()
+        }
+        let group = DispatchGroup()
+        for url in urls {
+            group.enter()
+            PaylisherImageCache.shared.image(for: url) { _ in group.leave() }
+        }
+        group.notify(queue: .main) { fireOnce() }
+        DispatchQueue.main.asyncAfter(deadline: .now() + timeout) { fireOnce() }
+    }
+}
+
 public class PaylisherCustomInAppNotificationManager {
     
     public static let shared = PaylisherCustomInAppNotificationManager()
@@ -450,7 +559,14 @@ public class PaylisherCustomInAppNotificationManager {
             vcToPresent = styleVC
         }
 
-        DispatchQueue.main.async {
+        // Warm the image cache for every URL in the payload BEFORE presenting,
+        // so the in-app appears with images already painted instead of popping
+        // them in late. Gated by a hard timeout so a slow/broken image never
+        // blocks the in-app — stragglers fall back to the renderers' async load.
+        let inAppPrefetchMaxWait: TimeInterval = 2.0
+        let imageURLs = PaylisherImagePrefetcher.imageURLs(in: payload)
+        print("FCM | InAppRouter | Prefetching \(imageURLs.count) image(s) | pushId=\(pushId)")
+        PaylisherImagePrefetcher.prefetch(imageURLs, timeout: inAppPrefetchMaxWait) {
             let scene = windowScene ?? (UIApplication.shared.connectedScenes
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
             guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),

@@ -804,13 +804,13 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
             ])
 
             if let url = URL(string: bgImageURL) {
-                URLSession.shared.dataTask(with: url) { data, _, _ in
-                    if let data = data, let image = UIImage(data: data) {
-                        DispatchQueue.main.async {
-                            bgImageView.image = image
-                        }
+                if let cached = PaylisherImageCache.shared.cachedImage(for: url) {
+                    bgImageView.image = cached
+                } else {
+                    PaylisherImageCache.shared.image(for: url) { image in
+                        if let image = image { bgImageView.image = image }
                     }
-                }.resume()
+                }
             }
 
             if style?.bgImageMask == true,
@@ -1139,13 +1139,13 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         }
 
         if let urlString = block.url, let url = URL(string: urlString) {
-            URLSession.shared.dataTask(with: url) { data, _, _ in
-                if let data = data, let image = UIImage(data: data) {
-                    DispatchQueue.main.async {
-                        imageView.image = image
-                    }
+            if let cached = PaylisherImageCache.shared.cachedImage(for: url) {
+                imageView.image = cached
+            } else {
+                PaylisherImageCache.shared.image(for: url) { image in
+                    if let image = image { imageView.image = image }
                 }
-            }.resume()
+            }
         }
 
         // Image sits inside the container's inner padding (applied at the
