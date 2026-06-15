@@ -45,4 +45,10 @@ import Foundation
     
     /// Additional properties to include with every deep link event
     @objc public var additionalEventProperties: [String: Any] = [:]
+
+    /// Automatically register `campaign_key` + `deeplink_key` as SUPER PROPERTIES when a deep
+    /// link carrying a campaign key arrives, so ALL events in that session carry them (deeplink
+    /// attribution / user-path) — the host app does NOT need to do this. Cleared when a
+    /// non-campaign deep link arrives (and on `reset()`). Default: true.
+    @objc public var autoRegisterCampaignKeys: Bool = true
 }

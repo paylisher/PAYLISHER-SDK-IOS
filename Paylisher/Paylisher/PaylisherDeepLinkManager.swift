@@ -278,6 +278,16 @@ import UIKit
             log("Journey ID set: \(jid)")
         }
 
+        // ✅ AUTO-ATTRIBUTION (session-scoped): campaign_key + deeplink_key, SADECE bu deeplink'in
+        // geldiği session'daki event'lere otomatik basılır (in-memory; uygulama kapanınca / yeni
+        // session'da düşer). Host kodu gerekmez.
+        if config.autoRegisterCampaignKeys {
+            PaylisherSDK.shared.setDeeplinkAttribution(deepLink.campaignKeyName)
+            if let key = deepLink.campaignKeyName, !key.isEmpty {
+                log("Deeplink attribution set (session-scoped): campaign_key/deeplink_key = \(key)")
+            }
+        }
+
         // ✅ SHORT LINK: resolve FIRST, then notify handler (so app gets real destination)
         if let keyName = deepLink.campaignKeyName, deepLink.isShortLink {
             Task {

@@ -177,6 +177,18 @@ let maxRetryDelay = 30.0
                 hedgeLog("[PaylisherSDK] Deferred Deep Link Manager initialized")
             }
 
+            // Auto-initialize the regular deep link manager so the host does NOT need to call
+            // PaylisherDeepLinkManager.shared.initialize() separately. The host sets
+            // config.deepLinkConfig before setup(); initialize() is lightweight + idempotent.
+            PaylisherDeepLinkManager.shared.initialize()
+            hedgeLog("[PaylisherSDK] Deep Link Manager initialized")
+
+            // Migration: a previous build persisted campaign_key/deeplink_key via register()
+            // (they should be session-scoped). Purge any stale persisted values; from now on
+            // they're held in-memory per session by setDeeplinkAttribution().
+            unregister("campaign_key")
+            unregister("deeplink_key")
+
             // Configure Heartbeat Manager for silent push / uninstall detection
             PaylisherHeartbeatManager.shared.configure(
                 config: config,
@@ -581,6 +593,17 @@ let maxRetryDelay = 30.0
             }
         }
 
+        // ✅ DEEPLINK ATTRIBUTION (session-scoped): campaign_key/deeplink_key are injected ONLY for
+        // the session in which the deep link arrived (in-memory + session-id match). They are not
+        // persisted, so an organic relaunch / new session does NOT carry them.
+        if let dlKey = deeplinkAttributionKey,
+           let attrSession = deeplinkAttributionSessionId,
+           let currentSession = PaylisherSessionManager.shared.getSessionId(),
+           attrSession == currentSession {
+            props["campaign_key"] = dlKey
+            props["deeplink_key"] = dlKey
+        }
+
         // only Session Replay needs distinct_id also in the props
         // remove after https://github.com/Paylisher/paylisher/pull/18954 gets merged
         let propDistinctId = props["distinct_id"] as? String
@@ -646,6 +669,24 @@ let maxRetryDelay = 30.0
             return [:]
         }
         return props
+    }
+
+    // MARK: - Deeplink attribution (session-scoped, in-memory — NOT persisted)
+
+    private var deeplinkAttributionKey: String?
+    private var deeplinkAttributionSessionId: String?
+
+    /// Sets campaign_key/deeplink_key for the CURRENT session only (in-memory; not persisted to
+    /// storage). `buildProperties` injects them into events only while the active session id still
+    /// matches → they automatically disappear on app restart or session rotation. Pass nil to clear.
+    internal func setDeeplinkAttribution(_ campaignKey: String?) {
+        if let key = campaignKey, !key.isEmpty {
+            deeplinkAttributionKey = key
+            deeplinkAttributionSessionId = PaylisherSessionManager.shared.getSessionId()
+        } else {
+            deeplinkAttributionKey = nil
+            deeplinkAttributionSessionId = nil
+        }
     }
 
     // register is a reserved word in ObjC
