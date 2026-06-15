@@ -580,11 +580,12 @@ let maxRetryDelay = 30.0
             #endif
         }
 
-        // ✅ JOURNEY TRACKING: Add jid (Journey ID) if available
-        if let jid = PaylisherJourneyContext.shared.getJourneyId() {
+        // ✅ JOURNEY TRACKING (session-scoped): jid/journey_source/journey_age_hours are stamped
+        // only for the session the journey began in → not carried into organic relaunch sessions.
+        if PaylisherJourneyContext.shared.isActiveInCurrentSession(),
+           let jid = PaylisherJourneyContext.shared.getJourneyId() {
             props["jid"] = jid
 
-            // Add journey metadata
             if let source = PaylisherJourneyContext.shared.getJourneySource() {
                 props["journey_source"] = source
             }
