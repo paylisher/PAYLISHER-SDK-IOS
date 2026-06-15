@@ -325,6 +325,29 @@ let maxRetryDelay = 30.0
         PaylisherDeepLinkManager.shared.initialize()
     }
 
+    // MARK: - Deep Link Closure API (no PaylisherDeepLinkHandler protocol to implement)
+
+    private let _closureDeepLinkHandler = PaylisherClosureDeepLinkHandler()
+
+    /// Register a closure for received deep links — no need to implement PaylisherDeepLinkHandler.
+    /// `requiresAuth` is true for auth-gated destinations (don't navigate until auth completes).
+    public func onDeepLink(_ handler: @escaping (PaylisherDeepLink, Bool) -> Void) {
+        _closureDeepLinkHandler.onReceive = handler
+        setDeepLinkHandler(_closureDeepLinkHandler)
+    }
+
+    /// Register a closure invoked when a deep link needs auth; call the completion with true/false.
+    public func onDeepLinkRequiresAuth(_ handler: @escaping (PaylisherDeepLink, @escaping (Bool) -> Void) -> Void) {
+        _closureDeepLinkHandler.onAuth = handler
+        setDeepLinkHandler(_closureDeepLinkHandler)
+    }
+
+    /// Register a closure for deep link parse/handle failures.
+    public func onDeepLinkFailed(_ handler: @escaping (URL, Error?) -> Void) {
+        _closureDeepLinkHandler.onFail = handler
+        setDeepLinkHandler(_closureDeepLinkHandler)
+    }
+
     /// Configure deep link handling with auth-required destinations
     /// - Parameter destinations: List of destinations requiring authentication
     @objc public func configureDeepLinks(authRequired destinations: [String]) {
