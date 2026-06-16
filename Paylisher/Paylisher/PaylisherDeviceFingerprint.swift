@@ -74,10 +74,11 @@ internal class PaylisherDeviceFingerprint {
         components.append(deviceModel)
         print("📱 [1/5] Device Model: \(deviceModel)")
 
-        // 2. OS version (e.g., "17.2")
+        // OS version EXCLUDED from fingerprint: iOS 26+ Safari freezes the UA OS token
+        // (e.g. "CPU iPhone OS 18_7") so the web click-time script can never read the real
+        // systemVersion (e.g. 26.3.1) -> fingerprints never matched. Logged for debug only.
         let osVersion = UIDevice.current.systemVersion
-        components.append(osVersion)
-        print("💿 [2/5] OS Version: \(osVersion)")
+        print("💿 [info] OS Version (NOT in fingerprint): \(osVersion)")
 
         // 3. Screen width (orientation-safe, physical pixels)
         // Uses bounds * scale to match web bridge's screen.width * devicePixelRatio.
