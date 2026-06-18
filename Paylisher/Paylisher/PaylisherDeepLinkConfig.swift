@@ -51,4 +51,13 @@ import Foundation
     /// attribution / user-path) — the host app does NOT need to do this. Cleared when a
     /// non-campaign deep link arrives (and on `reset()`). Default: true.
     @objc public var autoRegisterCampaignKeys: Bool = true
+
+    /// Emit verbose diagnostic/funnel events for deep link processing:
+    /// `deeplink_received`, `deeplink_resolved`, `deeplink_resolve_failed`, `deeplink_navigation`.
+    /// These are for debugging the deep link pipeline (e.g. inspecting why a campaign key did not
+    /// resolve) and are SEPARATE from the business event "Deep Link Opened", which is always
+    /// governed by `captureDeepLinkEvents`. OFF by default so production event streams stay clean —
+    /// turn it on only while diagnosing.
+    /// Default: false
+    @objc public var captureDeepLinkDiagnostics: Bool = false
 }

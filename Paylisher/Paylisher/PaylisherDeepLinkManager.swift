@@ -511,12 +511,14 @@ import UIKit
 
             log("Campaign resolved successfully: \(campaignData.title ?? "Unknown")")
 
-            // Track resolved campaign
-            PaylisherDeepLinkTracker.shared.logResolved(
-                url: deepLink.url,
-                source: deepLink.scheme,
-                resolved: campaignData
-            )
+            // Track resolved campaign (verbose diagnostics — opt-in, OFF by default)
+            if config.captureDeepLinkDiagnostics {
+                PaylisherDeepLinkTracker.shared.logResolved(
+                    url: deepLink.url,
+                    source: deepLink.scheme,
+                    resolved: campaignData
+                )
+            }
 
             // If jid exists in campaign data, update journey context
             if let jid = campaignData.jid {
@@ -527,13 +529,15 @@ import UIKit
         } catch {
             log("Failed to resolve campaign: \(error.localizedDescription)")
 
-            // Track resolution failure
-            PaylisherDeepLinkTracker.shared.logResolutionFailed(
-                url: deepLink.url,
-                source: deepLink.scheme,
-                keyName: keyName,
-                error: error
-            )
+            // Track resolution failure (verbose diagnostics — opt-in, OFF by default)
+            if config.captureDeepLinkDiagnostics {
+                PaylisherDeepLinkTracker.shared.logResolutionFailed(
+                    url: deepLink.url,
+                    source: deepLink.scheme,
+                    keyName: keyName,
+                    error: error
+                )
+            }
         }
     }
 
