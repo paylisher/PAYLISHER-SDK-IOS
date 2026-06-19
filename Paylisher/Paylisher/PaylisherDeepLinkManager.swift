@@ -291,9 +291,9 @@ import UIKit
         // geldiği session'daki event'lere otomatik basılır (in-memory; uygulama kapanınca / yeni
         // session'da düşer). Host kodu gerekmez.
         if config.autoRegisterCampaignKeys {
-            PaylisherSDK.shared.setDeeplinkAttribution(deepLink.campaignKeyName)
+            PaylisherSDK.shared.setDeeplinkAttribution(deepLink.campaignKeyName, source: deepLink.source)
             if let key = deepLink.campaignKeyName, !key.isEmpty {
-                log("Deeplink attribution set (session-scoped): campaign_key/deeplink_key = \(key)")
+                log("Deeplink attribution set (session-scoped): campaign_key/deeplink_key = \(key), campaign_source = \(deepLink.source ?? "nil")")
             }
         }
 
