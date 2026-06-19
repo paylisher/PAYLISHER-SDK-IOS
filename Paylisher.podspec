@@ -1,6 +1,6 @@
 Pod::Spec.new do |s|
   s.name             = 'Paylisher'
-  s.version          = '1.8.4'
+  s.version          = '1.8.6'
   s.summary          = 'Paylisher Analytics, Replay & Deep Link SDK'
   s.description      = <<-DESC
 Paylisher is a comprehensive mobile SDK providing event tracking, session replay, secure data collection, and advanced deep linking capabilities including deferred deep links for install attribution.
@@ -18,11 +18,10 @@ Paylisher is a comprehensive mobile SDK providing event tracking, session replay
   # Eğer XCFramework kullanırsan burayı açacaksın:
   # s.vendored_frameworks = 'PaylisherFramework/PaylisherFramework.xcframework'
 
-  s.dependency 'FirebaseCore', '~> 11.0'
-  s.dependency 'FirebaseAuth', '~> 11.0'
-  s.dependency 'FirebaseDatabase', '~> 11.0'
-  s.dependency 'FirebaseFirestore', '~> 11.0'
-  s.dependency 'FirebaseAnalytics', '~> 11.0'
+  # NOT: Paylisher SDK'sı Firebase'i KULLANMAZ. Push (FCM) token'ı tüketici uygulama
+  # Firebase'den alıp setFCMToken(_:) ile düz String olarak verir. Bu yüzden Firebase
+  # bağımlılığı YOK — push isteyen uygulama Firebase'i kendi entegre eder.
+  # (Kanal tutarlılığı: XCFramework dağıtımı da Firebase içermiyor.)
 
   s.swift_versions = ['5.7', '5.8', '5.9']
   s.requires_arc = true

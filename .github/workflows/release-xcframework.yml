@@ -107,3 +107,20 @@ jobs:
           tag_name: ${{ github.event.inputs.version }}
           files: build/PaylisherFramework.xcframework.zip
           generate_release_notes: true
+
+      - name: 8) CocoaPods Trunk'a Yayınla (pod trunk push)
+        # Bu adıma kadar tag (step 6) zaten push'landı; podspec source o tag'e bakar.
+        # Firebase deps kaldırıldı, iOS platformu yukarıda indirildi -> lint derlemesi geçer.
+        # GEREKLİ: repo secret'ı COCOAPODS_TRUNK_TOKEN
+        #   (lokalde:  pod trunk register info@paylisher.com 'Paylisher'  -> e-posta doğrula
+        #    sonra ~/.netrc içindeki token'ı GitHub > Settings > Secrets'a ekle).
+        # NOT: Bu en son adım; başarısız olsa bile XCFramework release'i (step 1-7) tamamlanmıştır,
+        #      sadece pod push'u ayrıca tekrar denersin.
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          if [ -z "$COCOAPODS_TRUNK_TOKEN" ]; then
+            echo "::error::COCOAPODS_TRUNK_TOKEN secret tanımlı değil. Repo Settings > Secrets and variables > Actions'a ekleyin."
+            exit 1
+          fi
+          pod trunk push Paylisher.podspec --allow-warnings
