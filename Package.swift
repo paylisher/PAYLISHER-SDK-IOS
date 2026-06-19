@@ -45,8 +45,8 @@ let package = Package(
         ),
         .binaryTarget(
             name: "PaylisherFramework",
-            url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.8.5/PaylisherFramework.xcframework.zip",
-            checksum: "f1527cab8ff57eea841b96245eb905c4ba2a4d657e5098ebec166fc76d21ab5a"
+            url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.8.6/PaylisherFramework.xcframework.zip",
+            checksum: "ee8348afe50b755e3b12c6952696a6a2ff547086bbaa51f039abb22fb466d10a"
         )
     ]
 )
