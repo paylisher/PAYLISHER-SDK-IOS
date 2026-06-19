@@ -848,14 +848,13 @@ class StyleViewController: UIViewController {
         ])
         
         if let url = URL(string: urlString) {
-            URLSession.shared.dataTask(with: url) { data, _, _ in
-                if let data = data, let image = UIImage(data: data) {
-                    DispatchQueue.main.async {
-                        bgImageView.image = image
-                        
-                    }
+            if let cached = PaylisherImageCache.shared.cachedImage(for: url) {
+                bgImageView.image = cached
+            } else {
+                PaylisherImageCache.shared.image(for: url) { image in
+                    if let image = image { bgImageView.image = image }
                 }
-            }.resume()
+            }
         }
         
         if style.bgImageMask == true, let maskColorHex = style.bgImageColor {
@@ -1163,13 +1162,13 @@ class StyleViewController: UIViewController {
         }
 
         if let urlString = block.url, let url = URL(string: urlString) {
-            URLSession.shared.dataTask(with: url) { data, _, _ in
-                if let data = data, let image = UIImage(data: data) {
-                    DispatchQueue.main.async {
-                        imageView.image = image
-                    }
+            if let cached = PaylisherImageCache.shared.cachedImage(for: url) {
+                imageView.image = cached
+            } else {
+                PaylisherImageCache.shared.image(for: url) { image in
+                    if let image = image { imageView.image = image }
                 }
-            }.resume()
+            }
         }
 
         let rawMargin = CGFloat(block.margin ?? 0)

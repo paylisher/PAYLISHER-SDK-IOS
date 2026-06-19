@@ -177,6 +177,18 @@ let maxRetryDelay = 30.0
                 hedgeLog("[PaylisherSDK] Deferred Deep Link Manager initialized")
             }
 
+            // Auto-initialize the regular deep link manager so the host does NOT need to call
+            // PaylisherDeepLinkManager.shared.initialize() separately. The host sets
+            // config.deepLinkConfig before setup(); initialize() is lightweight + idempotent.
+            PaylisherDeepLinkManager.shared.initialize()
+            hedgeLog("[PaylisherSDK] Deep Link Manager initialized")
+
+            // Migration: a previous build persisted campaign_key/deeplink_key via register()
+            // (they should be session-scoped). Purge any stale persisted values; from now on
+            // they're held in-memory per session by setDeeplinkAttribution().
+            unregister("campaign_key")
+            unregister("deeplink_key")
+
             // Configure Heartbeat Manager for silent push / uninstall detection
             PaylisherHeartbeatManager.shared.configure(
                 config: config,
@@ -311,6 +323,29 @@ let maxRetryDelay = 30.0
     @objc public func configureDeepLinks(_ config: PaylisherDeepLinkConfig) {
         PaylisherDeepLinkManager.shared.config = config
         PaylisherDeepLinkManager.shared.initialize()
+    }
+
+    // MARK: - Deep Link Closure API (no PaylisherDeepLinkHandler protocol to implement)
+
+    private let _closureDeepLinkHandler = PaylisherClosureDeepLinkHandler()
+
+    /// Register a closure for received deep links — no need to implement PaylisherDeepLinkHandler.
+    /// `requiresAuth` is true for auth-gated destinations (don't navigate until auth completes).
+    public func onDeepLink(_ handler: @escaping (PaylisherDeepLink, Bool) -> Void) {
+        _closureDeepLinkHandler.onReceive = handler
+        setDeepLinkHandler(_closureDeepLinkHandler)
+    }
+
+    /// Register a closure invoked when a deep link needs auth; call the completion with true/false.
+    public func onDeepLinkRequiresAuth(_ handler: @escaping (PaylisherDeepLink, @escaping (Bool) -> Void) -> Void) {
+        _closureDeepLinkHandler.onAuth = handler
+        setDeepLinkHandler(_closureDeepLinkHandler)
+    }
+
+    /// Register a closure for deep link parse/handle failures.
+    public func onDeepLinkFailed(_ handler: @escaping (URL, Error?) -> Void) {
+        _closureDeepLinkHandler.onFail = handler
+        setDeepLinkHandler(_closureDeepLinkHandler)
     }
 
     /// Configure deep link handling with auth-required destinations
@@ -568,17 +603,29 @@ let maxRetryDelay = 30.0
             #endif
         }
 
-        // ✅ JOURNEY TRACKING: Add jid (Journey ID) if available
-        if let jid = PaylisherJourneyContext.shared.getJourneyId() {
+        // ✅ JOURNEY TRACKING (session-scoped): jid/journey_source/journey_age_hours are stamped
+        // only for the session the journey began in → not carried into organic relaunch sessions.
+        if PaylisherJourneyContext.shared.isActiveInCurrentSession(),
+           let jid = PaylisherJourneyContext.shared.getJourneyId() {
             props["jid"] = jid
 
-            // Add journey metadata
             if let source = PaylisherJourneyContext.shared.getJourneySource() {
                 props["journey_source"] = source
             }
             if let ageHours = PaylisherJourneyContext.shared.getJourneyAgeHours() {
                 props["journey_age_hours"] = ageHours
             }
+        }
+
+        // ✅ DEEPLINK ATTRIBUTION (session-scoped): campaign_key/deeplink_key are injected ONLY for
+        // the session in which the deep link arrived (in-memory + session-id match). They are not
+        // persisted, so an organic relaunch / new session does NOT carry them.
+        if let dlKey = deeplinkAttributionKey,
+           let attrSession = deeplinkAttributionSessionId,
+           let currentSession = PaylisherSessionManager.shared.getSessionId(),
+           attrSession == currentSession {
+            props["campaign_key"] = dlKey
+            props["deeplink_key"] = dlKey
         }
 
         // only Session Replay needs distinct_id also in the props
@@ -646,6 +693,24 @@ let maxRetryDelay = 30.0
             return [:]
         }
         return props
+    }
+
+    // MARK: - Deeplink attribution (session-scoped, in-memory — NOT persisted)
+
+    private var deeplinkAttributionKey: String?
+    private var deeplinkAttributionSessionId: String?
+
+    /// Sets campaign_key/deeplink_key for the CURRENT session only (in-memory; not persisted to
+    /// storage). `buildProperties` injects them into events only while the active session id still
+    /// matches → they automatically disappear on app restart or session rotation. Pass nil to clear.
+    internal func setDeeplinkAttribution(_ campaignKey: String?) {
+        if let key = campaignKey, !key.isEmpty {
+            deeplinkAttributionKey = key
+            deeplinkAttributionSessionId = PaylisherSessionManager.shared.getSessionId()
+        } else {
+            deeplinkAttributionKey = nil
+            deeplinkAttributionSessionId = nil
+        }
     }
 
     // register is a reserved word in ObjC

@@ -253,6 +253,13 @@
 
         @objc func viewDidApperOverride(animated: Bool) {
             captureScreenView(viewIfLoaded?.window)
+            // Mirror Android onActivityResumed -> renderPendingInAppMessages: attempt to
+            // render any queued Engage in-app message on each screen transition, so a
+            // message queued on an excluded screen (e.g. Splash) shows once a normal
+            // screen appears. No-ops when Engage in-app is not configured or queue empty.
+            if PaylisherSDK.shared.config.engageInAppConfig != nil {
+                PaylisherEngageInAppService.shared.onScreenAppeared()
+            }
             // it looks like we're calling ourselves, but we're actually
             // calling the original implementation of viewDidAppear since it's been swizzled.
             viewDidApperOverride(animated: animated)

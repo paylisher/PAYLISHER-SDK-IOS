@@ -42,6 +42,9 @@ class PaylisherJourneyContext {
     // MARK: - Properties
 
     private var currentJourneyId: String?
+    // Session id active when the journey was set. IN-MEMORY only (not persisted) → nil after an
+    // app restart, so journey props are stamped ONLY for the session the journey began in.
+    private var journeySessionId: String?
     private let storage: PaylisherStorageProtocol
     private let journeyIdKey = "paylisher_journey_id"
     private let journeyIdTimestampKey = "paylisher_journey_id_timestamp"
@@ -113,6 +116,7 @@ class PaylisherJourneyContext {
         }
 
         currentJourneyId = jid
+        journeySessionId = PaylisherSessionManager.shared.getSessionId()
         let sourceValue = source.rawValue
         storage.setString(forKey: journeyIdKey, value: jid)
         storage.setDouble(forKey: journeyIdTimestampKey, value: Date().timeIntervalSince1970)
@@ -167,9 +171,19 @@ class PaylisherJourneyContext {
         }
 
         currentJourneyId = nil
+        journeySessionId = nil
         storage.remove(key: journeyIdKey)
         storage.remove(key: journeyIdTimestampKey)
         storage.remove(key: journeySourceKey)
+    }
+
+    /// Whether the journey began in the CURRENT session. `journeySessionId` is in-memory (nil after
+    /// an app restart), so journey props are NOT stamped on organic relaunch sessions.
+    func isActiveInCurrentSession() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+        guard let jsid = journeySessionId else { return false }
+        return jsid == PaylisherSessionManager.shared.getSessionId()
     }
 
     /// Check if active journey exists

@@ -50,6 +50,13 @@ import UIKit
     /// Campaign key name extracted from URL (if present)
     @objc public let campaignKeyName: String?
 
+    /// Normalized route segments, scheme-independent and cross-platform-consistent.
+    /// Custom scheme → [host] + path components; universal/app link → path components.
+    /// Empty segments dropped; case preserved. So both `yourapp://products/a/content` and
+    /// `https://link.paylisher.com/products/a/content` yield `["products","a","content"]`,
+    /// letting hosts route nested destinations without re-parsing the raw URL.
+    @objc public let pathSegments: [String]
+
     /// Resolved campaign data from backend (if available)
     public var campaignData: PaylisherResolvedDeepLinkPayload?
 
@@ -62,7 +69,8 @@ import UIKit
          source: String?,
          jid: String?,
          rawQuery: String?,
-         campaignKeyName: String?) {
+         campaignKeyName: String?,
+         pathSegments: [String] = []) {
         self.url = url
         self.scheme = scheme
         self.destination = destination
@@ -74,6 +82,7 @@ import UIKit
         self.timestamp = Date()
         self.rawQuery = rawQuery
         self.campaignKeyName = campaignKeyName
+        self.pathSegments = pathSegments
         super.init()
     }
     
@@ -278,6 +287,16 @@ import UIKit
             log("Journey ID set: \(jid)")
         }
 
+        // ✅ AUTO-ATTRIBUTION (session-scoped): campaign_key + deeplink_key, SADECE bu deeplink'in
+        // geldiği session'daki event'lere otomatik basılır (in-memory; uygulama kapanınca / yeni
+        // session'da düşer). Host kodu gerekmez.
+        if config.autoRegisterCampaignKeys {
+            PaylisherSDK.shared.setDeeplinkAttribution(deepLink.campaignKeyName)
+            if let key = deepLink.campaignKeyName, !key.isEmpty {
+                log("Deeplink attribution set (session-scoped): campaign_key/deeplink_key = \(key)")
+            }
+        }
+
         // ✅ SHORT LINK: resolve FIRST, then notify handler (so app gets real destination)
         if let keyName = deepLink.campaignKeyName, deepLink.isShortLink {
             Task {
@@ -473,6 +492,15 @@ import UIKit
         // Extract campaign key name using PaylisherDeepLinkTracker's helper
         let campaignKeyName = extractCampaignKey(from: url)
 
+        // Normalized route segments (scheme-independent): custom scheme = [host]+path, universal = path
+        let pathSegments: [String]
+        if scheme == "https" || scheme == "http" {
+            pathSegments = url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        } else {
+            let hostSeg = url.host.map { [$0] } ?? []
+            pathSegments = hostSeg + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
+        }
+
         return PaylisherDeepLink(
             url: url,
             scheme: scheme,
@@ -483,7 +511,8 @@ import UIKit
             source: source,
             jid: jid,
             rawQuery: url.query,
-            campaignKeyName: campaignKeyName
+            campaignKeyName: campaignKeyName,
+            pathSegments: pathSegments
         )
     }
     
@@ -501,12 +530,14 @@ import UIKit
 
             log("Campaign resolved successfully: \(campaignData.title ?? "Unknown")")
 
-            // Track resolved campaign
-            PaylisherDeepLinkTracker.shared.logResolved(
-                url: deepLink.url,
-                source: deepLink.scheme,
-                resolved: campaignData
-            )
+            // Track resolved campaign (verbose diagnostics — opt-in, OFF by default)
+            if config.captureDeepLinkDiagnostics {
+                PaylisherDeepLinkTracker.shared.logResolved(
+                    url: deepLink.url,
+                    source: deepLink.scheme,
+                    resolved: campaignData
+                )
+            }
 
             // If jid exists in campaign data, update journey context
             if let jid = campaignData.jid {
@@ -517,13 +548,15 @@ import UIKit
         } catch {
             log("Failed to resolve campaign: \(error.localizedDescription)")
 
-            // Track resolution failure
-            PaylisherDeepLinkTracker.shared.logResolutionFailed(
-                url: deepLink.url,
-                source: deepLink.scheme,
-                keyName: keyName,
-                error: error
-            )
+            // Track resolution failure (verbose diagnostics — opt-in, OFF by default)
+            if config.captureDeepLinkDiagnostics {
+                PaylisherDeepLinkTracker.shared.logResolutionFailed(
+                    url: deepLink.url,
+                    source: deepLink.scheme,
+                    keyName: keyName,
+                    error: error
+                )
+            }
         }
     }
 
