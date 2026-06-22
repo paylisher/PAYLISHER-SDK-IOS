@@ -300,6 +300,15 @@ let maxRetryDelay = 30.0
     }
 
     #if os(iOS)
+    /// Handle an incoming deep link URL together with the `openURL` options dictionary from
+    /// `application(_:open:options:)`. The `sourceApplication` bundle id is captured as a
+    /// best-effort `platform_hint` for source segmentation (see `PaylisherDeeplinkSource`).
+    @objc @discardableResult
+    public func handleDeepLink(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) -> Bool {
+        let sourceApp = options[.sourceApplication] as? String
+        return PaylisherDeepLinkManager.shared.handleURL(url, sourceApplication: sourceApp)
+    }
+
     /// Handle URL contexts from SceneDelegate (iOS 13+)
     /// - Parameter urlContexts: URL contexts from scene delegate
     @available(iOS 13.0, *)
