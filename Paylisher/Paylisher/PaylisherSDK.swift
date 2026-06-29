@@ -77,8 +77,10 @@ let maxRetryDelay = 30.0
     }
 
     /// SDK Version
+    /// TEK KAYNAK: PaylisherVersion.swift'teki `paylisherVersion`. Buraya ASLA elle sabit sürüm yazma.
+    /// `$sdk_package_version` (PaylisherContext) ve `$lib_version` aynı değerden beslenir → drift olmaz.
     @objc public static func sdkVersion() -> String {
-        return "1.8.3"
+        return paylisherVersion
     }
 
     @objc public func debug(_ enabled: Bool = true) {

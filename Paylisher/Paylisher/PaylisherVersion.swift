@@ -7,9 +7,12 @@
 
 import Foundation
 
-// if you change this, make sure to also change it in the podspec and check if the script scripts/bump-version.sh still works
+// TEK KAYNAK (single source of truth): SDK sürümü SADECE burada tutulur.
+// Buradan beslenir: $lib_version, $sdk_package_version (PaylisherSDK.sdkVersion() bunu döndürür),
+// User-Agent ve sdk_version header'ı. Sürümü elle değiştirme — `scripts/bump-version.sh <ver>` kullan;
+// o hem bu satırı hem Paylisher.podspec'i günceller ve sonucu DOĞRULAR.
 // This property is internal only
-public var paylisherVersion = "1.8.4"
+public var paylisherVersion = "1.8.7"
 
 // This property is internal only
 public var paylisherSdkName = "paylisher-ios"
