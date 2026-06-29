@@ -57,12 +57,15 @@ internal class PaylisherDeferredDeepLinkAPI {
      * This is an async method that performs a network request.
      *
      * @param fingerprint Device fingerprint (SHA-256 hash)
+     * @param idfa Opportunistic IDFA (ATT-authorized only); enables the backend's deterministic
+     *        IDFA-exact attribution layer (waterfall) instead of the low-confidence fingerprint layer.
+     *        Pass nil when ATT is not already authorized — the SDK never triggers the ATT prompt for this.
      * @return Deferred deep link response if successful
      * @throws PaylisherDeferredDeepLinkAPIError if API request fails
      */
-    func check(fingerprint: String) async throws -> PaylisherDeferredDeepLinkResponse {
+    func check(fingerprint: String, idfa: String? = nil) async throws -> PaylisherDeferredDeepLinkResponse {
         // Build URL
-        guard let url = buildDeferredDeepLinkURL(fingerprint: fingerprint) else {
+        guard let url = buildDeferredDeepLinkURL(fingerprint: fingerprint, idfa: idfa) else {
             throw PaylisherDeferredDeepLinkAPIError.invalidURL
         }
 
@@ -71,6 +74,11 @@ internal class PaylisherDeferredDeepLinkAPI {
         request.httpMethod = "GET"
         request.addValue("Bearer \(apiKey)", forHTTPHeaderField: "Authorization")
         request.addValue("paylisher-ios/\(sdkVersion)", forHTTPHeaderField: "X-SDK-Version")
+        // Platform hint for the backend waterfall; some transports read the IDFA from a header.
+        request.addValue("ios", forHTTPHeaderField: "X-Device-Platform")
+        if let idfa = idfa, !idfa.isEmpty {
+            request.addValue(idfa, forHTTPHeaderField: "X-IDFA")
+        }
         request.timeoutInterval = timeout
 
         // Perform request
@@ -110,9 +118,10 @@ internal class PaylisherDeferredDeepLinkAPI {
      * Format: https://link.paylisher.com/v1/deferred-deeplink?fingerprint={fingerprint}
      *
      * @param fingerprint Device fingerprint
+     * @param idfa Optional ATT-authorized IDFA appended as &idfa= for deterministic attribution.
      * @return Full API URL
      */
-    private func buildDeferredDeepLinkURL(fingerprint: String) -> URL? {
+    private func buildDeferredDeepLinkURL(fingerprint: String, idfa: String? = nil) -> URL? {
         // Remove trailing slash if present
         var baseURL = deferredDeepLinkHost
         if baseURL.hasSuffix("/") {
@@ -121,9 +130,13 @@ internal class PaylisherDeferredDeepLinkAPI {
 
         // Build URL with query parameter
         var components = URLComponents(string: baseURL)
-        components?.queryItems = [
-            URLQueryItem(name: "fingerprint", value: fingerprint)
-        ]
+        var items = [URLQueryItem(name: "fingerprint", value: fingerprint)]
+        if let idfa = idfa, !idfa.isEmpty {
+            // Sent verbatim (Apple's uuidString is uppercase). The backend matches case-sensitively
+            // against the IDFA the click macro stored, so DO NOT change case here.
+            items.append(URLQueryItem(name: "idfa", value: idfa))
+        }
+        components?.queryItems = items
 
         return components?.url
     }
@@ -155,6 +168,12 @@ struct PaylisherDeferredDeepLinkResponse: Codable {
 
     /// Additional campaign metadata
     let metadata: [String: AnyCodable]?
+
+    /// Attribution waterfall layer that produced the match: signed_token/click_id/idfa/gaid/probabilistic/fingerprint.
+    let attributionMethod: String?
+
+    /// Match confidence 0..1 (deterministic layers ≥0.9; fingerprint ~0.3). Optional.
+    let confidence: Double?
 
     /**
      * Checks if this response indicates a successful match.

@@ -373,6 +373,27 @@ internal class PaylisherDeviceFingerprint {
     }
 
     /**
+     * Returns the IDFA ONLY when ATT authorization is ALREADY granted.
+     *
+     * NEVER triggers the ATT prompt (uses trackingAuthorizationStatus, not requestTrackingAuthorization),
+     * so it is safe to call opportunistically on first launch. Returns the uppercase UUID string
+     * (Apple's canonical form) for the backend's deterministic IDFA-exact attribution layer, or nil
+     * when not authorized / opted out / the all-zero IDFA.
+     *
+     * @return Uppercase IDFA UUID string, or nil
+     */
+    static func authorizedIDFA() -> String? {
+        if #available(iOS 14.5, *) {
+            guard ATTrackingManager.trackingAuthorizationStatus == .authorized else { return nil }
+        } else {
+            guard ASIdentifierManager.shared().isAdvertisingTrackingEnabled else { return nil }
+        }
+        let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
+        guard idfa != "00000000-0000-0000-0000-000000000000" else { return nil }
+        return idfa
+    }
+
+    /**
      * Gets the current tracking authorization status.
      *
      * @return ATTrackingManager.AuthorizationStatus
