@@ -34,8 +34,12 @@ public class PaylisherDeferredDeepLinkConfig {
 
     // MARK: - Properties
 
-    /// Enable deferred deep link checking on first launch
-    public var enabled: Bool = false
+    /// Enable deferred deep link checking on first launch.
+    /// DEFAULT ON: every app that sets up the SDK gets deferred deeplink / install attribution on
+    /// first launch WITHOUT the host app writing any config (mirrors the Android SDK). A customer
+    /// that does not want it opts out explicitly with `enabled = false`.
+    /// NOTE: when false, the ENTIRE deferred flow (fingerprint generation + backend match) is skipped.
+    public var enabled: Bool = true
 
     /// Time window for attributing clicks to installs (default: 24 hours in milliseconds)
     public var attributionWindowMillis: Int64 = Constants.defaultAttributionWindow
@@ -244,7 +248,7 @@ public class PaylisherDeferredDeepLinkConfig {
      * Creates a default configuration with standard settings.
      *
      * Default settings:
-     * - Enabled: false (must be explicitly enabled)
+     * - Enabled: true (ON by default; opt-out via enabled = false)
      * - Attribution window: 24 hours
      * - Include IDFA: true
      * - Debug logging: false
