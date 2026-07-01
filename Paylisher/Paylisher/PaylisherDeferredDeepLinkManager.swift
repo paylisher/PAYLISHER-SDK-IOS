@@ -223,9 +223,18 @@ public class PaylisherDeferredDeepLinkManager {
                     hedgeLog("[PaylisherDeferredDeepLink] Fingerprint V1 generated: \(fingerprint.prefix(16))...")
                 }
 
+                // Opportunistic IDFA: attach ONLY when ATT is already authorized (never prompts) and
+                // config allows it. Unlocks the backend's deterministic IDFA-exact attribution layer;
+                // otherwise we fall back to fingerprint-only (unchanged behavior).
+                let idfa = config.includeIDFA ? PaylisherDeviceFingerprint.authorizedIDFA() : nil
+                if config.debugLogging {
+                    hedgeLog("[PaylisherDeferredDeepLink] IDFA \(idfa != nil ? "attached (ATT authorized)" : "not attached")")
+                }
+
                 // Check backend for match
                 try await checkBackend(
                     fingerprint: fingerprint,
+                    idfa: idfa,
                     onSuccess: onSuccess,
                     onNoMatch: onNoMatch,
                     onError: onError
@@ -252,6 +261,7 @@ public class PaylisherDeferredDeepLinkManager {
      */
     private func checkBackend(
         fingerprint: String,
+        idfa: String? = nil,
         onSuccess: @escaping (PaylisherDeepLink) -> Void,
         onNoMatch: @escaping () -> Void,
         onError: @escaping (Error) -> Void
@@ -261,7 +271,7 @@ public class PaylisherDeferredDeepLinkManager {
         }
 
         do {
-            let response = try await deferredDeepLinkAPI.check(fingerprint: fingerprint)
+            let response = try await deferredDeepLinkAPI.check(fingerprint: fingerprint, idfa: idfa)
 
             lock.lock()
             isChecking = false
@@ -441,6 +451,14 @@ public class PaylisherDeferredDeepLinkManager {
         // Add click timestamp
         if let timestamp = response.clickTimestamp {
             properties["click_timestamp"] = timestamp
+        }
+
+        // Attribution provenance from the backend waterfall (idfa/gaid/token/probabilistic/fingerprint)
+        if let method = response.attributionMethod {
+            properties["attribution_method"] = method
+        }
+        if let confidence = response.confidence {
+            properties["attribution_confidence"] = confidence
         }
 
         // Add metadata

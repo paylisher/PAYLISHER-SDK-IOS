@@ -77,8 +77,10 @@ let maxRetryDelay = 30.0
     }
 
     /// SDK Version
+    /// TEK KAYNAK: PaylisherVersion.swift'teki `paylisherVersion`. Buraya ASLA elle sabit sürüm yazma.
+    /// `$sdk_package_version` (PaylisherContext) ve `$lib_version` aynı değerden beslenir → drift olmaz.
     @objc public static func sdkVersion() -> String {
-        return "1.8.3"
+        return paylisherVersion
     }
 
     @objc public func debug(_ enabled: Bool = true) {
@@ -300,6 +302,15 @@ let maxRetryDelay = 30.0
     }
 
     #if os(iOS)
+    /// Handle an incoming deep link URL together with the `openURL` options dictionary from
+    /// `application(_:open:options:)`. The `sourceApplication` bundle id is captured as a
+    /// best-effort `platform_hint` for source segmentation (see `PaylisherDeeplinkSource`).
+    @objc @discardableResult
+    public func handleDeepLink(_ url: URL, options: [UIApplication.OpenURLOptionsKey: Any]) -> Bool {
+        let sourceApp = options[.sourceApplication] as? String
+        return PaylisherDeepLinkManager.shared.handleURL(url, sourceApplication: sourceApp)
+    }
+
     /// Handle URL contexts from SceneDelegate (iOS 13+)
     /// - Parameter urlContexts: URL contexts from scene delegate
     @available(iOS 13.0, *)
@@ -617,15 +628,20 @@ let maxRetryDelay = 30.0
             }
         }
 
-        // ✅ DEEPLINK ATTRIBUTION (session-scoped): campaign_key/deeplink_key are injected ONLY for
-        // the session in which the deep link arrived (in-memory + session-id match). They are not
-        // persisted, so an organic relaunch / new session does NOT carry them.
+        // ✅ DEEPLINK ATTRIBUTION (session-scoped): campaign_key/deeplink_key/campaign_source are
+        // injected ONLY for the session in which the deep link arrived (in-memory + session-id match).
+        // They are not persisted, so an organic relaunch / new session does NOT carry them.
+        // campaign_source carries the traffic source (utm_source/?source) forward onto EVERY event in
+        // the journey's session so downstream user-path nodes can stay split by source.
         if let dlKey = deeplinkAttributionKey,
            let attrSession = deeplinkAttributionSessionId,
            let currentSession = PaylisherSessionManager.shared.getSessionId(),
            attrSession == currentSession {
             props["campaign_key"] = dlKey
             props["deeplink_key"] = dlKey
+            if let dlSource = deeplinkAttributionSource {
+                props["campaign_source"] = dlSource
+            }
         }
 
         // only Session Replay needs distinct_id also in the props
@@ -699,17 +715,22 @@ let maxRetryDelay = 30.0
 
     private var deeplinkAttributionKey: String?
     private var deeplinkAttributionSessionId: String?
+    private var deeplinkAttributionSource: String?
 
-    /// Sets campaign_key/deeplink_key for the CURRENT session only (in-memory; not persisted to
-    /// storage). `buildProperties` injects them into events only while the active session id still
-    /// matches → they automatically disappear on app restart or session rotation. Pass nil to clear.
-    internal func setDeeplinkAttribution(_ campaignKey: String?) {
+    /// Sets campaign_key/deeplink_key (+ optional campaign_source) for the CURRENT session only
+    /// (in-memory; not persisted to storage). `buildProperties` injects them into events only while
+    /// the active session id still matches → they automatically disappear on app restart or session
+    /// rotation. `source` is the traffic source (utm_source/?source) carried forward so downstream
+    /// user-path nodes stay split by source. Pass nil campaignKey to clear all.
+    internal func setDeeplinkAttribution(_ campaignKey: String?, source: String? = nil) {
         if let key = campaignKey, !key.isEmpty {
             deeplinkAttributionKey = key
             deeplinkAttributionSessionId = PaylisherSessionManager.shared.getSessionId()
+            deeplinkAttributionSource = source
         } else {
             deeplinkAttributionKey = nil
             deeplinkAttributionSessionId = nil
+            deeplinkAttributionSource = nil
         }
     }
 

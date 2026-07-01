@@ -1,0 +1,43 @@
+name: Publish CocoaPods
+
+# Mevcut Paylisher.podspec'i CocoaPods trunk'a yayınlar (pod trunk push).
+# Release (XCFramework/SPM) akışından BAĞIMSIZDIR — ne zaman istersen elle tetiklersin.
+#
+# Ön koşullar:
+#  - Paylisher.podspec'teki s.version'a karşılık gelen git tag'i ZATEN var olmalı
+#    (podspec source o tag'e bakar: :tag => s.version).
+#  - Repo secret: COCOAPODS_TRUNK_TOKEN (pod trunk register ile alınır).
+#
+# Neden CI: pod trunk push, pod'u DERLEYEREK lint yapar -> Xcode + iOS platformu gerekir.
+
+on:
+  workflow_dispatch: {}
+
+jobs:
+  publish:
+    name: pod trunk push
+    runs-on: macos-15
+    timeout-minutes: 30
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Select Xcode 16.1
+        uses: maxim-lobanov/setup-xcode@v1
+        with:
+          xcode-version: '16.1'
+
+      - name: iOS platformunu indir (16.1'de iOS SDK kırpılmışsa)
+        # build/release workflow'larındaki ile aynı; runner'daki 16.1'de iOS yoksa indirir.
+        run: xcodebuild -downloadPlatform iOS 2>&1 || echo "downloadPlatform gereksiz/başarısız olabilir"
+
+      - name: CocoaPods Trunk'a yayınla
+        env:
+          COCOAPODS_TRUNK_TOKEN: ${{ secrets.COCOAPODS_TRUNK_TOKEN }}
+        run: |
+          if [ -z "$COCOAPODS_TRUNK_TOKEN" ]; then
+            echo "::error::COCOAPODS_TRUNK_TOKEN secret tanımlı değil. Settings > Secrets > Actions'a ekleyin."
+            exit 1
+          fi
+          pod trunk push Paylisher.podspec --allow-warnings

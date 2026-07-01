@@ -50,6 +50,28 @@ import UIKit
     /// Campaign key name extracted from URL (if present)
     @objc public let campaignKeyName: String?
 
+    /// utm_medium value if present (traffic type, e.g. paid / organic / referral / bio).
+    @objc public let utmMedium: String?
+
+    /// Referrer value if present as a URL parameter (`?referrer=` / `?ref=`). This is the value
+    /// carried inside the link, NOT an HTTP Referer header (which the SDK cannot see).
+    @objc public let referrer: String?
+
+    /// Best-effort platform hint detected by the host platform — iOS: the `sourceApplication`
+    /// bundle id from `UIApplication.OpenURLOptionsKey.sourceApplication`; Android: the Intent
+    /// referrer package. Populated after parsing when available. Used ONLY as a low-priority
+    /// signal for `canonicalSource` (it is unreliable for Universal Links — see docs).
+    @objc public var platformHint: String?
+
+    /// Canonical traffic source, normalized to the cross-platform taxonomy shared with Paylisher
+    /// Studio (`getSourceGroup`) and the Android SDK: one of `instagram`, `facebook`, `twitter`,
+    /// `tiktok`, `qr`, `direct`, `unknown`. Priority: `utm_source`/`?source` → `?referrer` →
+    /// `platformHint`; a signal that is present but unrecognized → `unknown`; no signal at all →
+    /// `direct`. This is the value stamped as `campaign_source` (Architecture B).
+    @objc public var canonicalSource: String {
+        return PaylisherDeeplinkSource.canonical(rawSource: source, referrer: referrer, platformHint: platformHint)
+    }
+
     /// Normalized route segments, scheme-independent and cross-platform-consistent.
     /// Custom scheme → [host] + path components; universal/app link → path components.
     /// Empty segments dropped; case preserved. So both `yourapp://products/a/content` and
@@ -70,6 +92,8 @@ import UIKit
          jid: String?,
          rawQuery: String?,
          campaignKeyName: String?,
+         utmMedium: String? = nil,
+         referrer: String? = nil,
          pathSegments: [String] = []) {
         self.url = url
         self.scheme = scheme
@@ -82,6 +106,8 @@ import UIKit
         self.timestamp = Date()
         self.rawQuery = rawQuery
         self.campaignKeyName = campaignKeyName
+        self.utmMedium = utmMedium
+        self.referrer = referrer
         self.pathSegments = pathSegments
         super.init()
     }
@@ -232,11 +258,28 @@ import UIKit
     /// - Returns: True if URL was handled, false otherwise
     @objc @discardableResult
     public func handleURL(_ url: URL) -> Bool {
+        return processIncomingURL(url, platformHint: nil)
+    }
+
+    /// Handle an incoming URL together with the launching app's bundle id (from
+    /// `UIApplication.OpenURLOptionsKey.sourceApplication`). The bundle id is used as a
+    /// best-effort `platform_hint` for source canonicalization. Prefer this overload when
+    /// forwarding from `application(_:open:options:)`.
+    ///
+    /// Note: `sourceApplication` is empty for most Universal Link / SceneDelegate flows on
+    /// modern iOS, so it is only a LOW-priority signal — `utm_source`/`?source` and the
+    /// backend's referrer detection remain authoritative.
+    @objc @discardableResult
+    public func handleURL(_ url: URL, sourceApplication: String?) -> Bool {
+        return processIncomingURL(url, platformHint: sourceApplication)
+    }
+
+    private func processIncomingURL(_ url: URL, platformHint: String?) -> Bool {
         guard isInitialized else {
             log("DeepLinkManager not initialized. Call initialize() first.")
             return false
         }
-        
+
         log("Handling URL: \(url.absoluteString)")
 
         // Bridge page: short link domain'den gelen /bridge ile biten URL'ler tarayıcıda açılmalı.
@@ -252,7 +295,7 @@ import UIKit
         }
 
         // Parse the URL
-        guard let deepLink = parseURL(url) else {
+        guard let deepLink = parseURL(url, platformHint: platformHint) else {
             log("Failed to parse URL: \(url.absoluteString)")
             
             // Capture failed event
@@ -291,9 +334,11 @@ import UIKit
         // geldiği session'daki event'lere otomatik basılır (in-memory; uygulama kapanınca / yeni
         // session'da düşer). Host kodu gerekmez.
         if config.autoRegisterCampaignKeys {
-            PaylisherSDK.shared.setDeeplinkAttribution(deepLink.campaignKeyName)
+            // campaign_source is the CANONICAL token (instagram/facebook/.../direct/unknown), not the
+            // raw param, so Studio can split user-paths by source without per-client mapping.
+            PaylisherSDK.shared.setDeeplinkAttribution(deepLink.campaignKeyName, source: deepLink.canonicalSource)
             if let key = deepLink.campaignKeyName, !key.isEmpty {
-                log("Deeplink attribution set (session-scoped): campaign_key/deeplink_key = \(key)")
+                log("Deeplink attribution set (session-scoped): campaign_key/deeplink_key = \(key), campaign_source = \(deepLink.canonicalSource)")
             }
         }
 
@@ -456,7 +501,11 @@ import UIKit
     // MARK: - Parsing
     
     /// Parse URL into PaylisherDeepLink object
-    internal func parseURL(_ url: URL) -> PaylisherDeepLink? {
+    /// - Parameters:
+    ///   - url: The deep link URL.
+    ///   - platformHint: Optional best-effort launch-source hint (iOS `sourceApplication` bundle
+    ///     id). Threaded onto the result so `canonicalSource` can use it as a low-priority signal.
+    internal func parseURL(_ url: URL, platformHint: String? = nil) -> PaylisherDeepLink? {
         let scheme = url.scheme ?? ""
         
         // Determine destination based on URL type
@@ -487,6 +536,8 @@ import UIKit
         let authRequired = authParam?.lowercased() == "required"
         let campaignId = parameters["campaign"] ?? parameters["campaign_id"] ?? parameters["utm_campaign"]
         let source = parameters["source"] ?? parameters["utm_source"]
+        let utmMedium = parameters["utm_medium"] ?? parameters["medium"]
+        let referrerParam = parameters["referrer"] ?? parameters["ref"]
         let jid = parameters["jid"] // ✅ Journey ID for campaign attribution
 
         // Extract campaign key name using PaylisherDeepLinkTracker's helper
@@ -501,7 +552,7 @@ import UIKit
             pathSegments = hostSeg + url.pathComponents.filter { $0 != "/" && !$0.isEmpty }
         }
 
-        return PaylisherDeepLink(
+        let deepLink = PaylisherDeepLink(
             url: url,
             scheme: scheme,
             destination: destination,
@@ -512,8 +563,12 @@ import UIKit
             jid: jid,
             rawQuery: url.query,
             campaignKeyName: campaignKeyName,
+            utmMedium: utmMedium,
+            referrer: referrerParam,
             pathSegments: pathSegments
         )
+        deepLink.platformHint = platformHint
+        return deepLink
     }
     
     // MARK: - Campaign Resolution
@@ -682,6 +737,19 @@ import UIKit
 
         if let source = deepLink.source {
             properties["source"] = source
+        }
+
+        // ✅ Source segmentation: canonical source (always present) + structured UTM / referrer /
+        // platform-hint. `campaign_source` uses the cross-platform taxonomy shared with Studio.
+        properties["campaign_source"] = deepLink.canonicalSource
+        if let medium = deepLink.utmMedium {
+            properties["utm_medium"] = medium
+        }
+        if let ref = deepLink.referrer {
+            properties["referrer"] = ref
+        }
+        if let hint = deepLink.platformHint, !hint.isEmpty {
+            properties["platform_hint"] = hint
         }
 
         // ✅ Add campaign key name if present
@@ -855,5 +923,76 @@ public extension PaylisherDeepLinkManager {
     /// Remove a destination from auth-required list
     @objc func removeAuthRequiredDestination(_ destination: String) {
         config.authRequiredDestinations.removeAll { $0 == destination }
+    }
+}
+
+// MARK: - Source Canonicalization (cross-platform contract)
+
+/// Normalizes a raw traffic-source signal to the canonical taxonomy shared across the iOS SDK,
+/// the Android SDK and Paylisher Studio (`getSourceGroup`): one of `instagram`, `facebook`,
+/// `twitter`, `tiktok`, `qr`, `direct`, `unknown`.
+///
+/// This is the value carried by the `campaign_source` event property (Architecture B). Keeping the
+/// token set and the mapping rules identical on every platform is what lets Studio split
+/// user-paths by source without per-client mapping. **Mirror any change here in the Android
+/// `PaylisherDeeplinkSource` object.**
+@objc(PaylisherDeeplinkSource) public final class PaylisherDeeplinkSource: NSObject {
+
+    @objc public static let instagram = "instagram"
+    @objc public static let facebook  = "facebook"
+    @objc public static let twitter   = "twitter"
+    @objc public static let tiktok    = "tiktok"
+    @objc public static let qr        = "qr"
+    @objc public static let direct    = "direct"
+    @objc public static let unknown   = "unknown"
+
+    /// Maps a single raw signal — a `utm_source` value, a referrer domain/URL, or a platform
+    /// bundle id / package name — to a canonical platform token, or `nil` if it carries no
+    /// recognizable platform. Brand words are matched as substrings (so `instagram`,
+    /// `l.instagram.com` and `com.burbn.instagram` all resolve); ambiguous short domains
+    /// (`x.com`, `t.co`, `fb.com`) are matched host-anchored to avoid false positives.
+    @objc public static func classify(_ raw: String?) -> String? {
+        guard let trimmed = raw?.trimmingCharacters(in: .whitespacesAndNewlines), !trimmed.isEmpty else {
+            return nil
+        }
+        let r = trimmed.lowercased()
+
+        // Distinctive brand words (safe as substrings) — also catch iOS/Android bundle ids.
+        if r.contains("instagram") || r == "ig" { return instagram }
+        if r.contains("facebook") || r.contains("messenger") || r.contains("katana")
+            || r.contains("orca") || r == "fb" || r == "meta" { return facebook }
+        if r.contains("tiktok") || r.contains("musically") || r.contains("zhiliaoapp")
+            || r.contains("ugc.trill") || r == "tt" { return tiktok }
+        if r.contains("twitter") || r.contains("tweetie") { return twitter }
+        if r == "qr" || r == "qrcode" || r == "qr_code" || r.contains("qr-code") { return qr }
+
+        // Host-anchored checks for ambiguous short domains (avoid matching e.g. "discount.com").
+        let host = URL(string: r)?.host ?? r
+        func isHost(_ h: String) -> Bool { host == h || host.hasSuffix("." + h) }
+        if r == "x" || isHost("x.com") || isHost("t.co") { return twitter }
+        if isHost("fb.com") || isHost("fb.me") { return facebook }
+
+        // Direct channels: browsers, mail, sms, messaging, generic web — not a campaign platform.
+        if r.contains("safari") || r.contains("chrome") || r.contains("firefox")
+            || r.contains("mobilemail") || r == "mail" || r.contains("mobilesms") || r == "sms"
+            || r.contains("messaging") || r.contains("whatsapp") || r.contains("telegram")
+            || r.contains("gmail") || r == "browser" || r == "website" || r == "web"
+            || r == "direct" { return direct }
+
+        return nil
+    }
+
+    /// Resolves the canonical source from all available signals, in priority order:
+    /// 1) explicit `utm_source` / `?source` (`rawSource`), 2) `?referrer`, 3) `platformHint`
+    /// (`sourceApplication` / Intent referrer). A signal that is present but unrecognized →
+    /// `unknown`; NO signal at all → `direct` (the spec's definition of direct traffic).
+    @objc public static func canonical(rawSource: String?, referrer: String?, platformHint: String?) -> String {
+        var sawAnySignal = false
+        for signal in [rawSource, referrer, platformHint] {
+            guard let s = signal?.trimmingCharacters(in: .whitespacesAndNewlines), !s.isEmpty else { continue }
+            sawAnySignal = true
+            if let token = classify(s) { return token }
+        }
+        return sawAnySignal ? unknown : direct
     }
 }
