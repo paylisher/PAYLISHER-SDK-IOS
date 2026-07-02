@@ -42,17 +42,18 @@ internal class PaylisherDeviceFingerprint {
      * IMPORTANT: This fingerprint MUST match exactly what backend generates at click-time.
      * Backend cannot access IDFV/IDFA at click-time, so we use only publicly available device info.
      *
-     * Algorithm (MUST match backend exactly):
+     * Algorithm (MUST match the backend web landing's iOS branch exactly):
+     *   sha256( deviceModel | timezone | languageCode )  — joined with "|", lowercase hex.
      * 1. Device model (UIDevice.current.model) - e.g., "iPhone", "iPad"
-     * 2. OS version (UIDevice.current.systemVersion) - e.g., "17.2"
-     * 3. Screen width (orientation-safe physical pixels) - e.g., "1170" (min(widthPx, heightPx))
-     * 4. Timezone (TimeZone.current.identifier) - e.g., "Europe/Istanbul"
-     * 5. Language code (Locale.current.languageCode) - e.g., "tr" (NOT "tr_TR")
+     * 2. Timezone (TimeZone.current.identifier) - e.g., "Europe/Istanbul"
+     * 3. Language code (Locale.current.languageCode) - e.g., "tr" (NOT "tr_TR")
      *
-     * Components are joined with "|" separator, then SHA-256 hashed to lowercase hex.
+     * DELIBERATELY EXCLUDED (computed + logged for debug, never hashed):
+     *   - OS version: iOS 26+ Safari freezes the UA OS token, so the web side can't read it.
+     *   - Screen width: web screen.width*dpr diverges from native UIScreen*scale under Display Zoom
+     *     ("Zoomed" mode) and inside WebViews, so iOS installs never matched. (Android keeps width.)
      *
-     * Example raw string: "iPhone|17.2|1170|Europe/Istanbul|tr"
-     * Example hash: "a1b2c3d4e5f6789abcdef123456789abcdef123456789abcdef123456789abcd"
+     * Example raw string: "iPhone|Europe/Istanbul|tr"
      *
      * @return 64-character lowercase hex SHA-256 fingerprint string
      */
@@ -72,7 +73,7 @@ internal class PaylisherDeviceFingerprint {
         // 1. Device model (e.g., "iPhone", "iPad")
         let deviceModel = UIDevice.current.model
         components.append(deviceModel)
-        print("📱 [1/5] Device Model: \(deviceModel)")
+        print("📱 [1/3] Device Model: \(deviceModel)")
 
         // OS version EXCLUDED from fingerprint: iOS 26+ Safari freezes the UA OS token
         // (e.g. "CPU iPhone OS 18_7") so the web click-time script can never read the real
@@ -80,30 +81,26 @@ internal class PaylisherDeviceFingerprint {
         let osVersion = UIDevice.current.systemVersion
         print("💿 [info] OS Version (NOT in fingerprint): \(osVersion)")
 
-        // 3. Screen width (orientation-safe, physical pixels)
-        // Uses bounds * scale to match web bridge's screen.width * devicePixelRatio.
-        // Height is excluded: browser screen.height * DPR differs from native heightPixels
-        // by ~2px due to status bar / nav bar calculation differences.
+        // Screen width EXCLUDED from the fingerprint: web screen.width * devicePixelRatio diverges
+        // from the native UIScreen.bounds * scale under Display Zoom ("Zoomed" mode) and inside
+        // WebViews / in-app browsers, so the click-time and install-time hashes never matched on
+        // iOS. Computed + logged for debug only; NOT appended. (The Android SDK keeps screen width.)
         let bounds = UIScreen.main.bounds
         let scale = UIScreen.main.scale
         let widthPx = Int(bounds.width * scale)
         let heightPx = Int(bounds.height * scale)
-        print("📐 [3/5] Screen Raw Dimensions: widthPt=\(bounds.width), heightPt=\(bounds.height), scale=\(scale)")
-
-        // Normalize: always use min(widthPx, heightPx) to handle orientation changes
         let screenWidth = String(min(widthPx, heightPx))
-        components.append(screenWidth)
-        print("📐 [3/5] Screen Width (orientation-safe): \(screenWidth)")
+        print("📐 [info] Screen Width (NOT in fingerprint): \(screenWidth) [wPt=\(bounds.width), hPt=\(bounds.height), scale=\(scale)]")
 
-        // 4. Timezone identifier (e.g., "Europe/Istanbul")
+        // 2. Timezone identifier (e.g., "Europe/Istanbul")
         let timezone = TimeZone.current.identifier
         components.append(timezone)
-        print("🌍 [4/5] Timezone: \(timezone)")
+        print("🌍 [2/3] Timezone: \(timezone)")
 
-        // 5. Language code only (e.g., "tr", NOT "tr_TR")
+        // 3. Language code only (e.g., "tr", NOT "tr_TR")
         let languageCode = Locale.current.languageCode ?? "en"
         components.append(languageCode)
-        print("🗣️ [5/5] Language Code: \(languageCode)")
+        print("🗣️ [3/3] Language Code: \(languageCode)")
 
         print("----------------------------------------")
         print("📋 All Components (in order):")
