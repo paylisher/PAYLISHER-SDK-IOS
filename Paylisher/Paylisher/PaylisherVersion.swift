@@ -12,7 +12,7 @@ import Foundation
 // User-Agent ve sdk_version header'ı. Sürümü elle değiştirme — `scripts/bump-version.sh <ver>` kullan;
 // o hem bu satırı hem Paylisher.podspec'i günceller ve sonucu DOĞRULAR.
 // This property is internal only
-public var paylisherVersion = "1.8.7"
+public var paylisherVersion = "1.8.8"
 
 // This property is internal only
 public var paylisherSdkName = "paylisher-ios"
