@@ -1149,13 +1149,20 @@ class CarouselInAppViewController: UIViewController, UIScrollViewDelegate {
         }
 
         // Image sits inside the container's inner padding (applied at the
-        // scrollView level). `block.margin` is an ADDITIONAL inset on top
-        // of that. Fullscreen with `margin <= 0` falls back to a baseline
-        // horizontal inset so the image doesn't run flush to system safe
-        // areas — same contract StyleViewController uses.
+        // scrollView level). `block.margin` is an ADDITIONAL inset on top of
+        // that, authored as a PERCENT of container width (0–100) — the same
+        // contract StyleViewController.renderImageBlock, the sibling carousel
+        // blocks (text/button both `bannerPctH`), the Studio preview
+        // (`bannerPctH`) and the Android SDK (`pctHPx`) all use. Resolve it
+        // against the current container before applying so increasing the
+        // authored margin visibly scales the inset (previously the raw value
+        // was used, so a percent like 10 became a barely-visible 10pt).
+        // Fullscreen with `margin <= 0` still falls back to a baseline
+        // horizontal inset so the image doesn't run flush to system safe areas.
         let rawMargin = CGFloat(block.margin ?? 0)
         let horizontalMargin: CGFloat = {
-            return (isFullscreen && rawMargin <= 0) ? baseHorizontalInset : rawMargin
+            if isFullscreen && rawMargin <= 0 { return baseHorizontalInset }
+            return bannerPctH(rawMargin)
         }()
 
         let wrapper = UIView()
