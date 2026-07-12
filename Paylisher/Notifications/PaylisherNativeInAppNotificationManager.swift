@@ -112,7 +112,10 @@ public class PaylisherNativeInAppNotificationManager {
             if windowScene != nil,
                let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                let rootVC = keyWindow.rootViewController {
-                   rootVC.present(inAppVC, animated: true) {
+                   // Kök VC zaten bir modal sunuyorsa present sessizce düşüyordu;
+                   // en üstteki VC'den sun.
+                   let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
+                   presenter.present(inAppVC, animated: true) {
                        PaylisherNotificationEventTracker.capture(
                            "inappMessageRead",
                            pushId: pushId,

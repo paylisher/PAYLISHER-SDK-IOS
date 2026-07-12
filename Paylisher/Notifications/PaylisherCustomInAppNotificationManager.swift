@@ -571,7 +571,12 @@ public class PaylisherCustomInAppNotificationManager {
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
             guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
                   let rootVC = keyWindow.rootViewController else { return }
-            rootVC.present(vcToPresent, animated: false) {
+
+            // Kök VC'den present etmek, kullanıcı uygulama içinde gezinirken (bir sheet /
+            // fullScreenCover / başka bir modal açıkken) SESSİZCE hiçbir şey yapmıyordu:
+            // modal görünmüyor, inappMessageRead de atılmıyordu. En üstteki VC'den present et.
+            let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
+            presenter.present(vcToPresent, animated: false) {
                 PaylisherNotificationEventTracker.capture(
                     "inappMessageRead",
                     pushId: pushId,
