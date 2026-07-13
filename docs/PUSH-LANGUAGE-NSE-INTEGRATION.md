@@ -83,10 +83,23 @@ The helper is a **separate, lightweight, extension-safe** module — it does **n
 pull in the main Paylisher SDK (no UIKit / Replay), so it is safe inside an
 extension.
 
-**Swift Package Manager:** add the Paylisher package (if not already), then in
-**target settings of your NSE ▸ Frameworks and Libraries**, add the
-**`PaylisherNotificationServiceExtension`** library product **to the NSE target**
-(not the app target).
+**Swift Package Manager:**
+
+1. Make sure the app depends on the Paylisher package on a version that
+   **contains the module — 1.8.9 or newer** (older tags don't have it).
+2. Select the **NSE target** (not the app) → **General ▸ Frameworks and
+   Libraries** → **`+`** → under the **PAYLISHER-SDK-IOS** package pick
+   **`PaylisherNotificationServiceExtension`** → **Add**.
+
+> ⚠️ **Step 2 is required and easy to miss.** Resolving the package is not
+> enough — each *target* must explicitly link the product it imports. Skip it and
+> you get **`No such module 'PaylisherNotificationServiceExtension'`**. If the
+> product doesn't show up in the `+` list, run **File ▸ Packages ▸ Reset Package
+> Caches**, then **Resolve Package Versions**, and try again.
+
+You can also remove `Paylisher` / `PaylisherFramework` from the **NSE** target's
+Frameworks and Libraries if they were linked there — the extension only needs
+`PaylisherNotificationServiceExtension`. (Keep them on the app target.)
 
 **CocoaPods:** in your `Podfile`, add it under the **NSE target**:
 
@@ -246,6 +259,7 @@ single-key API is shut down.)*
 
 | Symptom | Likely cause | Fix |
 |---|---|---|
+| Build error `No such module 'PaylisherNotificationServiceExtension'` | The product isn't linked to the **NSE target** (or your SDK version < 1.8.9) | Add the product to the NSE target's Frameworks and Libraries (Step 2); ensure the Paylisher dependency is **1.8.9+**; if it's not in the `+` list, **File ▸ Packages ▸ Reset Package Caches** → Resolve |
 | Always the default language, on a real push | Push has no `mutable-content` → NSE never runs | Confirm the backend sets `aps.mutable-content = 1` |
 | Notification unchanged, only via `simctl push` | simctl **bypasses** the NSE | Test with a real APNs/FCM push |
 | Notification unchanged, app in **foreground** | NSE only runs when backgrounded/closed | Background the app before sending |
