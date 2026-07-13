@@ -16,6 +16,15 @@ let package = Package(
         .library(
             name: "PaylisherFramework",
             targets: ["PaylisherFramework"]
+        ),
+
+        // Lightweight, extension-safe helper for a Notification Service Extension
+        // (per-device push language). Depends on nothing from the main Paylisher
+        // target (no UIKit / Replay), so it is safe to link into an NSE. Add it
+        // to your NSE target ONLY.
+        .library(
+            name: "PaylisherNotificationServiceExtension",
+            targets: ["PaylisherNotificationServiceExtension"]
         )
     ],
     dependencies: [
@@ -47,6 +56,11 @@ let package = Package(
             name: "PaylisherFramework",
             url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.1.2/PaylisherFramework.xcframework.zip",
             checksum: "785032bbba7dd7d5e5c2cdfa7321cbe1c908f62f620ac15108a8b9c7542e8087"
+        ),
+        // Self-contained NSE helper — Foundation + UserNotifications only.
+        .target(
+            name: "PaylisherNotificationServiceExtension",
+            path: "PaylisherNotificationServiceExtension/Sources"
         )
     ]
 )
