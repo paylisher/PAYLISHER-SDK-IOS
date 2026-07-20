@@ -33,8 +33,21 @@ class PaylisherFileBackedQueue {
         }
 
         do {
-            items = try FileManager.default.contentsOfDirectory(atPath: queue.path)
-            items.sort { Double($0)! < Double($1)! }
+            // Filenames are timestamps we wrote ourselves, but the directory is on
+            // disk and anything else that lands there (a .DS_Store, a backup artifact,
+            // a partially restored file) would make a force-unwrapped Double()
+            // conversion trap. Ignore what we cannot order instead of crashing.
+            let contents = try FileManager.default.contentsOfDirectory(atPath: queue.path)
+            items = contents
+                .compactMap { name -> (String, Double)? in
+                    guard let timestamp = Double(name) else {
+                        hedgeLog("Ignoring unrecognised file in queue: \(name)")
+                        return nil
+                    }
+                    return (name, timestamp)
+                }
+                .sorted { $0.1 < $1.1 }
+                .map { $0.0 }
         } catch {
             hedgeLog("Failed to load files for queue \(error)")
             // failed to read directory – bad permissions, perhaps?
@@ -46,10 +59,18 @@ class PaylisherFileBackedQueue {
     }
 
     func delete(index: Int) {
-        if items.isEmpty { return }
-        let removed = items.remove(at: index)
-
-        deleteSafely(queue.appendingPathComponent(removed))
+        // Read-modify-write has to happen under a single write lock. Checking
+        // `items.isEmpty` and then calling `items.remove(at:)` takes the lock twice,
+        // so a concurrent flush could empty the array in between — or shift it, so
+        // that `index` removes the wrong entry (or traps on an out-of-range index).
+        if let removed: String = _items.mutate({ items in
+            guard index >= 0, index < items.count else {
+                return nil
+            }
+            return items.remove(at: index)
+        }) {
+            deleteSafely(queue.appendingPathComponent(removed))
+        }
     }
 
     func pop(_ count: Int) {
@@ -60,7 +81,11 @@ class PaylisherFileBackedQueue {
         do {
             let filename = "\(Date().timeIntervalSince1970)"
             try contents.write(to: queue.appendingPathComponent(filename))
-            items.append(filename)
+            // `items.append(_:)` through the wrapper is a get followed by a set, i.e.
+            // two separate lock acquisitions: a concurrent append could read the same
+            // array and write back a copy missing the other entry, orphaning the file
+            // on disk. Mutate under one write lock instead.
+            _items.mutate { $0.append(filename) }
         } catch {
             hedgeLog("Could not write file \(error)")
         }

@@ -84,7 +84,8 @@ class PaylisherJourneyContext {
         if elapsed > journeyTTL {
             let daysElapsed = Int(elapsed / (24 * 60 * 60))
             hedgeLog("[JourneyContext] jid expired (TTL: 7 days, elapsed: \(daysElapsed) days)")
-            clearJourneyId()
+            // Lock is already held here — must use the non-locking variant.
+            clearJourneyIdLocked()
             return
         }
 
@@ -166,6 +167,17 @@ class PaylisherJourneyContext {
         lock.lock()
         defer { lock.unlock() }
 
+        clearJourneyIdLocked()
+    }
+
+    /// Clear the journey WITHOUT taking the lock. Callers MUST already hold it.
+    ///
+    /// `NSLock` is not re-entrant: taking it twice on the same thread deadlocks
+    /// permanently. `loadJourneyId()` runs inside the lock and has to clear an
+    /// expired journey, so it needs this variant — calling the public
+    /// `clearJourneyId()` from there froze the app on launch for every user
+    /// whose journey had aged past the TTL.
+    private func clearJourneyIdLocked() {
         if let jid = currentJourneyId {
             hedgeLog("[JourneyContext] jid cleared: \(jid)")
         }

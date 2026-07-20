@@ -34,7 +34,11 @@ public class PaylisherNativeInAppNotificationManager {
             return
         }
         
-        let defaultLang = userInfo["defaultLang"] as! String
+        // Optional on purpose: this comes from a server payload we do not control,
+        // and `localize` already falls back (device language -> defaultLang -> first
+        // available translation -> fallback). Force-casting it crashed the host app
+        // whenever a campaign omitted the field.
+        let defaultLang = userInfo["defaultLang"] as? String
         
         let titleDict = nativeDict["title"] as? [String: String] ?? [:]
 

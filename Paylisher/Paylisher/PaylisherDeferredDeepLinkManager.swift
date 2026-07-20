@@ -189,12 +189,15 @@ public class PaylisherDeferredDeepLinkManager {
             hedgeLog("[PaylisherDeferredDeepLink] Starting check...")
         }
 
-        // Check if this is first launch
-        let isFirstLaunch = firstLaunchDetector.isFirstLaunch()
+        // Should this launch run the attribution check? Unlike the old
+        // `isFirstLaunch()` this does not consume the flag — it is only consumed once
+        // the backend has actually answered, so a failed request is retried on the
+        // next launch instead of silently losing the attribution.
+        let shouldCheck = firstLaunchDetector.shouldAttemptDeferredCheck()
 
-        if !isFirstLaunch {
+        if !shouldCheck {
             if config.debugLogging {
-                hedgeLog("[PaylisherDeferredDeepLink] Not first launch, skipping")
+                hedgeLog("[PaylisherDeferredDeepLink] Attribution check already settled, skipping")
             }
             lock.lock()
             isChecking = false
@@ -272,6 +275,10 @@ public class PaylisherDeferredDeepLinkManager {
 
         do {
             let response = try await deferredDeepLinkAPI.check(fingerprint: fingerprint, idfa: idfa)
+
+            // The backend answered — match or no-match, the question is settled and
+            // must not be asked again. Only here, never in the failure paths below.
+            firstLaunchDetector.markDeferredCheckCompleted()
 
             lock.lock()
             isChecking = false
