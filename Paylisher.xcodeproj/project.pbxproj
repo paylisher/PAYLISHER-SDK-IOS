@@ -21,6 +21,7 @@
 		18C406CE2FCDC3B400E0AD7A /* Inter-Italic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */; };
 		18C406CF2FCDC3B400E0AD7A /* Inter-Bold.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406C82FCDC3B400E0AD7A /* Inter-Bold.ttf */; };
 		18C406D02FCDC3B400E0AD7A /* Inter-BoldItalic.ttf in Resources */ = {isa = PBXBuildFile; fileRef = 18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */; };
+		1F6ACAE89958E8E73147F8E7 /* ErrorHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = E779E535AC64320A593726E6 /* ErrorHandler.swift */; };
 		2242832E811E712B625C5A8B /* PaylisherJourneyContext.swift in Sources */ = {isa = PBXBuildFile; fileRef = E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */; };
 		2A061CB98444D480E4C415C2 /* PaylisherDeeplinkResolvedModel.swift in Sources */ = {isa = PBXBuildFile; fileRef = B80AE4F11F4E3B2C910275CA /* PaylisherDeeplinkResolvedModel.swift */; };
 		3A0F108329C47940002C0084 /* UIViewExample.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3A0F108229C47940002C0084 /* UIViewExample.swift */; };
@@ -46,6 +47,8 @@
 		3AE3FB4B2993A68500AFFC18 /* PaylisherStorageTest.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB4A2993A68500AFFC18 /* PaylisherStorageTest.swift */; };
 		3AE3FB4E2993D1D600AFFC18 /* PaylisherStorageManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3AE3FB4D2993D1D600AFFC18 /* PaylisherStorageManager.swift */; };
 		4B41DC11CD2534786737C88B /* PaylisherHeartbeatManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 732CAA15EE90448C4C795F6D /* PaylisherHeartbeatManager.swift */; };
+		5CD6D6D4AFCAEF0E6920E990 /* DefaultErrorHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0F445AB9A0FB9DE8CB58A3 /* DefaultErrorHandler.swift */; };
+		5EAEA70C2B172D15FD2AA1D1 /* PaylisherTopViewControllerResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BA378314541ADD416FDB06 /* PaylisherTopViewControllerResolver.swift */; };
 		64B48B219036E9C2F7F4CFB9 /* PaylisherDeferredDeepLinkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */; };
 		690B2DF32C205B5600AE3B45 /* TimeBasedEpochGenerator.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690B2DF22C205B5600AE3B45 /* TimeBasedEpochGenerator.swift */; };
 		690FF05F2AE7E2D400A0B06B /* Data+Gzip.swift in Sources */ = {isa = PBXBuildFile; fileRef = 690FF05E2AE7E2D400A0B06B /* Data+Gzip.swift */; };
@@ -136,6 +139,7 @@
 		AC7114F3FF51D3794985BE46 /* PaylisherRepeatedIdentifyBehavior.swift in Sources */ = {isa = PBXBuildFile; fileRef = 892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */; };
 		ADF69114E75AC36797EF7939 /* PaylisherScreenMapper.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9F7BCFC5140718221B687A43 /* PaylisherScreenMapper.swift */; };
 		B4AC4D8BAC251D253E8C895C /* PaylisherFirstLaunchDetector.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBA2E2967F3ED1D577C16507 /* PaylisherFirstLaunchDetector.swift */; };
+		B8AEEB76413BD3D483B9A24B /* PaylisherInstallMarker.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0D2C7E9B58CE0FFB65AE5567 /* PaylisherInstallMarker.swift */; };
 		BB597AD1851CADF8D6385153 /* PaylisherCampaignAPI.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F65E925C3091D94937E1C8 /* PaylisherCampaignAPI.swift */; };
 		BC168DCD643C7536826FDC97 /* PaylisherDeferredDeepLinkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = DB018595865E33D6347810B5 /* PaylisherDeferredDeepLinkManager.swift */; };
 		C4790F192FD552F2E435E073 /* PaylisherEngageInAppService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 49700524ED382CC00CB3B952 /* PaylisherEngageInAppService.swift */; };
@@ -361,6 +365,7 @@
 
 /* Begin PBXFileReference section */
 		05F65E925C3091D94937E1C8 /* PaylisherCampaignAPI.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherCampaignAPI.swift; sourceTree = "<group>"; };
+		0D2C7E9B58CE0FFB65AE5567 /* PaylisherInstallMarker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherInstallMarker.swift; sourceTree = "<group>"; };
 		186B32802EF4401E00B12225 /* crashTest.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = crashTest.swift; sourceTree = "<group>"; };
 		187269362FCDBD1100A58BE8 /* Inter-Bold.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Bold.ttf"; sourceTree = "<group>"; };
 		187269372FCDBD1100A58BE8 /* Inter-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-BoldItalic.ttf"; sourceTree = "<group>"; };
@@ -373,6 +378,7 @@
 		18C406C92FCDC3B400E0AD7A /* Inter-BoldItalic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-BoldItalic.ttf"; sourceTree = "<group>"; };
 		18C406CA2FCDC3B400E0AD7A /* Inter-Italic.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Italic.ttf"; sourceTree = "<group>"; };
 		18C406CB2FCDC3B400E0AD7A /* Inter-Regular.ttf */ = {isa = PBXFileReference; lastKnownFileType = file; path = "Inter-Regular.ttf"; sourceTree = "<group>"; };
+		19BA378314541ADD416FDB06 /* PaylisherTopViewControllerResolver.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherTopViewControllerResolver.swift; sourceTree = "<group>"; };
 		2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeferredDeepLinkConfig.swift; sourceTree = "<group>"; };
 		3A0F108229C47940002C0084 /* UIViewExample.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIViewExample.swift; sourceTree = "<group>"; };
 		3A0F108429C9ABB6002C0084 /* ReadWriteLock.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReadWriteLock.swift; sourceTree = "<group>"; };
@@ -490,6 +496,7 @@
 		69F518392BB2BA8300F52C14 /* UIApplicationTracker.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = UIApplicationTracker.swift; sourceTree = "<group>"; };
 		732CAA15EE90448C4C795F6D /* PaylisherHeartbeatManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherHeartbeatManager.swift; sourceTree = "<group>"; };
 		75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherEngageInAppConfig.swift; sourceTree = "<group>"; };
+		7F0F445AB9A0FB9DE8CB58A3 /* DefaultErrorHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DefaultErrorHandler.swift; sourceTree = "<group>"; };
 		892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherRepeatedIdentifyBehavior.swift; sourceTree = "<group>"; };
 		8C1E9DB2BD7C519B85B7946E /* PaylisherDeepLinkTracker.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeepLinkTracker.swift; sourceTree = "<group>"; };
 		9F10C1B689CA5497778DA3B8 /* LoginView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -501,6 +508,7 @@
 		D1096D9F4135180DA6F262C8 /* ProfileView.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ProfileView.swift; sourceTree = "<group>"; };
 		DAD5DD072CB6DEE70087387B /* PaylisherMaskViewModifier.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaylisherMaskViewModifier.swift; sourceTree = "<group>"; };
 		DB018595865E33D6347810B5 /* PaylisherDeferredDeepLinkManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherDeferredDeepLinkManager.swift; sourceTree = "<group>"; };
+		E779E535AC64320A593726E6 /* ErrorHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = ErrorHandler.swift; sourceTree = "<group>"; };
 		E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherJourneyContext.swift; sourceTree = "<group>"; };
 		EBA2E2967F3ED1D577C16507 /* PaylisherFirstLaunchDetector.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherFirstLaunchDetector.swift; sourceTree = "<group>"; };
 		FA331A1C2D7883530008BA1B /* Assets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = Assets.xcassets; sourceTree = "<group>"; };
@@ -531,14 +539,14 @@
 /* End PBXFileReference section */
 
 /* Begin PBXFileSystemSynchronizedBuildFileExceptionSet section */
-		FA58D32F2D5B5205009A34DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		FA58D32F2D5B5205009A34DB /* Exceptions for "PaylisherNotificationServiceExtension" folder in "PaylisherNotificationServiceExtension" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			membershipExceptions = (
 				Info.plist,
 			);
 			target = FA58D3262D5B5205009A34DB /* PaylisherNotificationServiceExtension */;
 		};
-		FAD0F2A02D92EEAB009D9BD7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */ = {
+		FAD0F2A02D92EEAB009D9BD7 /* Exceptions for "PaylisherFramework" folder in "PaylisherFramework" target */ = {
 			isa = PBXFileSystemSynchronizedBuildFileExceptionSet;
 			publicHeaders = (
 				PaylisherFramework.h,
@@ -548,10 +556,52 @@
 /* End PBXFileSystemSynchronizedBuildFileExceptionSet section */
 
 /* Begin PBXFileSystemSynchronizedRootGroup section */
-		0311C2772CD5192E002F62AF /* Error */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = Error; sourceTree = "<group>"; };
-		FA58D3282D5B5205009A34DB /* PaylisherNotificationServiceExtension */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (FA58D32F2D5B5205009A34DB /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = PaylisherNotificationServiceExtension; sourceTree = "<group>"; };
-		FAD0F28A2D92EEAB009D9BD7 /* PaylisherFramework */ = {isa = PBXFileSystemSynchronizedRootGroup; exceptions = (FAD0F2A02D92EEAB009D9BD7 /* PBXFileSystemSynchronizedBuildFileExceptionSet */, ); explicitFileTypes = {}; explicitFolders = (); path = PaylisherFramework; sourceTree = "<group>"; };
-		FAD0F2982D92EEAB009D9BD7 /* PaylisherFrameworkTests */ = {isa = PBXFileSystemSynchronizedRootGroup; explicitFileTypes = {}; explicitFolders = (); path = PaylisherFrameworkTests; sourceTree = "<group>"; };
+		0311C2772CD5192E002F62AF /* Error */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = Error;
+			sourceTree = "<group>";
+		};
+		FA58D3282D5B5205009A34DB /* PaylisherNotificationServiceExtension */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FA58D32F2D5B5205009A34DB /* Exceptions for "PaylisherNotificationServiceExtension" folder in "PaylisherNotificationServiceExtension" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = PaylisherNotificationServiceExtension;
+			sourceTree = "<group>";
+		};
+		FAD0F28A2D92EEAB009D9BD7 /* PaylisherFramework */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+				FAD0F2A02D92EEAB009D9BD7 /* Exceptions for "PaylisherFramework" folder in "PaylisherFramework" target */,
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = PaylisherFramework;
+			sourceTree = "<group>";
+		};
+		FAD0F2982D92EEAB009D9BD7 /* PaylisherFrameworkTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			exceptions = (
+			);
+			explicitFileTypes = {
+			};
+			explicitFolders = (
+			);
+			path = PaylisherFrameworkTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
@@ -826,6 +876,7 @@
 				FA27FC542D5DE31D0006B059 /* Paylisher */,
 				3AA4C09B2988315D006C4731 /* Utils */,
 				FAE918C62D672D7F00105499 /* New Group */,
+				9105FFABA5AED4D59D619CAD /* Error */,
 			);
 			path = Paylisher;
 			sourceTree = "<group>";
@@ -975,6 +1026,16 @@
 			path = PaylisherExampleStoryboard;
 			sourceTree = "<group>";
 		};
+		9105FFABA5AED4D59D619CAD /* Error */ = {
+			isa = PBXGroup;
+			children = (
+				E779E535AC64320A593726E6 /* ErrorHandler.swift */,
+				7F0F445AB9A0FB9DE8CB58A3 /* DefaultErrorHandler.swift */,
+			);
+			name = Error;
+			path = Error;
+			sourceTree = "<group>";
+		};
 		FA27FC542D5DE31D0006B059 /* Paylisher */ = {
 			isa = PBXGroup;
 			children = (
@@ -1016,6 +1077,7 @@
 				9F7BCFC5140718221B687A43 /* PaylisherScreenMapper.swift */,
 				75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */,
 				49700524ED382CC00CB3B952 /* PaylisherEngageInAppService.swift */,
+				0D2C7E9B58CE0FFB65AE5567 /* PaylisherInstallMarker.swift */,
 			);
 			path = Paylisher;
 			sourceTree = "<group>";
@@ -1049,6 +1111,7 @@
 				FA5C7F592D5F442A002B52CE /* PaylisherInAppModalViewController.swift */,
 				FAB9936D2D75C00C00A232A2 /* NotificationManager.swift */,
 				C83A3918D92E90C10C816E5A /* CarouselInAppViewController.swift */,
+				19BA378314541ADD416FDB06 /* PaylisherTopViewControllerResolver.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
@@ -1598,6 +1661,10 @@
 				ADF69114E75AC36797EF7939 /* PaylisherScreenMapper.swift in Sources */,
 				FBCED3B76190A780B7B416F7 /* PaylisherEngageInAppConfig.swift in Sources */,
 				C4790F192FD552F2E435E073 /* PaylisherEngageInAppService.swift in Sources */,
+				5EAEA70C2B172D15FD2AA1D1 /* PaylisherTopViewControllerResolver.swift in Sources */,
+				B8AEEB76413BD3D483B9A24B /* PaylisherInstallMarker.swift in Sources */,
+				1F6ACAE89958E8E73147F8E7 /* ErrorHandler.swift in Sources */,
+				5CD6D6D4AFCAEF0E6920E990 /* DefaultErrorHandler.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
