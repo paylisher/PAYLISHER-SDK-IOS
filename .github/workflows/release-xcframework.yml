@@ -39,19 +39,25 @@ jobs:
           # Robust: '|| echo' maskesi YOK. downloadPlatform (Apple CDN) flaky olabilir ->
           # retry(3x) + xcrun ile GERCEK dogrulama + eksikse NET hata. (GitHub "en yeni 3
           # Xcode" politikasi yuzunden 16.1'in iOS platformu artik on-demand.)
-          if ! xcrun --sdk iphoneos --show-sdk-path >/dev/null 2>&1; then
-            for i in 1 2 3; do
-              echo "iOS platformu indiriliyor (deneme $i)..."
-              xcodebuild -downloadPlatform iOS && break
-              echo "deneme $i basarisiz; $((i*20))s sonra tekrar..."; sleep $((i*20))
-            done
-          fi
-          if ! xcrun --sdk iphoneos --show-sdk-path >/dev/null 2>&1; then
-            echo "::error::iOS SDK yok - downloadPlatform basarisiz. Mevcut SDK'lar:"
+          echo "=== Xcode ==="; xcodebuild -version
+          # DIKKAT: 'xcrun --show-sdk-path' YANILTICI (iOS SDK stub'i var ama platform yok ->
+          # 'generic/platform=iOS' hedefi 'not installed' kalir). O yuzden ATLAMADAN, iOS'u
+          # HER ZAMAN indir (retry), sonra GERCEK destination ile dogrula.
+          n=0
+          until [ $n -ge 3 ]; do
+            n=$((n+1)); echo "iOS platformu indiriliyor (deneme $n/3)..."
+            xcodebuild -downloadPlatform iOS && { echo "downloadPlatform OK"; break; }
+            echo "deneme $n basarisiz; $((n*20))s sonra..."; sleep $((n*20))
+          done
+          sleep 5
+          DEST=$(xcodebuild -showdestinations -project Paylisher.xcodeproj -scheme Paylisher 2>&1 || true)
+          if echo "$DEST" | grep -qiE "platform:iOS[^}]*not installed"; then
+            echo "::error::iOS platformu HALA kurulu degil - downloadPlatform yetmedi (16.1 icin iOS 18.1 inmiyor olabilir)."
+            echo "$DEST" | grep -i "platform:iOS" | head
             xcodebuild -showsdks || true
             exit 1
           fi
-          echo "OK iOS SDK: $(xcrun --sdk iphoneos --show-sdk-path)"
+          echo "OK: iOS destination hazir -> $(xcrun --sdk iphoneos --show-sdk-path 2>/dev/null)"
 
       - name: 1) Sürüm Numarasını Büyüt (Bump Version)
         # Dökümandaki uyarıya sadık kalarak, versiyon büyütme komutunu tetikliyoruz.
