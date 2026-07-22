@@ -73,9 +73,21 @@ jobs:
 
       - name: iOS platformunu indir (16.1'de iOS SDK kirpilmissa)
         run: |
-          # Xcode 16+ ile platformlar indirilebilir. Runner'daki 16.1'de iOS SDK yoksa cek.
-          # Zaten varsa bu adim hizlica gecer / zararsizdir.
-          xcodebuild -downloadPlatform iOS 2>&1 || echo "downloadPlatform basarisiz/gereksiz olabilir - yukaridaki teshis ciktisina bak"
+          # Robust: '|| echo' maskesi YOK. downloadPlatform (Apple CDN) flaky olabilir ->
+          # retry(3x) + xcrun ile GERCEK dogrulama + eksikse NET hata.
+          if ! xcrun --sdk iphoneos --show-sdk-path >/dev/null 2>&1; then
+            for i in 1 2 3; do
+              echo "iOS platformu indiriliyor (deneme $i)..."
+              xcodebuild -downloadPlatform iOS && break
+              echo "deneme $i basarisiz; $((i*20))s sonra tekrar..."; sleep $((i*20))
+            done
+          fi
+          if ! xcrun --sdk iphoneos --show-sdk-path >/dev/null 2>&1; then
+            echo "::error::iOS SDK yok - downloadPlatform basarisiz. Mevcut SDK'lar:"
+            xcodebuild -showsdks || true
+            exit 1
+          fi
+          echo "OK iOS SDK: $(xcrun --sdk iphoneos --show-sdk-path)"
 
       - name: SwiftPM onbellegi (paket indirmeyi hizlandirir)
         uses: actions/cache@v4
