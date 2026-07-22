@@ -17,6 +17,17 @@ class PaylisherApi {
         self.config = config
     }
 
+    /// Render a response body for a log line without ever force-unwrapping it.
+    /// An error response legitimately arrives with no body, and crashing while
+    /// building a diagnostic message is the worst possible failure mode.
+    static func describeBody(_ data: Data?) -> String {
+        guard let data, !data.isEmpty else { return "<empty>" }
+        if let json = try? JSONSerialization.jsonObject(with: data, options: .allowFragments) {
+            return String(describing: json)
+        }
+        return String(data: data, encoding: .utf8) ?? "<\(data.count) bytes>"
+    }
+
     func sessionConfig() -> URLSessionConfiguration {
         let config = URLSessionConfiguration.default
 
@@ -78,11 +89,22 @@ class PaylisherApi {
                 return completion(PaylisherBatchUploadInfo(statusCode: nil, error: error))
             }
 
-            let httpResponse = response as! HTTPURLResponse
+            // Not every URLResponse is an HTTPURLResponse: a registered custom
+            // URLProtocol (APM agents, pinning proxies, MDM inspection — all common
+            // in enterprise apps) can hand back a plain URLResponse, and force-casting
+            // it crashed the host app.
+            guard let httpResponse = response as? HTTPURLResponse else {
+                let errorMessage = "Batch API returned a non-HTTP response."
+                hedgeLog(errorMessage)
+                return completion(PaylisherBatchUploadInfo(
+                    statusCode: nil,
+                    error: InternalPaylisherError(description: errorMessage)
+                ))
+            }
 
             if !(200 ... 299 ~= httpResponse.statusCode) {
-                let jsonBody = String(describing: try? JSONSerialization.jsonObject(with: data!, options: .allowFragments) as? [String: Any])
-                let errorMessage = "Error sending events to batch API: status: \(jsonBody)."
+                let jsonBody = PaylisherApi.describeBody(data)
+                let errorMessage = "Error sending events to batch API: status: \(httpResponse.statusCode), body: \(jsonBody)."
                 hedgeLog(errorMessage)
             } else {
                 hedgeLog("Events sent successfully.")
@@ -140,10 +162,17 @@ class PaylisherApi {
                 return completion(PaylisherBatchUploadInfo(statusCode: nil, error: error))
             }
 
-            let httpResponse = response as! HTTPURLResponse
+            guard let httpResponse = response as? HTTPURLResponse else {
+                let errorMessage = "Snapshot API returned a non-HTTP response."
+                hedgeLog(errorMessage)
+                return completion(PaylisherBatchUploadInfo(
+                    statusCode: nil,
+                    error: InternalPaylisherError(description: errorMessage)
+                ))
+            }
 
             if !(200 ... 299 ~= httpResponse.statusCode) {
-                let jsonBody = String(describing: try? JSONSerialization.jsonObject(with: data!, options: .allowFragments) as? [String: Any])
+                let jsonBody = PaylisherApi.describeBody(data)
                 let errorMessage = "Error sending events to snapshot API: status: \(httpResponse.statusCode), body: \(jsonBody)."
                 hedgeLog(errorMessage)
             } else {
@@ -195,10 +224,14 @@ class PaylisherApi {
                 return completion(nil, error)
             }
 
-            let httpResponse = response as! HTTPURLResponse
+            guard let httpResponse = response as? HTTPURLResponse else {
+                let errorMessage = "Decide API returned a non-HTTP response."
+                hedgeLog(errorMessage)
+                return completion(nil, InternalPaylisherError(description: errorMessage))
+            }
 
             if !(200 ... 299 ~= httpResponse.statusCode) {
-                let jsonBody = String(describing: try? JSONSerialization.jsonObject(with: data!, options: .allowFragments) as? [String: Any])
+                let jsonBody = PaylisherApi.describeBody(data)
                 let errorMessage = "Error calling decide API: status: \(httpResponse.statusCode), body: \(jsonBody)."
                 hedgeLog(errorMessage)
 
@@ -208,8 +241,17 @@ class PaylisherApi {
                 hedgeLog("Decide called successfully.")
             }
 
+            // `data` here is URLSession's optional body. A force-unwrap traps and is
+            // NOT caught by the surrounding do/catch, so a 200 with an empty body
+            // crashed the host app.
+            guard let data, !data.isEmpty else {
+                let errorMessage = "Decide API returned an empty body."
+                hedgeLog(errorMessage)
+                return completion(nil, InternalPaylisherError(description: errorMessage))
+            }
+
             do {
-                let jsonData = try JSONSerialization.jsonObject(with: data!, options: .allowFragments) as? [String: Any]
+                let jsonData = try JSONSerialization.jsonObject(with: data, options: .allowFragments) as? [String: Any]
                 completion(jsonData, nil)
             } catch {
                 hedgeLog("Error parsing the decide response: \(error)")

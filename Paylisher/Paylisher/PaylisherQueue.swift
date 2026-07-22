@@ -38,6 +38,10 @@ class PaylisherQueue {
     private let isFlushingLock = NSLock()
     private var timer: Timer?
     private let timerLock = NSLock()
+    /// Whether `stop()` has been called. Guarded by `timerLock`. Needed because the
+    /// timer is installed on a later main-queue hop, so a `stop()` in between would
+    /// otherwise be undone by that pending block.
+    private var isStopped = false
     private let endpoint: PaylisherApiEndpoint
     private let dispatchQueue: DispatchQueue
 
@@ -142,6 +146,10 @@ class PaylisherQueue {
     func start(disableReachabilityForTesting: Bool,
                disableQueueTimerForTesting: Bool)
     {
+        timerLock.lock()
+        isStopped = false
+        timerLock.unlock()
+
         if !disableReachabilityForTesting {
             // Setup the monitoring of network status for the queue
             #if !os(watchOS)
@@ -181,16 +189,26 @@ class PaylisherQueue {
         }
 
         if !disableQueueTimerForTesting {
-            timerLock.withLock {
-                DispatchQueue.main.async { [weak self] in
+            // The lock cannot guard the assignment: it is released as soon as the
+            // async block is *scheduled*, long before `self.timer` is written on the
+            // main queue. A `stop()` racing in between invalidated a nil timer and
+            // then this block installed a fresh repeating one — a flush timer that
+            // outlived close(), firing after the SDK was shut down.
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                self.timerLock.lock()
+                defer { self.timerLock.unlock() }
+
+                // Someone stopped us while this hop was queued — stay stopped.
+                guard !self.isStopped else { return }
+
+                self.timer?.invalidate()
+                self.timer = Timer.scheduledTimer(withTimeInterval: self.config.flushIntervalSeconds, repeats: true, block: { [weak self] _ in
                     guard let self = self else { return }
-                    self.timer = Timer.scheduledTimer(withTimeInterval: self.config.flushIntervalSeconds, repeats: true, block: { [weak self] _ in
-                        guard let self = self else { return }
-                        if !self.isFlushing {
-                            self.flush()
-                        }
-                    })
-                }
+                    if !self.isFlushing {
+                        self.flush()
+                    }
+                })
             }
         }
     }
@@ -201,6 +219,7 @@ class PaylisherQueue {
 
     func stop() {
         timerLock.withLock {
+            isStopped = true
             timer?.invalidate()
             timer = nil
         }
@@ -249,12 +268,18 @@ class PaylisherQueue {
 
     private func take(_ count: Int, completion: @escaping (PaylisherConsumerPayload) -> Void) {
         dispatchQueue.async {
-            self.isFlushingLock.withLock {
-                if self.isFlushing {
-                    return
-                }
-                self.isFlushing = true
+            // The re-entrancy guard has to return from THIS closure. Written as
+            // `isFlushingLock.withLock { if isFlushing { return } ... }` the return
+            // only exits the lock closure, so a second flush fell straight through
+            // and ran concurrently with the first — peeking the same items, sending
+            // them twice, and popping entries the other flush had not delivered yet.
+            self.isFlushingLock.lock()
+            if self.isFlushing {
+                self.isFlushingLock.unlock()
+                return
             }
+            self.isFlushing = true
+            self.isFlushingLock.unlock()
 
             let items = self.fileQueue.peek(count)
 

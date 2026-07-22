@@ -37,6 +37,14 @@ final class PaylisherEngageInAppService: NSObject {
     private var processedNotifications: [String: TimeInterval] = [:]
     private let notificationTimeoutSeconds: TimeInterval = 3600 // Android: 3600000ms (1 hour)
 
+    // Ekran değişiminde fetch (Android fetchEngageInAppMessagesOnScreenChange 1:1).
+    // Debounce: process-global 15s. Pencere içindeyse istek DÜŞMEZ; pencere dolunca
+    // bir kez çalışacak şekilde ERTELENİR (kullanıcı bir daha ekran değiştirmezse kaybolmasın).
+    private let screenChangeFetchLock = NSLock()
+    private var lastScreenChangeFetchAt: TimeInterval = 0
+    private var pendingScreenChangeFetch = false
+    private let screenChangeFetchMinIntervalSeconds: TimeInterval = 15 // Android: 15_000L
+
     override private init() {
         super.init()
         #if os(iOS) || os(tvOS)
@@ -382,12 +390,61 @@ final class PaylisherEngageInAppService: NSObject {
         renderPendingMessages(debugLogging: debugLogging)
     }
 
-    /// Render hook for screen transitions. Mirrors Android onActivityResumed ->
-    /// renderPendingInAppMessages so a message queued on an excluded screen (e.g.
-    /// Splash) renders as soon as a non-excluded screen appears.
+    /// Screen-transition hook (called from UIViewController.viewDidAppear swizzle).
+    /// Mirrors Android onFragmentStarted/onActivityResumed 1:1: first render any
+    /// queued (not-yet-shown) message, THEN debounced-fetch new ones so a campaign
+    /// published while the user browses appears without a background→foreground cycle.
     func onScreenAppeared() {
         let debugLogging = PaylisherSDK.shared.config.engageInAppConfig?.debugLogging ?? false
         renderPendingMessages(debugLogging: debugLogging)
+        fetchEngageInAppMessagesOnScreenChange()
+    }
+
+    /// Debounced in-app fetch on screen change — Android
+    /// fetchEngageInAppMessagesOnScreenChange 1:1. Gated on autoFetchOnForeground,
+    /// 15s process-global debounce, deferred-not-dropped, target = nil (no server-side
+    /// screen narrowing; untargeted/Everyone campaigns still arrive).
+    private func fetchEngageInAppMessagesOnScreenChange() {
+        let sdk = PaylisherSDK.shared
+        guard let config = sdk.config.engageInAppConfig else { return }
+        // Foreground otomatik fetch kapalıysa ekran değişiminde de fetch etme (Android ile aynı).
+        guard config.autoFetchOnForeground else { return }
+
+        let now = Date().timeIntervalSince1970
+        let waitSeconds: TimeInterval
+        screenChangeFetchLock.lock()
+        let elapsed = now - lastScreenChangeFetchAt
+        if elapsed < screenChangeFetchMinIntervalSeconds {
+            // Debounce penceresi içindeyiz. İsteği DÜŞÜRMÜYORUZ: pencere dolunca bir kez
+            // çalışacak şekilde erteliyoruz.
+            if pendingScreenChangeFetch {
+                screenChangeFetchLock.unlock()
+                return
+            }
+            pendingScreenChangeFetch = true
+            waitSeconds = screenChangeFetchMinIntervalSeconds - elapsed
+        } else {
+            lastScreenChangeFetchAt = now
+            waitSeconds = 0
+        }
+        screenChangeFetchLock.unlock()
+
+        if waitSeconds > 0 {
+            if config.debugLogging {
+                hedgeLog("[PaylisherSDK] Engage in-app fetch deferred \(Int(waitSeconds * 1000))ms (debounce)")
+            }
+            DispatchQueue.main.asyncAfter(deadline: .now() + waitSeconds) { [weak self] in
+                guard let self else { return }
+                self.screenChangeFetchLock.lock()
+                self.pendingScreenChangeFetch = false
+                self.lastScreenChangeFetchAt = Date().timeIntervalSince1970
+                self.screenChangeFetchLock.unlock()
+                self.refresh(using: PaylisherSDK.shared, target: nil)
+            }
+            return
+        }
+
+        refresh(using: sdk, target: nil)
     }
 
     private func renderPendingMessages(debugLogging: Bool) {

@@ -34,7 +34,11 @@ public class PaylisherNativeInAppNotificationManager {
             return
         }
         
-        let defaultLang = userInfo["defaultLang"] as! String
+        // Optional on purpose: this comes from a server payload we do not control,
+        // and `localize` already falls back (device language -> defaultLang -> first
+        // available translation -> fallback). Force-casting it crashed the host app
+        // whenever a campaign omitted the field.
+        let defaultLang = userInfo["defaultLang"] as? String
         
         let titleDict = nativeDict["title"] as? [String: String] ?? [:]
 
@@ -112,7 +116,10 @@ public class PaylisherNativeInAppNotificationManager {
             if windowScene != nil,
                let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
                let rootVC = keyWindow.rootViewController {
-                   rootVC.present(inAppVC, animated: true) {
+                   // Kök VC zaten bir modal sunuyorsa present sessizce düşüyordu;
+                   // en üstteki VC'den sun.
+                   let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
+                   presenter.present(inAppVC, animated: true) {
                        PaylisherNotificationEventTracker.capture(
                            "inappMessageRead",
                            pushId: pushId,

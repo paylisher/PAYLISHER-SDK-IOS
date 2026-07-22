@@ -780,6 +780,7 @@ enum PaylisherNotificationEventTracker {
             event,
             properties: buildProperties(pushId: pushId, properties: properties)
         )
+        flushAfterNotificationEvent()
     }
 
     static func capture(_ event: String, userInfo: [AnyHashable: Any], properties: [String: Any?] = [:]) {
@@ -792,6 +793,38 @@ enum PaylisherNotificationEventTracker {
             }
         }
         PaylisherSDK.shared.capture(event, properties: merged)
+        flushAfterNotificationEvent()
+    }
+
+    /// Flush the analytics queue right after a notification event, held open by a
+    /// short background task so the network send can COMPLETE even if the app is
+    /// suspended immediately after the tap — e.g. the push's `action` deeplink
+    /// opens an external URL (`UIApplication.open`), or the user swipes the app
+    /// away. Without this the in-flight request is cancelled on suspension, so
+    /// `notificationOpen` / `notificationReceived` only reach the backend on the
+    /// NEXT foreground and background/closed taps look "missing" in real time.
+    /// (SDK `flush()` is unprotected; the notification tap only stays foreground
+    /// long enough to send when the app was already active.)
+    static func flushAfterNotificationEvent() {
+        #if os(iOS) || os(tvOS)
+        DispatchQueue.main.async {
+            let application = UIApplication.shared
+            var taskID: UIBackgroundTaskIdentifier = .invalid
+            let end = {
+                if taskID != .invalid {
+                    application.endBackgroundTask(taskID)
+                    taskID = .invalid
+                }
+            }
+            taskID = application.beginBackgroundTask(withName: "PaylisherNotificationFlush") { end() }
+            PaylisherSDK.shared.flush()
+            // Release after a grace window long enough for the POST to finish
+            // (the expiration handler is the hard backstop at the system limit).
+            DispatchQueue.main.asyncAfter(deadline: .now() + 10) { end() }
+        }
+        #else
+        PaylisherSDK.shared.flush()
+        #endif
     }
 
     static func registerTrackedCategory() {

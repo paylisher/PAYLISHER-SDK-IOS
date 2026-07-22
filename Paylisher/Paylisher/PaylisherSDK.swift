@@ -1416,8 +1416,26 @@ let maxRetryDelay = 30.0
             if previousVersionCode == nil {
                 // installed
                 event = "Application Installed"
+                // first vs reinstall: the Keychain marker outlives an uninstall,
+                // unlike the UserDefaults build key checked above, so it tells the
+                // two apart. Only stamped on install, never on update.
+                props["install_type"] = PaylisherInstallMarker.resolve().rawValue
             } else {
                 event = "Application Updated"
+
+                // Seed the install marker for a device that already had the app
+                // before this feature existed, so its NEXT reinstall reads
+                // `reinstall` instead of `first`. Safe here because this branch is
+                // by definition NOT a first install (previousVersionCode != nil), so
+                // it can never turn a real first install into a reinstall. Gated by a
+                // UserDefaults flag so the Keychain is touched at most once, not on
+                // every relaunch (this branch runs each launch when the build is
+                // unchanged).
+                if !userDefaults.bool(forKey: "PaylisherInstallMarkerSeeded") {
+                    PaylisherInstallMarker.seedIfMissing()
+                    userDefaults.set(true, forKey: "PaylisherInstallMarkerSeeded")
+                    userDefaults.synchronize()
+                }
 
                 // Do not send version updates if its the same
                 if previousVersionCode == versionCode {

@@ -37,6 +37,14 @@ internal class PaylisherFirstLaunchDetector {
     // UserDefaults keys
     private let keyHasLaunched = "paylisher_first_launch_has_launched"
     private let keyInstallTimestamp = "paylisher_first_launch_install_timestamp"
+    private let keyDeferredCheckDone = "paylisher_deferred_check_completed"
+    private let keyDeferredAttempts = "paylisher_deferred_check_attempts"
+
+    /// How many launches may attempt the deferred-attribution check before we give
+    /// up. The check is only worth retrying while the click could still be inside
+    /// the attribution window, and a user who never matches must not have their
+    /// every launch spend a network round trip.
+    private let maxDeferredCheckAttempts = 5
 
     // MARK: - Constants
 
@@ -95,6 +103,73 @@ internal class PaylisherFirstLaunchDetector {
         }
 
         return false
+    }
+
+    // MARK: - Deferred Attribution Check
+
+    /**
+     * Whether this launch should attempt the deferred-attribution check.
+     *
+     * Deliberately NOT `isFirstLaunch()`. That method consumes the first-launch flag
+     * the moment it is read, so when the attribution request failed — and a first
+     * launch is exactly when the network is least reliable, the user is often still
+     * on cellular right after an App Store download — the attribution was lost for
+     * good: the next launch reported "not first launch" and skipped the check.
+     *
+     * Here the flag is only consumed by `markDeferredCheckCompleted()`, once the
+     * server has actually answered. A failed attempt therefore leaves the check
+     * pending and the next launch retries it, bounded by `maxDeferredCheckAttempts`.
+     *
+     * Also records the install timestamp on the first call, which `isFirstLaunch()`
+     * used to be responsible for.
+     *
+     * @return true when the check should run on this launch
+     */
+    func shouldAttemptDeferredCheck() -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        if userDefaults.bool(forKey: keyDeferredCheckDone) {
+            return false
+        }
+
+        // Legacy installs: `isFirstLaunch()` already consumed the flag in an earlier
+        // SDK version, so their check is finished — do not start retrying for users
+        // who installed long ago.
+        if userDefaults.bool(forKey: keyHasLaunched),
+           userDefaults.object(forKey: keyDeferredAttempts) == nil
+        {
+            userDefaults.set(true, forKey: keyDeferredCheckDone)
+            return false
+        }
+
+        if userDefaults.double(forKey: keyInstallTimestamp) == 0 {
+            userDefaults.set(Date().timeIntervalSince1970, forKey: keyInstallTimestamp)
+        }
+
+        let attempts = userDefaults.integer(forKey: keyDeferredAttempts)
+        if attempts >= maxDeferredCheckAttempts {
+            userDefaults.set(true, forKey: keyDeferredCheckDone)
+            return false
+        }
+
+        userDefaults.set(attempts + 1, forKey: keyDeferredAttempts)
+        userDefaults.set(true, forKey: keyHasLaunched)
+        return true
+    }
+
+    /**
+     * Marks the deferred-attribution check as definitively answered.
+     *
+     * Call this ONLY when the backend actually replied (match or no-match). Do not
+     * call it on a network/transport failure: that is the case we want retried.
+     */
+    func markDeferredCheckCompleted() {
+        lock.lock()
+        defer { lock.unlock() }
+
+        userDefaults.set(true, forKey: keyDeferredCheckDone)
+        userDefaults.set(true, forKey: keyHasLaunched)
     }
 
     /**
@@ -219,6 +294,10 @@ internal class PaylisherFirstLaunchDetector {
 
         userDefaults.removeObject(forKey: keyHasLaunched)
         userDefaults.removeObject(forKey: keyInstallTimestamp)
+        // Without these the deferred-attribution check stays permanently settled, so
+        // a "fresh install" simulated with reset() would never run attribution again.
+        userDefaults.removeObject(forKey: keyDeferredCheckDone)
+        userDefaults.removeObject(forKey: keyDeferredAttempts)
         userDefaults.synchronize()
     }
 
@@ -230,9 +309,10 @@ internal class PaylisherFirstLaunchDetector {
      * @return Dictionary containing launch state data
      */
     func getState() -> [String: Any] {
-        lock.lock()
-        defer { lock.unlock() }
-
+        // Each accessor takes the lock itself, so this must NOT hold it — `lock` is
+        // a non-reentrant NSLock and acquiring it here deadlocked the calling thread
+        // on the first accessor. Snapshotting is fine: this is a debug/log view, not
+        // a consistency-critical read.
         return [
             "has_launched": hasLaunchedBefore(),
             "install_timestamp": getInstallTimestamp(),
