@@ -5,6 +5,14 @@
 //  SSL public key (SPKI) pinning for the SDK network layer.
 //
 
+// SSL public key (SPKI) pinning, compiled ONLY into a PAYLISHER_SSL_PINNING build.
+//
+// A build made without the PAYLISHER_SSL_PINNING active compilation condition (for example the
+// package handed to the pentest team) excludes this whole file, so the artifact carries no pinning
+// code and no reference to the pinner. The decision is taken at COMPILE time and cannot be reversed
+// by editing configuration or by tampering with the packaged app.
+#if PAYLISHER_SSL_PINNING
+
 import CryptoKit
 import Foundation
 
@@ -189,3 +197,5 @@ final class PaylisherCertificatePinner: NSObject, URLSessionDelegate {
         0x01, 0x06, 0x05, 0x2B, 0x81, 0x04, 0x00, 0x22, 0x03, 0x62, 0x00,
     ]
 }
+
+#endif

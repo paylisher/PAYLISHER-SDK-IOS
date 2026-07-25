@@ -25,4 +25,11 @@ Paylisher is a comprehensive mobile SDK providing event tracking, session replay
 
   s.swift_versions = ['5.7', '5.8', '5.9']
   s.requires_arc = true
+
+  # SSL public key pinning is compiled in by default. To produce a build with pinning fully
+  # excluded (for example the pentest package), drop PAYLISHER_SSL_PINNING from this condition.
+  # The decision is taken at COMPILE time and cannot be reversed at runtime.
+  s.pod_target_xcconfig = {
+    'SWIFT_ACTIVE_COMPILATION_CONDITIONS' => '$(inherited) PAYLISHER_SSL_PINNING'
+  }
 end

@@ -46,22 +46,31 @@ class PaylisherApi {
         return request
     }
 
+    #if PAYLISHER_SSL_PINNING
     /// Nil while `PaylisherConfig.certificatePins` is empty, which keeps every session identical
     /// to the previous behaviour and validated against the system trust store only.
+    ///
+    /// This property, and the pinner type it holds, exist ONLY in a build made with the
+    /// PAYLISHER_SSL_PINNING compilation condition (the default for release). A pentest build made
+    /// without that flag compiles none of this, so the artifact carries no pinning code and it
+    /// cannot be enabled at runtime. The decision is taken at COMPILE time.
     private lazy var certificatePinner: PaylisherCertificatePinner? = PaylisherCertificatePinner(config: config)
+    #endif
 
-    /// Builds a session carrying the pinning delegate when pinning is configured, and a plain
-    /// session otherwise. A delegate keeps its session alive until the session is invalidated, so
-    /// every caller invalidates right after starting the task.
+    /// Builds a session carrying the pinning delegate when pinning is configured and compiled in,
+    /// and a plain session otherwise. A delegate keeps its session alive until the session is
+    /// invalidated, so every caller invalidates right after starting the task.
     private func makeSession(_ sessionConfiguration: URLSessionConfiguration) -> URLSession {
-        guard let certificatePinner = certificatePinner else {
-            return URLSession(configuration: sessionConfiguration)
+        #if PAYLISHER_SSL_PINNING
+        if let certificatePinner = certificatePinner {
+            return URLSession(
+                configuration: sessionConfiguration,
+                delegate: certificatePinner,
+                delegateQueue: nil
+            )
         }
-        return URLSession(
-            configuration: sessionConfiguration,
-            delegate: certificatePinner,
-            delegateQueue: nil
-        )
+        #endif
+        return URLSession(configuration: sessionConfiguration)
     }
 
     func batch(events: [PaylisherEvent], completion: @escaping (PaylisherBatchUploadInfo) -> Void) {
