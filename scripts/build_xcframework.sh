@@ -34,17 +34,21 @@ log_section() {
 }
 
 usage() {
-    echo "Usage: $0 [-s SCHEME_NAME] [-t TOOLCHAIN]"
+    echo "Usage: $0 [-s SCHEME_NAME] [-t TOOLCHAIN] [-n]"
     echo ""
     echo "Options:"
     echo "  -s    Scheme name (default: Paylisher)"
     echo "  -t    Toolchain identifier or shorthand alias"
     echo "        Use 'swift6' for Swift 6.0 Release toolchain (Xcode 16.x compat)"
     echo "        Use 'swift5' for Swift 5.10 Release toolchain"
+    echo "  -n    Build WITHOUT SSL pinning (pentest artifact)"
+    echo "        By default the pinning code is compiled in. With -n it is left"
+    echo "        out of the binary entirely and cannot be enabled at runtime."
     echo "  -h    Show this help"
     echo ""
     echo "Examples:"
-    echo "  $0                          # Build with default Xcode toolchain"
+    echo "  $0                          # Production build, pinning compiled in"
+    echo "  $0 -n                       # Pentest build, no pinning code at all"
     echo "  $0 -t swift6               # Build with Swift 6.0 toolchain"
     echo "  $0 -t swift5               # Build with Swift 5.10 toolchain"
     exit 0
@@ -56,15 +60,41 @@ usage() {
 
 SCHEME_NAME="Paylisher"
 TOOLCHAIN_ID=""
+SSL_PINNING=1
 
-while getopts "s:t:h" opt; do
+while getopts "s:t:nh" opt; do
     case $opt in
         s) SCHEME_NAME="$OPTARG" ;;
         t) TOOLCHAIN_ID="$OPTARG" ;;
+        n) SSL_PINNING=0 ;;
         h) usage ;;
         *) usage ;;
     esac
 done
+
+# ============================================================================
+# SSL Pinning (compile-time)
+# ============================================================================
+# The pinning code is wrapped in #if PAYLISHER_SSL_PINNING, so whether it exists
+# in the binary at all is decided here rather than at runtime. Package.swift and
+# the podspec define the condition for their own channels, but the Xcode project
+# does not, so the xcframework channel has to set it explicitly. Without this the
+# published xcframework would ship WITHOUT pinning, which is the opposite of what
+# a release build should do.
+#
+#   default   -> pinning compiled in  (production artifact)
+#   -n        -> pinning compiled out (pentest artifact)
+#
+# Kept as an array because the value contains a space and must reach xcodebuild
+# as a single argument. '$(inherited)' is single quoted on purpose so the shell
+# passes it through literally for xcodebuild to expand.
+if [ "$SSL_PINNING" -eq 1 ]; then
+    PINNING_SETTING=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited) PAYLISHER_SSL_PINNING')
+    PINNING_DISPLAY="ENABLED (production artifact)"
+else
+    PINNING_SETTING=('SWIFT_ACTIVE_COMPILATION_CONDITIONS=$(inherited)')
+    PINNING_DISPLAY="DISABLED (pentest artifact, no pinning code in binary)"
+fi
 
 # ============================================================================
 # Toolchain Resolution
@@ -130,6 +160,7 @@ log_section "Build Configuration"
 echo -e "  📁 Project Root:  $PROJECT_ROOT"
 echo -e "  🎯 Scheme:        $SCHEME_NAME"
 echo -e "  🔧 Toolchain:     $TOOLCHAIN_DISPLAY"
+echo -e "  🔒 SSL Pinning:   $PINNING_DISPLAY"
 echo -e "  📦 Output:        $XCFRAMEWORK_OUTPUT"
 echo -e "  📝 Log:           $LOG_FILE"
 echo ""
@@ -183,6 +214,7 @@ xcodebuild archive \
     $DISABLE_PKG_RESOLVE \
     SKIP_INSTALL=NO \
     BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+    "${PINNING_SETTING[@]}" \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" 2>&1 | tee -a "$LOG_FILE" || log_error "iOS device archive failed!"
 
 log_info "iOS device archive completed"
@@ -202,6 +234,7 @@ xcodebuild archive \
     $DISABLE_PKG_RESOLVE \
     SKIP_INSTALL=NO \
     BUILD_LIBRARY_FOR_DISTRIBUTION=YES \
+    "${PINNING_SETTING[@]}" \
     CODE_SIGNING_ALLOWED=NO CODE_SIGNING_REQUIRED=NO CODE_SIGN_IDENTITY="" 2>&1 | tee -a "$LOG_FILE" || log_error "Simulator archive failed!"
 
 log_info "Simulator archive completed"
