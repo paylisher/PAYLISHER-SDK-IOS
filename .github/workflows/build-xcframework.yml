@@ -10,7 +10,15 @@ name: Build XCFramework
 # Not: Firebase hicbir hedefe link'li degil -> build'e dahil edilmiyor (hafif/hizli).
 
 on:
-  workflow_dispatch: {}              # Actions sekmesinden elle "Run workflow" butonu
+  workflow_dispatch:                 # Actions sekmesinden elle "Run workflow" butonu
+    inputs:
+      pinning:
+        description: 'SSL pinning (uretim=enabled, pentest=disabled)'
+        type: choice
+        default: 'enabled'
+        options:
+          - enabled                  # uretim paketi: pinning kodu derlenir (varsayilan)
+          - disabled                 # pentest paketi: -n ile pinning kodu binary'de hic olmaz
   push:
     tags:
       - '[0-9]+.[0-9]+.[0-9]+'       # 1.8.5
@@ -104,16 +112,30 @@ jobs:
             spm-${{ runner.os }}-
 
       - name: XCFramework build
+        id: build
         run: |
           chmod +x scripts/build_xcframework.sh
-          ./scripts/build_xcframework.sh
+          # Tag push'unda input BOS gelir -> varsayilan uretim (pinning'li) paketi.
+          if [ "${{ github.event.inputs.pinning }}" = "disabled" ]; then
+            echo "==> PENTEST paketi (pinning KAPALI, -n)"
+            ./scripts/build_xcframework.sh -n
+            LABEL=NOPINNING
+          else
+            echo "==> URETIM paketi (pinning ACIK)"
+            ./scripts/build_xcframework.sh
+            LABEL=PINNING
+          fi
+          # Iki paket birbirini ezmesin diye moda gore isimlendir.
+          mv build/Paylisher.xcframework.zip "build/Paylisher-${LABEL}.xcframework.zip"
+          echo "label=${LABEL}" >> "$GITHUB_OUTPUT"
+          echo "zip=build/Paylisher-${LABEL}.xcframework.zip" >> "$GITHUB_OUTPUT"
 
       - name: Cikti yukle (indirilebilir artifact)
         if: success()
         uses: actions/upload-artifact@v4
         with:
-          name: Paylisher-xcframework
-          path: build/Paylisher.xcframework.zip
+          name: Paylisher-xcframework-${{ steps.build.outputs.label }}
+          path: ${{ steps.build.outputs.zip }}
           retention-days: 14
           if-no-files-found: error
 
