@@ -39,6 +39,12 @@ let package = Package(
             resources: [
                 .copy("Resources/PrivacyInfo.xcprivacy"),
                 .process("Resources/PaylisherDatabase.momd")
+            ],
+            // SSL public key pinning is compiled in by default. To produce a build with pinning
+            // fully excluded (for example the pentest package), remove this define. The decision
+            // is taken at COMPILE time and cannot be reversed at runtime.
+            swiftSettings: [
+                .define("PAYLISHER_SSL_PINNING")
             ]
         ),
         .testTarget(

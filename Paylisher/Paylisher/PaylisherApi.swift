@@ -46,6 +46,33 @@ class PaylisherApi {
         return request
     }
 
+    #if PAYLISHER_SSL_PINNING
+    /// Nil while `PaylisherConfig.certificatePins` is empty, which keeps every session identical
+    /// to the previous behaviour and validated against the system trust store only.
+    ///
+    /// This property, and the pinner type it holds, exist ONLY in a build made with the
+    /// PAYLISHER_SSL_PINNING compilation condition (the default for release). A pentest build made
+    /// without that flag compiles none of this, so the artifact carries no pinning code and it
+    /// cannot be enabled at runtime. The decision is taken at COMPILE time.
+    private lazy var certificatePinner: PaylisherCertificatePinner? = PaylisherCertificatePinner(config: config)
+    #endif
+
+    /// Builds a session carrying the pinning delegate when pinning is configured and compiled in,
+    /// and a plain session otherwise. A delegate keeps its session alive until the session is
+    /// invalidated, so every caller invalidates right after starting the task.
+    private func makeSession(_ sessionConfiguration: URLSessionConfiguration) -> URLSession {
+        #if PAYLISHER_SSL_PINNING
+        if let certificatePinner = certificatePinner {
+            return URLSession(
+                configuration: sessionConfiguration,
+                delegate: certificatePinner,
+                delegateQueue: nil
+            )
+        }
+        #endif
+        return URLSession(configuration: sessionConfiguration)
+    }
+
     func batch(events: [PaylisherEvent], completion: @escaping (PaylisherBatchUploadInfo) -> Void) {
         guard let url = URL(string: "batch", relativeTo: config.host) else {
             hedgeLog("Malformed batch URL error.")
@@ -83,7 +110,8 @@ class PaylisherApi {
             return completion(PaylisherBatchUploadInfo(statusCode: nil, error: error))
         }
 
-        URLSession(configuration: config).uploadTask(with: request, from: gzippedPayload!) { data, response, error in
+        let session = makeSession(config)
+        session.uploadTask(with: request, from: gzippedPayload!) { data, response, error in
             if error != nil {
                 hedgeLog("Error calling the batch API: \(String(describing: error)).")
                 return completion(PaylisherBatchUploadInfo(statusCode: nil, error: error))
@@ -112,6 +140,7 @@ class PaylisherApi {
 
             return completion(PaylisherBatchUploadInfo(statusCode: httpResponse.statusCode, error: error))
         }.resume()
+        session.finishTasksAndInvalidate()
     }
 
     func snapshot(events: [PaylisherEvent], completion: @escaping (PaylisherBatchUploadInfo) -> Void) {
@@ -156,7 +185,8 @@ class PaylisherApi {
             return completion(PaylisherBatchUploadInfo(statusCode: nil, error: error))
         }
 
-        URLSession(configuration: config).uploadTask(with: request, from: gzippedPayload!) { data, response, error in
+        let session = makeSession(config)
+        session.uploadTask(with: request, from: gzippedPayload!) { data, response, error in
             if error != nil {
                 hedgeLog("Error calling the snapshot API: \(String(describing: error)).")
                 return completion(PaylisherBatchUploadInfo(statusCode: nil, error: error))
@@ -181,6 +211,7 @@ class PaylisherApi {
 
             return completion(PaylisherBatchUploadInfo(statusCode: httpResponse.statusCode, error: error))
         }.resume()
+        session.finishTasksAndInvalidate()
     }
 
     func decide(
@@ -218,7 +249,8 @@ class PaylisherApi {
             return completion(nil, error)
         }
 
-        URLSession(configuration: config).uploadTask(with: request, from: data!) { data, response, error in
+        let session = makeSession(config)
+        session.uploadTask(with: request, from: data!) { data, response, error in
             if error != nil {
                 hedgeLog("Error calling the decide API: \(String(describing: error))")
                 return completion(nil, error)
@@ -258,6 +290,7 @@ class PaylisherApi {
                 completion(nil, error)
             }
         }.resume()
+        session.finishTasksAndInvalidate()
     }
 
     // MARK: - Heartbeat
@@ -308,7 +341,8 @@ class PaylisherApi {
             return completion(false, error)
         }
 
-        URLSession(configuration: sessionConfiguration).uploadTask(with: request, from: data!) { data, response, error in
+        let session = makeSession(sessionConfiguration)
+        session.uploadTask(with: request, from: data!) { data, response, error in
             if let error = error {
                 hedgeLog("Error calling the heartbeat API: \(error.localizedDescription)")
                 return completion(false, error)
@@ -333,5 +367,6 @@ class PaylisherApi {
                 completion(false, InternalPaylisherError(description: "Heartbeat failed with HTTP \(httpResponse.statusCode)"))
             }
         }.resume()
+        session.finishTasksAndInvalidate()
     }
 }

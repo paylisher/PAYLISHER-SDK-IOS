@@ -83,6 +83,33 @@ import UIKit
         @objc public let sessionReplayConfig: PaylisherSessionReplayConfig = .init()
     #endif
 
+    /// SSL public key (SPKI) pinning for the connection to `host`.
+    ///
+    /// When this array is empty (the default) the SDK behaves exactly as before and validates the
+    /// server against the system trust store only. When it is filled, the server certificate must
+    /// additionally carry a public key whose SHA-256 hash matches one of these pins, otherwise the
+    /// connection is refused. That blocks man-in-the-middle interception even when a foreign CA is
+    /// installed in the device trust store.
+    ///
+    /// Each entry is the base64 encoded SHA-256 hash of the server SubjectPublicKeyInfo, for
+    /// example "sha256/+uSln0BfQmiK4sXbgI/fK/o8xCAaDJDKTET7SdYg+qM=". A bare base64 value without
+    /// the "sha256/" prefix is accepted as well and treated as SHA-256.
+    ///
+    /// The value is produced from the server certificate, for example:
+    ///
+    ///     openssl s_client -connect HOST:443 -servername HOST </dev/null 2>/dev/null \
+    ///       | openssl x509 -pubkey -noout \
+    ///       | openssl pkey -pubin -outform der \
+    ///       | openssl dgst -sha256 -binary \
+    ///       | openssl enc -base64
+    ///
+    /// Always configure at least one backup pin that belongs to a spare key kept offline. Pins
+    /// ship inside the app, so rotating the server key without an already published backup pin
+    /// leaves every installed app unable to connect until it ships a new release.
+    ///
+    /// Defaults to no pinning.
+    @objc public var certificatePins: [String] = []
+
     // only internal
     var disableReachabilityForTesting: Bool = false
     var disableQueueTimerForTesting: Bool = false
