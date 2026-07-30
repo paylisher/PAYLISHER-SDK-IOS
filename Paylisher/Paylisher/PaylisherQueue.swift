@@ -247,6 +247,22 @@ class PaylisherQueue {
     }
 
     func add(_ event: PaylisherEvent) {
+        // SKAdNetwork conversion values are driven from here rather than from `capture(_:)`,
+        // because this is the only real chokepoint: `$identify`, `$screen`, `$create_alias`
+        // and `$groupidentify` build their events and call `queue.add` directly, bypassing
+        // `capture(_:)` entirely, so a hook there would never see them.
+        //
+        // Restricted to `.batch`: the `.snapshot` queue carries session-replay `$snapshot`
+        // frames, which are not user actions and must never move a conversion value.
+        //
+        // Opt-out needs no check here — `capture(_:)` already returns before enqueuing when
+        // the SDK is opted out, so an opted-out user produces no conversion updates.
+        //
+        // No-op unless the host supplied `PaylisherConfig.skAdNetworkConfig`.
+        if endpoint == .batch {
+            PaylisherSKAdNetworkManager.shared.handleEvent(event)
+        }
+
         if fileQueue.depth >= config.maxQueueSize {
             hedgeLog("Queue is full, dropping oldest event")
             // first is always oldest

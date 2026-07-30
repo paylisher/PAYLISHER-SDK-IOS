@@ -191,6 +191,57 @@ let maxRetryDelay = 30.0
             unregister("campaign_key")
             unregister("deeplink_key")
 
+            // Configure SKAdNetwork if the host opted in. Nil config (the default) means no
+            // StoreKit call is ever made. Must run before captureAppInstallLifecycle(), which
+            // is what triggers install registration on a first launch.
+            if let skanConfig = config.skAdNetworkConfig, skanConfig.enabled {
+                PaylisherSKAdNetworkManager.shared.configure(
+                    config: skanConfig,
+                    storage: theStorage
+                )
+                hedgeLog("[PaylisherSDK] SKAdNetwork Manager configured (rules: \(skanConfig.rules.count))")
+
+                // Register the install from HERE, not only from the app-lifecycle branch.
+                // That branch lives inside captureAppInstallLifecycle(), which the SDK skips
+                // entirely when the host sets `captureApplicationLifecycleEvents = false` — so
+                // a host that turns lifecycle capture off and SKAdNetwork on would get no
+                // registration at all, Apple would have no install to attribute, and the whole
+                // feature would be silently inert with nothing to see anywhere.
+                //
+                // Safe to call twice: it is guarded by a persisted `registered` flag and runs
+                // at most once per install. Gated on optOut to match the conversion-value path.
+                if !isOptOutState() {
+                    PaylisherSKAdNetworkManager.shared.registerInstallIfNeeded()
+                }
+
+                // Refresh the conversion schema from the dashboard. `configure` above has
+                // already applied the CACHED copy synchronously, so this only ever upgrades
+                // what is in place — it never leaves a gap where events go unencoded, and a
+                // failed fetch keeps the previous schema rather than clearing it.
+                if skanConfig.useRemoteSchema {
+                    let host = PaylisherSKAdNetworkRemoteConfig.resolveHost(
+                        explicit: skanConfig.configHost,
+                        deferredHost: config.deferredDeepLinkConfig?.deferredDeepLinkAPIHost
+                    )
+                    PaylisherSKAdNetworkRemoteConfig.fetch(
+                        host: host,
+                        bundleId: Bundle.main.bundleIdentifier,
+                        apiKey: config.apiKey
+                    ) { schema, disabled in
+                        if let schema {
+                            PaylisherSKAdNetworkRemoteConfig.cache(schema: schema, storage: theStorage)
+                            PaylisherSKAdNetworkManager.shared.applySchema(schema)
+                        } else if disabled {
+                            // An explicit "off" from the backend, unlike a failed request.
+                            // Clearing the cache here is what makes switching the feature off
+                            // in the dashboard actually reach devices.
+                            PaylisherSKAdNetworkRemoteConfig.clearCache(storage: theStorage)
+                            PaylisherSKAdNetworkManager.shared.applySchema(nil)
+                        }
+                    }
+                }
+            }
+
             // Configure Heartbeat Manager for silent push / uninstall detection
             PaylisherHeartbeatManager.shared.configure(
                 config: config,
@@ -1306,6 +1357,10 @@ let maxRetryDelay = 30.0
             #endif
             queue = nil
             replayQueue = nil
+            // Drop the SKAdNetwork manager's references before storage/config are torn down
+            // below; it is a singleton and would otherwise keep pointing at a storage this
+            // SDK instance no longer owns.
+            PaylisherSKAdNetworkManager.shared.reset()
             config.storageManager?.reset()
             config.storageManager = nil
             config = PaylisherConfig(apiKey: "")
@@ -1420,6 +1475,14 @@ let maxRetryDelay = 30.0
                 // unlike the UserDefaults build key checked above, so it tells the
                 // two apart. Only stamped on install, never on update.
                 props["install_type"] = PaylisherInstallMarker.resolve().rawValue
+
+                // Register the install with Apple's SKAdNetwork. No-op unless the host
+                // supplied a config. Gated on optOut so it matches the conversion-value
+                // path, which is gated implicitly (capture() returns early when opted out,
+                // so no event ever reaches the queue hook that drives conversion updates).
+                if !isOptOutState() {
+                    PaylisherSKAdNetworkManager.shared.registerInstallIfNeeded()
+                }
             } else {
                 event = "Application Updated"
 

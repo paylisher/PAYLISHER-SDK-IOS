@@ -36,6 +36,21 @@ class PaylisherStorage {
         case personProcessingEnabled = "paylisher.enabledPersonProcessing"
         case deviceToken = "paylisher.deviceToken"
         case lastHeartbeatTimestamp = "paylisher.lastHeartbeatTimestamp"
+        /// SKAdNetwork conversion state (fine/coarse value, lock flag, registration time).
+        ///
+        /// DELIBERATELY absent from `reset()`. Apple counts its measurement windows from the
+        /// install, not from a session, and it accepts only monotonically increasing values.
+        /// Clearing this on logout would reopen a window Apple already considers spent and
+        /// make the SDK re-report values the OS silently drops.
+        case skAdNetworkState = "paylisher.skAdNetworkState"
+        /// Last successfully fetched SKAdNetwork conversion schema (raw JSON).
+        ///
+        /// Cached so the very first event after a cold launch can already be encoded, before
+        /// the network round trip finishes — and so a device that is offline, or whose backend
+        /// is briefly down, keeps encoding with the last known-good definition instead of
+        /// silently reporting nothing. Like `skAdNetworkState`, deliberately absent from
+        /// `reset()`: the schema describes the APP, not the logged-in person.
+        case skAdNetworkSchema = "paylisher.skAdNetworkSchema"
     }
 
     private let config: PaylisherConfig

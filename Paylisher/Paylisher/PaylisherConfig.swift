@@ -70,6 +70,17 @@ import UIKit
     /// When set, SDK can fetch in-app campaigns directly from the Engage service without FCM delivery.
     public var engageInAppConfig: PaylisherEngageInAppConfig?
 
+    /// SKAdNetwork (Apple privacy-preserving install attribution) configuration.
+    ///
+    /// Default: nil — SKAdNetwork is OFF and no StoreKit call is ever made. Assign a
+    /// `PaylisherSKAdNetworkConfig` to switch it on; set `enabled = false` on that object, or
+    /// put this back to nil, to switch it off again.
+    ///
+    /// This reads no identifier and needs no ATT permission, so it is safe to enable in
+    /// privacy-sensitive apps. See `PaylisherSKAdNetworkConfig` for what it does and does not
+    /// deliver on its own.
+    public var skAdNetworkConfig: PaylisherSKAdNetworkConfig?
+
     /// or EU Host: 'https://eu.i.paylisher.com'
     public static let defaultHost: String = "https://us.i.paylisher.com"
 
