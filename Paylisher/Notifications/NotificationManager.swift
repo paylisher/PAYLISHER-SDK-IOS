@@ -297,14 +297,12 @@ public class NotificationManager {
                     break
                 case .inApp:
                     // Reception log — matches Android `FCM | InApp` shape.
-                    // Includes the full FCM userInfo (parity with
-                    // `FcmMessageHandler.handleInAppPayload` →
-                    // "Notification InApp Data: $dataPayloadJson") so the
-                    // exact payload is reproducible from the logs alone.
+                    // Payload'ın tamamı loglanmaz: kullanıcıya özel bildirim
+                    // metni taşır (CWE-532). Teşhis için kimlikler yeterlidir;
+                    // Android tarafı da aynı şekilde yalnızca kimlik yazar.
                     let pushId = (userInfo["pushId"] as? String) ?? "?"
                     let layoutType = (userInfo["layoutType"] as? String) ?? "?"
                     let gcmMessageId = (userInfo["gcm.message_id"] as? String) ?? "?"
-                    print("FCM | InApp | Notification InApp Data: \(userInfo)")
                     print("FCM | InApp | received | pushId=\(pushId) | layoutType=\(layoutType) | gcmMessageId=\(gcmMessageId)")
 
                     if PaylisherNotificationDedupe.tryClaimReceived(userInfo: userInfo) {
