@@ -89,6 +89,7 @@ public class PaylisherDeferredDeepLinkManager {
             apiKey: apiKey,
             sdkVersion: sdkVersion,
             deferredDeepLinkHost: config.deferredDeepLinkAPIHost,
+            attTrackingHost: config.attTrackingHost,
             timeout: config.apiTimeout
         )
         self.journeyContext = PaylisherJourneyContext.shared
@@ -226,12 +227,31 @@ public class PaylisherDeferredDeepLinkManager {
                     hedgeLog("[PaylisherDeferredDeepLink] Fingerprint V1 generated: \(fingerprint.prefix(16))...")
                 }
 
-                // Opportunistic IDFA: attach ONLY when ATT is already authorized (never prompts) and
-                // config allows it. Unlocks the backend's deterministic IDFA-exact attribution layer;
-                // otherwise we fall back to fingerprint-only (unchanged behavior).
-                let idfa = config.includeIDFA ? PaylisherDeviceFingerprint.authorizedIDFA() : nil
+                // Opportunistic IDFA. Three independent gates must ALL pass, and each one alone
+                // is a complete off switch:
+                //
+                //   1. `PaylisherATT` linked + `PaylisherATT.enable()` called — otherwise no
+                //      provider is registered and `PaylisherIDFA` has nothing to read. Apps that
+                //      never add the module carry no AdSupport/ATT symbol at all.
+                //   2. `config.includeIDFA` — the runtime switch (defaults to false).
+                //   3. SDK-wide `optOut` — checked BEFORE the read and before the network call.
+                //      This mirrors the Android discipline in `PaylisherAppInstallIntegration`
+                //      (`installTypeAllowed()`); relying on capture()-level opt-out is too late,
+                //      because this request is not a captured event and would have carried the
+                //      identifier of an opted-out user regardless.
+                //
+                // Even when all three pass, the provider returns nil unless ATT is ALREADY
+                // authorized — the SDK never prompts. Without an IDFA we fall back to
+                // fingerprint-only, which is the unchanged, still fully working behavior.
+                let optedOut = PaylisherSDK.shared.isOptOut()
+                let idfaAllowed = config.includeIDFA && !optedOut
+                let idfa = idfaAllowed ? PaylisherIDFA.authorizedIDFA() : nil
                 if config.debugLogging {
-                    hedgeLog("[PaylisherDeferredDeepLink] IDFA \(idfa != nil ? "attached (ATT authorized)" : "not attached")")
+                    if optedOut, config.includeIDFA {
+                        hedgeLog("[PaylisherDeferredDeepLink] IDFA suppressed (SDK opted out)")
+                    } else {
+                        hedgeLog("[PaylisherDeferredDeepLink] IDFA \(idfa != nil ? "attached (ATT authorized)" : "not attached")")
+                    }
                 }
 
                 // Check backend for match

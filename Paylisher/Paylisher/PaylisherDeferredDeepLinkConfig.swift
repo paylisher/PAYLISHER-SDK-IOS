@@ -44,8 +44,28 @@ public class PaylisherDeferredDeepLinkConfig {
     /// Time window for attributing clicks to installs (default: 24 hours in milliseconds)
     public var attributionWindowMillis: Int64 = Constants.defaultAttributionWindow
 
-    /// Include IDFA in fingerprint (requires ATT authorization)
-    public var includeIDFA: Bool = true
+    /// Attach the advertising identifier (IDFA) to the attribution request when the user has
+    /// ALREADY granted App Tracking Transparency authorization.
+    ///
+    /// Defaults to `false`. Two things are required for an IDFA to actually be sent, and either
+    /// one alone turns the feature off completely:
+    ///
+    ///   1. This flag is `true`, and
+    ///   2. the host app links the separate, optional `PaylisherATT` module and calls
+    ///      `PaylisherATT.enable()`.
+    ///
+    /// Without the module the core SDK contains no `AdSupport` / `AppTrackingTransparency`
+    /// symbol at all, so this flag has nothing to read and quietly stays a no-op. That is
+    /// intentional: App Review's ATT check scans the binary for those symbols, so a build that
+    /// merely disables the feature at runtime would still be rejected under Guideline 2.5.1.
+    ///
+    /// The SDK NEVER shows the ATT permission prompt itself. If you want one, call
+    /// `PaylisherATT.requestAuthorization(...)` from your own onboarding flow and add
+    /// `NSUserTrackingUsageDescription` to your Info.plist.
+    ///
+    /// Turning this off does not disable attribution — it falls back to the non-identifying
+    /// device fingerprint, which is how every non-consenting user is already attributed today.
+    public var includeIDFA: Bool = false
 
     /// Enable verbose logging for debugging
     public var debugLogging: Bool = false
@@ -58,6 +78,35 @@ public class PaylisherDeferredDeepLinkConfig {
 
     /// Custom deferred deep link API host (optional)
     public var deferredDeepLinkAPIHost: String?
+
+    /// Hostname that IDFA-bearing attribution requests are sent to, and ONLY those.
+    ///
+    /// Apple requires an SDK whose privacy manifest sets `NSPrivacyTracking = true` to also list
+    /// at least one `NSPrivacyTrackingDomains` entry — App Store Connect rejects the upload
+    /// otherwise (ITMS-91064). But from iOS 17 on, the OS FAILS every network request to a listed
+    /// tracking domain while ATT is not authorized.
+    ///
+    /// Those two rules together make a single shared host unusable. `link.paylisher.com` serves
+    /// the non-identifying fingerprint lookup as well, so declaring it would take deferred deep
+    /// linking down for every user who was never prompted or who declined — almost everyone.
+    /// Apple's prescribed answer is hostname separation, which is what every MMP does
+    /// (`att.attr.appsflyersdk.com`, `api-safetrack.branch.io`, `safetrack.singular.net`).
+    ///
+    /// So: requests carrying an IDFA go here, fingerprint-only requests keep going to
+    /// `deferredDeepLinkAPIHost`. This value MUST match the domain declared in the `PaylisherATT`
+    /// module's privacy manifest.
+    ///
+    /// Set it to `nil` to guarantee no advertising identifier ever leaves the device, whatever
+    /// the other switches say — the SDK then drops the IDFA and sends a fingerprint-only request
+    /// rather than sending an identifier to an undeclared host.
+    ///
+    /// The default points at Paylisher's SaaS tracking host. Only the HOSTNAME is swapped —
+    /// scheme, port and path come from `deferredDeepLinkAPIHost` — so if you run an on-prem or
+    /// regional deployment and override that, override this too with the matching tracking
+    /// subdomain of YOUR deployment, and declare that same domain in the `PaylisherATT` privacy
+    /// manifest. Leaving the SaaS default in place while pointing the SDK at another backend
+    /// would send identifiers to the wrong operator.
+    public var attTrackingHost: String? = "att.link.paylisher.com"
 
     /// API request timeout (default: 10 seconds)
     public var apiTimeout: TimeInterval = 10.0
@@ -121,13 +170,16 @@ public class PaylisherDeferredDeepLinkConfig {
     /**
      * Builder-style method to configure IDFA usage.
      *
-     * Important: Including IDFA improves attribution accuracy but requires
-     * ATT (App Tracking Transparency) authorization on iOS 14.5+.
-     * Make sure you have proper authorization before enabling.
+     * Important: this flag alone is not enough. The IDFA layer also requires the optional
+     * `PaylisherATT` module to be linked and enabled — see `includeIDFA` for the full
+     * rationale. The core SDK ships without any advertising-identifier code.
      *
-     * You must add NSUserTrackingUsageDescription to your Info.plist.
+     * If you do enable it, the host app is responsible for ATT: add
+     * `NSUserTrackingUsageDescription` to your Info.plist and call
+     * `PaylisherATT.requestAuthorization(...)` yourself. The SDK never prompts on its own,
+     * and it only ever reads an authorization that has already been granted.
      *
-     * @param include Whether to include IDFA in fingerprint
+     * @param include Whether to attach the IDFA when it is available
      * @return This config instance for chaining
      */
     @discardableResult
@@ -250,7 +302,7 @@ public class PaylisherDeferredDeepLinkConfig {
      * Default settings:
      * - Enabled: true (ON by default; opt-out via enabled = false)
      * - Attribution window: 24 hours
-     * - Include IDFA: true
+     * - Include IDFA: false (opt-in; also needs the optional PaylisherATT module)
      * - Debug logging: false
      * - Auto handle: true
      *
@@ -288,7 +340,10 @@ public class PaylisherDeferredDeepLinkConfig {
      * Production settings:
      * - Enabled: true
      * - Attribution window: 24 hours
-     * - Include IDFA: true (assumes ATT consent obtained)
+     * - Include IDFA: true — an explicit request for the IDFA layer. It still only takes
+     *   effect if the app links the optional `PaylisherATT` module, calls
+     *   `PaylisherATT.enable()`, and the user has already granted ATT authorization.
+     *   Without the module this stays a no-op and attribution uses the device fingerprint.
      * - Debug logging: false
      * - Auto handle: true
      *

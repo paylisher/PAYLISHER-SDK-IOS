@@ -7,32 +7,28 @@
 
 import Foundation
 import UIKit
-import AdSupport
-import AppTrackingTransparency
 import WebKit
 
 /**
- * Generates a unique device fingerprint for deferred deep link attribution.
+ * Generates a device fingerprint for deferred deep link attribution.
  *
- * The fingerprint combines multiple device identifiers to create a probabilistic match
- * between click and install events. This enables attribution even when the user
- * installs the app after clicking a deep link.
+ * The fingerprint is a coarse, NON-IDENTIFYING hash of publicly visible device traits. It
+ * lets the backend match an install back to a click probabilistically, without any
+ * device-unique identifier ever being read or transmitted.
  *
- * Privacy Note:
- * - Fingerprint generation respects user privacy settings
- * - IDFA collection requires ATTrackingManager authorization (iOS 14.5+)
- * - All data is hashed before transmission
- * - Compliant with Apple's App Tracking Transparency framework
+ * Privacy note — deliberately contains NO advertising identifier:
+ * - This file (and the whole core module) imports neither `AdSupport` nor
+ *   `AppTrackingTransparency`, so the shipped binary carries none of those symbols. That is
+ *   what keeps the core SDK out of App Review's ATT symbol scan (Guidelines 2.5.1 / 2.1),
+ *   which a runtime flag cannot do.
+ * - IDFA support lives in the separate, optional `PaylisherATT` module and reaches the SDK
+ *   through the `PaylisherIDFA` seam. See `PaylisherIDFAProvider.swift`.
+ * - All fingerprint inputs are hashed (SHA-256) before transmission.
  *
- * Components used:
- * - IDFV (Identifier for Vendor) - persistent across app reinstalls
- * - IDFA (Identifier for Advertisers) - user-resettable, requires authorization
- * - Device model and name
- * - OS version
- * - Screen resolution
+ * Components used by the live V1 fingerprint:
+ * - Device model
  * - Timezone
- * - Language/Locale
- * - Screen scale
+ * - Language code
  */
 internal class PaylisherDeviceFingerprint {
 
@@ -123,118 +119,21 @@ internal class PaylisherDeviceFingerprint {
         return fingerprint
     }
 
-    /**
-     * Generates a SHA-256 hash of combined device identifiers.
-     *
-     * This method is async because IDFA retrieval may require user authorization prompt.
-     *
-     * NOTE: This rich fingerprint is NOT used for deferred deep link matching.
-     * Use generateDeferredFingerprintV1() for deferred deep link attribution.
-     *
-     * @param includeIDFA Whether to include IDFA (requires ATT authorization)
-     * @return SHA-256 hash of device fingerprint, or nil if generation fails
-     */
-    func generate(includeIDFA: Bool = true) async -> String? {
-        var components: [String] = []
-
-        // 1. IDFV (Identifier for Vendor) - persistent identifier
-        if let idfv = getIDFV() {
-            components.append(idfv)
-        }
-
-        // 2. IDFA (Identifier for Advertisers) - user-resettable, requires authorization
-        if includeIDFA {
-            if let idfa = await getIDFA() {
-                components.append(idfa)
-            }
-        }
-
-        // 3. Device hardware info
-        components.append(getDeviceModel())
-        components.append(getDeviceName())
-
-        // 4. OS version
-        components.append(getOSVersion())
-
-        // 5. Screen resolution
-        if let screenResolution = getScreenResolution() {
-            components.append(screenResolution)
-        }
-
-        // 6. Timezone
-        components.append(getTimezone())
-
-        // 7. Language/Locale
-        components.append(getLocale())
-
-        // 8. Screen scale
-        components.append(getScreenScale())
-
-        // Generate SHA-256 hash
-        guard !components.isEmpty else {
-            return nil
-        }
-
-        let combined = components.joined(separator: "|")
-        return sha256(combined)
-    }
-
-    // MARK: - Device Identifiers
-
-    /**
-     * Gets IDFV (Identifier for Vendor).
-     *
-     * This ID is:
-     * - Unique per vendor (apps from same developer share same IDFV)
-     * - Persistent across app reinstalls
-     * - Changes if all apps from vendor are uninstalled
-     * - Does not require user authorization
-     *
-     * @return IDFV string or nil if unavailable
-     */
-    private func getIDFV() -> String? {
-        return UIDevice.current.identifierForVendor?.uuidString
-    }
-
-    /**
-     * Gets IDFA (Identifier for Advertisers) asynchronously.
-     *
-     * This ID is:
-     * - User-resettable via device settings
-     * - Shared across all apps
-     * - Requires ATTrackingManager authorization (iOS 14.5+)
-     * - Returns zeros if user has not granted tracking permission
-     *
-     * Important:
-     * - This method is async and may show authorization prompt
-     * - Returns nil if user has not granted tracking permission
-     * - Must add NSUserTrackingUsageDescription to Info.plist
-     *
-     * @return IDFA string or nil if unavailable or user opted out
-     */
-    private func getIDFA() async -> String? {
-        // Request tracking authorization (iOS 14.5+)
-        if #available(iOS 14.5, *) {
-            let status = await ATTrackingManager.requestTrackingAuthorization()
-
-            guard status == .authorized else {
-                return nil
-            }
-        }
-
-        // Get IDFA
-        let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
-
-        // Check if it's the zero UUID (user opted out or restricted)
-        let zeroUUID = "00000000-0000-0000-0000-000000000000"
-        guard idfa != zeroUUID else {
-            return nil
-        }
-
-        return idfa
-    }
-
     // MARK: - Device Information
+    //
+    // REMOVED (deliberately, do not reintroduce here):
+    //   - `generate(includeIDFA:)`  — a rich IDFV+IDFA fingerprint that nothing called.
+    //   - `getIDFV()`               — its only consumer was `generate()`.
+    //   - `getIDFA()`               — the SDK's ONLY `ATTrackingManager.requestTrackingAuthorization()`
+    //                                 call site. It carried `includeIDFA: Bool = true`, so wiring up
+    //                                 a single caller would have made every host app show the ATT
+    //                                 permission prompt on first launch, unasked, and crash outright
+    //                                 on any app without `NSUserTrackingUsageDescription`.
+    //
+    // The SDK must never present a permission prompt of its own; the host app owns that call and
+    // its timing. Reading an already-granted IDFA now lives in the optional `PaylisherATT` module
+    // and is reached through the `PaylisherIDFA` seam, which keeps `AdSupport` /
+    // `AppTrackingTransparency` symbols out of the core binary entirely.
 
     /**
      * Gets UserAgent string (what backend sees in HTTP requests).
@@ -351,54 +250,13 @@ internal class PaylisherDeviceFingerprint {
     }
 
     // MARK: - Authorization Checks
-
-    /**
-     * Checks if IDFA tracking is authorized.
-     *
-     * This should be called before including IDFA in fingerprint to ensure
-     * compliance with Apple's App Tracking Transparency framework.
-     *
-     * @return true if IDFA can be collected, false otherwise
-     */
-    static func canCollectIDFA() -> Bool {
-        if #available(iOS 14.5, *) {
-            return ATTrackingManager.trackingAuthorizationStatus == .authorized
-        }
-
-        // Pre-iOS 14.5: Check if advertising tracking is enabled
-        return ASIdentifierManager.shared().isAdvertisingTrackingEnabled
-    }
-
-    /**
-     * Returns the IDFA ONLY when ATT authorization is ALREADY granted.
-     *
-     * NEVER triggers the ATT prompt (uses trackingAuthorizationStatus, not requestTrackingAuthorization),
-     * so it is safe to call opportunistically on first launch. Returns the uppercase UUID string
-     * (Apple's canonical form) for the backend's deterministic IDFA-exact attribution layer, or nil
-     * when not authorized / opted out / the all-zero IDFA.
-     *
-     * @return Uppercase IDFA UUID string, or nil
-     */
-    static func authorizedIDFA() -> String? {
-        if #available(iOS 14.5, *) {
-            guard ATTrackingManager.trackingAuthorizationStatus == .authorized else { return nil }
-        } else {
-            guard ASIdentifierManager.shared().isAdvertisingTrackingEnabled else { return nil }
-        }
-        let idfa = ASIdentifierManager.shared().advertisingIdentifier.uuidString
-        guard idfa != "00000000-0000-0000-0000-000000000000" else { return nil }
-        return idfa
-    }
-
-    /**
-     * Gets the current tracking authorization status.
-     *
-     * @return ATTrackingManager.AuthorizationStatus
-     */
-    @available(iOS 14.5, *)
-    static func trackingAuthorizationStatus() -> ATTrackingManager.AuthorizationStatus {
-        return ATTrackingManager.trackingAuthorizationStatus
-    }
+    //
+    // REMOVED (deliberately, do not reintroduce here): `canCollectIDFA()`,
+    // `authorizedIDFA()` and `trackingAuthorizationStatus()`. All three read
+    // `ATTrackingManager` / `ASIdentifierManager`, and their presence is exactly what App
+    // Review's symbol scan looks for. Their replacements live in the optional `PaylisherATT`
+    // module: `PaylisherATT.authorizedIDFA()` and `PaylisherATT.authorizationStatusName()`,
+    // surfaced to the core SDK through `PaylisherIDFA`.
 }
 
 // MARK: - Import CommonCrypto for SHA-256

@@ -254,6 +254,59 @@ SIM_FW_PATH=$(find "$SIMULATOR_ARCHIVE/Products" -name "${SCHEME_NAME}.framework
 log_info "Device framework:    $IOS_FW_PATH"
 log_info "Simulator framework: $SIM_FW_PATH"
 
+# ----------------------------------------------------------------------------
+# Embed the privacy manifest
+# ----------------------------------------------------------------------------
+# Apple reads PrivacyInfo.xcprivacy from the root of the framework bundle. The Xcode
+# project builds sources only, so without this step the published xcframework ships with
+# NO manifest at all — which was the case for every release up to now, while the SPM
+# source channel did ship one. Two distribution channels, two different privacy postures.
+PRIVACY_MANIFEST="$PROJECT_ROOT/Paylisher/Resources/PrivacyInfo.xcprivacy"
+
+if [ ! -f "$PRIVACY_MANIFEST" ]; then
+    log_error "Privacy manifest not found at $PRIVACY_MANIFEST"
+fi
+
+for FW in "$IOS_FW_PATH" "$SIM_FW_PATH"; do
+    cp "$PRIVACY_MANIFEST" "$FW/PrivacyInfo.xcprivacy" || log_error "Failed to embed privacy manifest into $FW"
+done
+log_info "Privacy manifest embedded into both frameworks"
+
+# ----------------------------------------------------------------------------
+# Guarantee: no advertising-identifier code in the core artifact
+# ----------------------------------------------------------------------------
+# This is the promise the core build makes to privacy-sensitive customers, and it is the
+# reason the ATT/IDFA code lives in a separate PaylisherATT module rather than behind a
+# runtime flag: App Review's App Tracking Transparency check is a BINARY SYMBOL SCAN, and
+# it rejects both an app that references ATT while declaring no intent to prompt
+# (Guideline 2.5.1) and one that references ATT without presenting a prompt (2.1).
+#
+# If this ever fails, someone has reintroduced AdSupport/AppTrackingTransparency into the
+# core module — do not "fix" it by relaxing the check.
+log_info "Verifying the core binary contains no ATT/IDFA symbols..."
+FORBIDDEN_SYMBOLS='ASIdentifierManager|advertisingIdentifier|ATTrackingManager|AppTrackingTransparency'
+for FW in "$IOS_FW_PATH" "$SIM_FW_PATH"; do
+    FW_BINARY="$FW/$SCHEME_NAME"
+    [ -f "$FW_BINARY" ] || continue
+
+    # Materialise the matches instead of piping into a short-circuiting consumer.
+    #
+    # `strings ... | grep -Eq ...` looks equivalent and is NOT: grep -q exits on the first
+    # match and closes the pipe, strings dies of SIGPIPE (141), and because line 21 sets
+    # `pipefail` the pipeline reports 141 — which an `if` reads as FALSE. The guard would
+    # then announce "no ATT symbols" precisely when it found some, and publish a
+    # contaminated xcframework. `|| true` keeps grep's no-match exit 1 from tripping
+    # `set -e`.
+    FORBIDDEN_HITS=$(strings "$FW_BINARY" 2>/dev/null | grep -E "$FORBIDDEN_SYMBOLS" | sort -u || true)
+    if [ -n "$FORBIDDEN_HITS" ]; then
+        echo ""
+        printf '%s\n' "$FORBIDDEN_HITS"
+        echo ""
+        log_error "ATT/IDFA symbols found in $FW_BINARY. The core artifact must be free of them — move that code into the PaylisherATT module."
+    fi
+done
+log_info "No ATT/IDFA symbols in the core binary ✅"
+
 xcodebuild -create-xcframework \
     -framework "$IOS_FW_PATH" \
     -framework "$SIM_FW_PATH" \

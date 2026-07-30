@@ -28,6 +28,7 @@ internal class PaylisherDeferredDeepLinkAPI {
     private let apiKey: String
     private let sdkVersion: String
     private let deferredDeepLinkHost: String
+    private let attTrackingHost: String?
     private let timeout: TimeInterval
 
     // MARK: - Constants
@@ -41,11 +42,13 @@ internal class PaylisherDeferredDeepLinkAPI {
         apiKey: String,
         sdkVersion: String,
         deferredDeepLinkHost: String? = nil,
+        attTrackingHost: String? = nil,
         timeout: TimeInterval = defaultTimeout
     ) {
         self.apiKey = apiKey
         self.sdkVersion = sdkVersion
         self.deferredDeepLinkHost = deferredDeepLinkHost ?? Self.defaultDeferredDeepLinkHost
+        self.attTrackingHost = attTrackingHost
         self.timeout = timeout
     }
 
@@ -64,8 +67,22 @@ internal class PaylisherDeferredDeepLinkAPI {
      * @throws PaylisherDeferredDeepLinkAPIError if API request fails
      */
     func check(fingerprint: String, idfa: String? = nil) async throws -> PaylisherDeferredDeepLinkResponse {
+        // An advertising identifier may only travel to the dedicated tracking host declared in
+        // the PaylisherATT privacy manifest. With no such host configured we drop the identifier
+        // and fall back to a fingerprint-only request, rather than send it to a host Apple was
+        // never told is a tracking domain. Fail-safe by construction: the attribution call still
+        // happens, just without the deterministic IDFA layer.
+        let effectiveIDFA: String? = {
+            guard let idfa, !idfa.isEmpty else { return nil }
+            guard let attTrackingHost, !attTrackingHost.isEmpty else {
+                hedgeLog("[PaylisherDeferredDeepLink] IDFA dropped — no attTrackingHost configured")
+                return nil
+            }
+            return idfa
+        }()
+
         // Build URL
-        guard let url = buildDeferredDeepLinkURL(fingerprint: fingerprint, idfa: idfa) else {
+        guard let url = buildDeferredDeepLinkURL(fingerprint: fingerprint, idfa: effectiveIDFA) else {
             throw PaylisherDeferredDeepLinkAPIError.invalidURL
         }
 
@@ -76,8 +93,8 @@ internal class PaylisherDeferredDeepLinkAPI {
         request.addValue("paylisher-ios/\(sdkVersion)", forHTTPHeaderField: "X-SDK-Version")
         // Platform hint for the backend waterfall; some transports read the IDFA from a header.
         request.addValue("ios", forHTTPHeaderField: "X-Device-Platform")
-        if let idfa = idfa, !idfa.isEmpty {
-            request.addValue(idfa, forHTTPHeaderField: "X-IDFA")
+        if let effectiveIDFA {
+            request.addValue(effectiveIDFA, forHTTPHeaderField: "X-IDFA")
         }
         request.timeoutInterval = timeout
 
@@ -135,6 +152,18 @@ internal class PaylisherDeferredDeepLinkAPI {
             // Sent verbatim (Apple's uuidString is uppercase). The backend matches case-sensitively
             // against the IDFA the click macro stored, so DO NOT change case here.
             items.append(URLQueryItem(name: "idfa", value: idfa))
+
+            // Swap the host, keeping scheme, port and path. Everything that carries an
+            // identifier must land on the declared tracking domain and nothing else — that is
+            // what lets the PaylisherATT manifest list a domain (Apple rejects
+            // NSPrivacyTracking=true with no domain, ITMS-91064) without iOS 17's
+            // tracking-domain block taking down the fingerprint path, which never comes here.
+            //
+            // `check(fingerprint:idfa:)` already guarantees a non-empty attTrackingHost
+            // whenever idfa is non-nil, so this is the only shape that reaches the network.
+            if let attTrackingHost, !attTrackingHost.isEmpty {
+                components?.host = attTrackingHost
+            }
         }
         components?.queryItems = items
 

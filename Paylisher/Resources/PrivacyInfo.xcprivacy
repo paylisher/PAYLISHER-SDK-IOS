@@ -1,42 +1,137 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    Paylisher SDK — CORE privacy manifest.
+
+    This manifest describes the DEFAULT Paylisher build, which contains no advertising
+    identifier code whatsoever: no AdSupport, no AppTrackingTransparency, no
+    ASIdentifierManager, no ATTrackingManager. Those symbols are absent from the binary,
+    not merely disabled at runtime, which is what keeps every host app clear of App Review's
+    ATT symbol scan (Guideline 2.5.1 rejects a binary that references ATT while declaring no
+    intent to prompt; Guideline 2.1 rejects one that references ATT without a prompt).
+
+    Consequently NSPrivacyTracking is false and NO NSPrivacyTrackingDomains are listed.
+    Both are deliberate:
+      - TN3181 treats "NSPrivacyTracking is false and NSPrivacyTrackingDomains contains
+        entries" as an invalid manifest.
+      - Listing the attribution host would be actively harmful: iOS 17+ FAILS network
+        requests to any declared tracking domain when ATT is not authorized. Because
+        link.paylisher.com serves the non-identifying fingerprint lookup on that same host,
+        declaring it would break deferred deep linking for every user who was never prompted
+        or who declined - that is, almost everyone.
+
+    Apps that opt into the IDFA layer link the separate PaylisherATT module, which carries
+    its own manifest declaring tracking. An app that never links it inherits nothing from it.
+-->
 <plist version="1.0">
 <dict>
+	<key>NSPrivacyTracking</key>
+	<false/>
 	<key>NSPrivacyCollectedDataTypes</key>
 	<array>
+		<!-- Captured events, screen views and session replay. -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeProductInteraction</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
+			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
 			<false/>
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
+		<!-- Device/session context sent alongside events (locale, timezone, screen, network). -->
 		<dict>
 			<key>NSPrivacyCollectedDataType</key>
 			<string>NSPrivacyCollectedDataTypeOtherUsageData</string>
 			<key>NSPrivacyCollectedDataTypeLinked</key>
-			<false/>
+			<true/>
 			<key>NSPrivacyCollectedDataTypeTracking</key>
 			<false/>
 			<key>NSPrivacyCollectedDataTypePurposes</key>
 			<array>
 				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+		    Uncaught exceptions. uncaughtExceptionHandler in Error/DefaultErrorHandler.swift
+		    captures an "Error" event carrying the exception type, reason and stack trace.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeCrashData</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!--
+		    The SDK-generated anonymous id and, when the host calls registerFCMToken(_:), the
+		    push token. NOT the advertising identifier - the core build cannot read one.
+		    Tracking is false: these identifiers are never combined with third-party data for
+		    advertising purposes by this module.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
+			</array>
+		</dict>
+		<!-- The distinctId supplied by the host app via identify(_:). -->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeUserID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<false/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+				<string>NSPrivacyCollectedDataTypePurposeAppFunctionality</string>
 			</array>
 		</dict>
 	</array>
 	<key>NSPrivacyAccessedAPITypes</key>
 	<array>
+		<!-- UserDefaults: SDK state (install marker seed, version keys, journey context). -->
 		<dict>
 			<key>NSPrivacyAccessedAPIType</key>
 			<string>NSPrivacyAccessedAPICategoryUserDefaults</string>
 			<key>NSPrivacyAccessedAPITypeReasons</key>
 			<array>
 				<string>CA92.1</string>
+			</array>
+		</dict>
+		<!--
+		    mach_absolute_time() in Replay/URLSessionExtension.swift measures elapsed time
+		    between two in-app events (network request start/end) - exactly reason 35F9.1.
+		    This is the one required-reason category the App Store Connect upload check
+		    (ITMS-91053) verifies automatically by scanning for the symbol, so an undeclared
+		    use is a hard upload failure rather than a review comment.
+		-->
+		<dict>
+			<key>NSPrivacyAccessedAPIType</key>
+			<string>NSPrivacyAccessedAPICategorySystemBootTime</string>
+			<key>NSPrivacyAccessedAPITypeReasons</key>
+			<array>
+				<string>35F9.1</string>
 			</array>
 		</dict>
 	</array>

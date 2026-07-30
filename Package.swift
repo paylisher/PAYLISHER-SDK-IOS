@@ -12,7 +12,20 @@ let package = Package(
             name: "Paylisher",
             targets: ["Paylisher"]
         ),
-        
+
+        // OPTIONAL App Tracking Transparency / IDFA add-on.
+        //
+        // Link this ONLY if your app genuinely wants the advertising identifier. It is a
+        // separate product on purpose: it is the sole owner of the `AdSupport` and
+        // `AppTrackingTransparency` symbols, and App Review's ATT check is a binary symbol
+        // scan, so an app that does not link it cannot be rejected for referencing ATT
+        // (Guideline 2.5.1) and inherits no "Data Used to Track You" declaration.
+        // A runtime flag could not achieve either, which is why this is not one.
+        .library(
+            name: "PaylisherATT",
+            targets: ["PaylisherATT"]
+        ),
+
         .library(
             name: "PaylisherFramework",
             targets: ["PaylisherFramework"]
@@ -36,6 +49,12 @@ let package = Package(
         .target(
             name: "Paylisher",
             path: "Paylisher",
+            // MUST stay excluded. SwiftPM otherwise globs every file under `path`, which
+            // would compile the ATT add-on straight into the core module and reintroduce the
+            // AdSupport/AppTrackingTransparency symbols this split exists to remove.
+            exclude: [
+                "PaylisherATT"
+            ],
             resources: [
                 .copy("Resources/PrivacyInfo.xcprivacy"),
                 .process("Resources/PaylisherDatabase.momd")
@@ -45,6 +64,27 @@ let package = Package(
             // is taken at COMPILE time and cannot be reversed at runtime.
             swiftSettings: [
                 .define("PAYLISHER_SSL_PINNING")
+            ]
+        ),
+        // Optional ATT/IDFA add-on. Ships its OWN privacy manifest declaring
+        // NSPrivacyTracking=true; the core manifest declares false. Xcode aggregates only
+        // the manifests actually present in the built app, so an app that never links this
+        // target never picks up the tracking declaration.
+        //
+        // REQUIRES iOS 14+ in the CONSUMING app. SwiftPM has no per-target platform floor —
+        // `platforms:` above is package-wide and stays at iOS 13 for the core library — so
+        // this cannot be expressed declaratively. AppTrackingTransparency.framework does not
+        // exist before iOS 14, and Swift autolinking emits a `-framework` load command from
+        // the `import` regardless of the `#available` guards around the calls. An app that
+        // still supports iOS 13 must therefore link the CocoaPods `Paylisher/ATT` subspec
+        // (which pins 14.0 and weak-links the framework) or add `-weak_framework
+        // AppTrackingTransparency` itself. Apps on iOS 14+ are unaffected.
+        .target(
+            name: "PaylisherATT",
+            dependencies: ["Paylisher"],
+            path: "Paylisher/PaylisherATT",
+            resources: [
+                .copy("Resources/PrivacyInfo.xcprivacy")
             ]
         ),
         .testTarget(

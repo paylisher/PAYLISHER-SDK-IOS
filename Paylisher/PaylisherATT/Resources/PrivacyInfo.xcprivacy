@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<!--
+    PaylisherATT — privacy manifest for the OPTIONAL advertising-identifier add-on.
+
+    This manifest applies ONLY to apps that deliberately link the PaylisherATT module. Apps
+    using the core Paylisher SDK alone never see it, and never inherit the tracking
+    declaration below, because Xcode aggregates only the manifests actually present in the
+    built app.
+
+    If you link this module you are declaring that your app tracks. That has consequences you
+    must accept up front:
+      - Your App Store privacy nutrition label must declare "Data Used to Track You".
+      - Your app MUST present the ATT prompt. Declaring tracking without a visible
+        permission request is the single most common ATT rejection (Guideline 2.1). Call
+        PaylisherATT.requestAuthorization(_:) from your own onboarding.
+      - Info.plist MUST contain NSUserTrackingUsageDescription.
+
+    ─────────────────────────────────────────────────────────────────────────────────────
+    NSPrivacyTrackingDomains — WHY IT IS A SEPARATE HOSTNAME
+    ─────────────────────────────────────────────────────────────────────────────────────
+    Two Apple rules pull in opposite directions:
+      - NSPrivacyTracking=true REQUIRES at least one entry here. Apple's own documentation:
+        "When set to true you need to provide a list of internet domains in
+        NSPrivacyTrackingDomains." App Store Connect enforces it at upload as ITMS-91064
+        "Invalid tracking information", and it validates third-party SDK manifests too, so
+        an add-on that declares tracking with no domain simply cannot be shipped.
+      - iOS 17 and later FAIL every network request to a domain listed here whenever ATT is
+        not authorized.
+
+    So the domain listed here must carry ONLY identifier-bearing traffic. It deliberately is
+    NOT link.paylisher.com: that host also serves the non-identifying fingerprint lookup, and
+    listing it would break deferred deep linking for every user who was never prompted, every
+    user who declined, the Simulator, and any customer who chooses never to prompt at all.
+
+    That is Apple's prescribed hostname separation ("host tracking functionality at
+    tracking.example.com, and non-tracking functionality at non-tracking.example.com"), and
+    it is what every MMP does: att.attr.appsflyersdk.com, api-safetrack.branch.io,
+    safetrack.singular.net.
+
+    The SDK enforces the split in code: PaylisherDeferredDeepLinkAPI swaps the request host to
+    PaylisherDeferredDeepLinkConfig.attTrackingHost when — and only when — an IDFA is attached,
+    and drops the IDFA entirely if that host is unset. Fingerprint-only traffic never reaches
+    this domain, so the iOS 17 block cannot affect it.
+
+    ⚠️ DEPLOYMENT PREREQUISITE: att.link.paylisher.com must resolve and serve the
+    deferred-deeplink endpoint before this module is published. The value below and
+    PaylisherDeferredDeepLinkConfig.attTrackingHost must stay identical. The CORE SDK is
+    unaffected either way — it never contacts this host.
+
+    Format rules from TN3181: hostname only - no scheme, no path, no trailing slash.
+-->
+
+<plist version="1.0">
+<dict>
+	<key>NSPrivacyTracking</key>
+	<true/>
+	<key>NSPrivacyTrackingDomains</key>
+	<array>
+		<string>att.link.paylisher.com</string>
+	</array>
+	<key>NSPrivacyCollectedDataTypes</key>
+	<array>
+		<!--
+		    The IDFA (ASIdentifierManager.advertisingIdentifier), read only after the user
+		    grants ATT authorization, and used to attribute an install to the ad click that
+		    produced it.
+		-->
+		<dict>
+			<key>NSPrivacyCollectedDataType</key>
+			<string>NSPrivacyCollectedDataTypeDeviceID</string>
+			<key>NSPrivacyCollectedDataTypeLinked</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypeTracking</key>
+			<true/>
+			<key>NSPrivacyCollectedDataTypePurposes</key>
+			<array>
+				<string>NSPrivacyCollectedDataTypePurposeThirdPartyAdvertising</string>
+				<string>NSPrivacyCollectedDataTypePurposeAnalytics</string>
+			</array>
+		</dict>
+	</array>
+	<key>NSPrivacyAccessedAPITypes</key>
+	<array/>
+</dict>
+</plist>

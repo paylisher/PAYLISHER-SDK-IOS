@@ -12,8 +12,59 @@ Paylisher is a comprehensive mobile SDK providing event tracking, session replay
   s.source           = { :git => 'https://github.com/paylisher/PAYLISHER-SDK-IOS.git', :tag => s.version.to_s }
 
   s.ios.deployment_target = '13.0'
-  s.static_framework = true  
-  s.source_files = 'Paylisher/**/*.{swift,h,m}'
+  s.static_framework = true
+
+  # `pod 'Paylisher'` gives you Core only — no advertising-identifier code at all.
+  s.default_subspec = 'Core'
+
+  # ---------------------------------------------------------------------------
+  # Core — the default. Contains NO AdSupport / AppTrackingTransparency symbols.
+  # ---------------------------------------------------------------------------
+  s.subspec 'Core' do |core|
+    core.source_files = 'Paylisher/**/*.{swift,h,m}'
+    # MUST stay excluded: the ATT add-on lives under the same source root, and letting it
+    # compile into Core would put the AdSupport/AppTrackingTransparency symbols back into
+    # every consumer's binary — exactly what App Review's ATT scan rejects (Guideline 2.5.1),
+    # and something no runtime flag can undo.
+    core.exclude_files = 'Paylisher/PaylisherATT/**/*'
+
+    # The privacy manifest was previously shipped to NOBODY on this channel:
+    # `source_files` globs only .swift/.h/.m, and there was no resources key, so CocoaPods
+    # consumers received no PrivacyInfo.xcprivacy at all. A resource bundle is Apple's
+    # supported way to ship one from a static framework.
+    core.resource_bundles = {
+      'Paylisher_Privacy' => ['Paylisher/Resources/PrivacyInfo.xcprivacy']
+    }
+  end
+
+  # ---------------------------------------------------------------------------
+  # ATT — OPTIONAL. `pod 'Paylisher/ATT'`
+  #
+  # Opt in only if your app genuinely wants the IDFA. Linking this subspec means:
+  #   * your binary references AppTrackingTransparency, so your app MUST present the
+  #     permission prompt (call PaylisherATT.requestAuthorization) or Apple rejects it
+  #     under Guideline 2.1;
+  #   * Info.plist MUST contain NSUserTrackingUsageDescription;
+  #   * your App Store nutrition label must declare "Data Used to Track You" — this
+  #     subspec ships its own manifest with NSPrivacyTracking=true.
+  # Not linking it leaves your app with none of those obligations.
+  # ---------------------------------------------------------------------------
+  s.subspec 'ATT' do |att|
+    att.dependency 'Paylisher/Core'
+    att.source_files = 'Paylisher/PaylisherATT/**/*.swift'
+
+    # AppTrackingTransparency.framework only exists from iOS 14. The pod's floor is 13.0, and
+    # a HARD `-framework AppTrackingTransparency` against a 13.0 target risks a dyld
+    # "Library not loaded" crash at launch on iOS 13 — the Swift-side `#if canImport` and
+    # `if #available(iOS 14, *)` guards gate the calls, not the load command. Two belts:
+    # raise this subspec's floor, and declare the framework weak.
+    att.ios.deployment_target = '14.0'
+    att.frameworks = 'AdSupport'
+    att.weak_frameworks = 'AppTrackingTransparency'
+    att.resource_bundles = {
+      'PaylisherATT_Privacy' => ['Paylisher/PaylisherATT/Resources/PrivacyInfo.xcprivacy']
+    }
+  end
 
   # Eğer XCFramework kullanırsan burayı açacaksın:
   # s.vendored_frameworks = 'PaylisherFramework/PaylisherFramework.xcframework'
