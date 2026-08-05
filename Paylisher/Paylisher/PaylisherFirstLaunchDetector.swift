@@ -39,6 +39,7 @@ internal class PaylisherFirstLaunchDetector {
     private let keyInstallTimestamp = "paylisher_first_launch_install_timestamp"
     private let keyDeferredCheckDone = "paylisher_deferred_check_completed"
     private let keyDeferredAttempts = "paylisher_deferred_check_attempts"
+    private let keyLastReengagementCheck = "paylisher_reengagement_check_last_at"
 
     /// How many launches may attempt the deferred-attribution check before we give
     /// up. The check is only worth retrying while the click could still be inside
@@ -172,6 +173,63 @@ internal class PaylisherFirstLaunchDetector {
         userDefaults.set(true, forKey: keyHasLaunched)
     }
 
+    // MARK: - Re-engagement Check
+
+    /**
+     * Whether this cold start may look for a campaign click even though the install-time
+     * attribution question is already settled.
+     *
+     * The install check is one-shot by design — an install happens once. A campaign click is
+     * not: an installed user can tap a campaign link any day, be routed through the App Store
+     * (deliberately, or because the app scheme could not be opened), and come back via the
+     * store's "Open" button, which carries no url. That click is real and recent, and without
+     * a second look it is never delivered.
+     *
+     * Two things keep this cheap. The install check must be finished first, so nothing here
+     * can interfere with first-install attribution; and a device may only ask once per
+     * `minIntervalSeconds`. The server-side attribution window (30 min by default) does the
+     * rest: an old click cannot be resurrected no matter how often we ask.
+     *
+     * READ-ONLY: the interval is spent by `markReengagementCheckAttempted()`, and only once the
+     * check is actually about to hit the network. Spending it here instead would penalise the
+     * launches we deliberately skip — a launch that turned out to be deep-linked would burn the
+     * slot and then block the genuine store round trip that follows minutes later, which is
+     * exactly the sequence in the bug report (open via link, then download, then open).
+     *
+     * @param minIntervalSeconds Minimum gap since the previous re-engagement check
+     * @return true when the check may run on this launch
+     */
+    func canAttemptReengagementCheck(minIntervalSeconds: TimeInterval) -> Bool {
+        lock.lock()
+        defer { lock.unlock() }
+
+        // Install-time attribution owns the first launches; it must have had its answer first.
+        guard userDefaults.bool(forKey: keyDeferredCheckDone) else {
+            return false
+        }
+
+        let now = Date().timeIntervalSince1970
+        let last = userDefaults.double(forKey: keyLastReengagementCheck)
+
+        // A clock moved backwards (timezone change, NTP correction, user edit) would otherwise
+        // park `last` in the future and block every future check. Treat that as "never asked".
+        if last > 0, last <= now, now - last < minIntervalSeconds {
+            return false
+        }
+
+        return true
+    }
+
+    /**
+     * Spends the re-engagement interval. Call immediately before the request goes out.
+     */
+    func markReengagementCheckAttempted() {
+        lock.lock()
+        defer { lock.unlock() }
+
+        userDefaults.set(Date().timeIntervalSince1970, forKey: keyLastReengagementCheck)
+    }
+
     /**
      * Checks if the app has been launched before (without modifying state).
      *
@@ -298,6 +356,9 @@ internal class PaylisherFirstLaunchDetector {
         // a "fresh install" simulated with reset() would never run attribution again.
         userDefaults.removeObject(forKey: keyDeferredCheckDone)
         userDefaults.removeObject(forKey: keyDeferredAttempts)
+        // Likewise the re-engagement interval, so a reset device is not silently muted
+        // for the remainder of the current interval.
+        userDefaults.removeObject(forKey: keyLastReengagementCheck)
         userDefaults.synchronize()
     }
 

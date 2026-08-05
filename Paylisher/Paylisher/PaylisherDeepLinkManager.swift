@@ -214,7 +214,12 @@ import UIKit
     
     /// Last processed deep link
     @objc public private(set) var lastDeepLink: PaylisherDeepLink?
-    
+
+    /// Whether a deep link arrived in this process. Deliberately NOT persisted: it answers
+    /// "was THIS launch deep-linked?", which is exactly what the deferred re-engagement check
+    /// needs in order not to claim a click the incoming url is already handling.
+    @objc public private(set) var didHandleDeepLinkSinceLaunch: Bool = false
+
     /// Whether the manager is initialized
     private var isInitialized = false
     
@@ -309,6 +314,12 @@ import UIKit
         
         // Store last deep link
         lastDeepLink = deepLink
+
+        // A real deep link reached the app in THIS process. The deferred re-engagement check
+        // consults this before asking the backend for an unclaimed click: without it, a launch
+        // that was already deep-linked could also claim a click row and report the same open a
+        // second time.
+        didHandleDeepLinkSinceLaunch = true
 
         // If no handler is set, store it as pending
         guard handler != nil else {

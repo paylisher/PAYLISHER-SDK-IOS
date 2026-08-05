@@ -66,7 +66,11 @@ internal class PaylisherDeferredDeepLinkAPI {
      * @return Deferred deep link response if successful
      * @throws PaylisherDeferredDeepLinkAPIError if API request fails
      */
-    func check(fingerprint: String, idfa: String? = nil) async throws -> PaylisherDeferredDeepLinkResponse {
+    func check(
+        fingerprint: String,
+        idfa: String? = nil,
+        reengagement: Bool = false
+    ) async throws -> PaylisherDeferredDeepLinkResponse {
         // An advertising identifier may only travel to the dedicated tracking host declared in
         // the PaylisherATT privacy manifest. With no such host configured we drop the identifier
         // and fall back to a fingerprint-only request, rather than send it to a host Apple was
@@ -82,7 +86,11 @@ internal class PaylisherDeferredDeepLinkAPI {
         }()
 
         // Build URL
-        guard let url = buildDeferredDeepLinkURL(fingerprint: fingerprint, idfa: effectiveIDFA) else {
+        guard let url = buildDeferredDeepLinkURL(
+            fingerprint: fingerprint,
+            idfa: effectiveIDFA,
+            reengagement: reengagement
+        ) else {
             throw PaylisherDeferredDeepLinkAPIError.invalidURL
         }
 
@@ -136,9 +144,16 @@ internal class PaylisherDeferredDeepLinkAPI {
      *
      * @param fingerprint Device fingerprint
      * @param idfa Optional ATT-authorized IDFA appended as &idfa= for deterministic attribution.
+     * @param reengagement Appended as &reengagement=1 when the app was already installed, so the
+     *        backend delivers the deep link WITHOUT claiming an install or firing the partner
+     *        install postback.
      * @return Full API URL
      */
-    private func buildDeferredDeepLinkURL(fingerprint: String, idfa: String? = nil) -> URL? {
+    private func buildDeferredDeepLinkURL(
+        fingerprint: String,
+        idfa: String? = nil,
+        reengagement: Bool = false
+    ) -> URL? {
         // Remove trailing slash if present
         var baseURL = deferredDeepLinkHost
         if baseURL.hasSuffix("/") {
@@ -148,6 +163,9 @@ internal class PaylisherDeferredDeepLinkAPI {
         // Build URL with query parameter
         var components = URLComponents(string: baseURL)
         var items = [URLQueryItem(name: "fingerprint", value: fingerprint)]
+        if reengagement {
+            items.append(URLQueryItem(name: "reengagement", value: "1"))
+        }
         if let idfa = idfa, !idfa.isEmpty {
             // Sent verbatim (Apple's uuidString is uppercase). The backend matches case-sensitively
             // against the IDFA the click macro stored, so DO NOT change case here.
@@ -203,6 +221,10 @@ struct PaylisherDeferredDeepLinkResponse: Codable {
 
     /// Match confidence 0..1 (deterministic layers ≥0.9; fingerprint ~0.3). Optional.
     let confidence: Double?
+
+    /// "install" or "reengagement" — what the backend recorded this match as. Absent on
+    /// older backends, which only ever answer install checks.
+    let matchType: String?
 
     /**
      * Checks if this response indicates a successful match.

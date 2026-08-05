@@ -195,28 +195,72 @@ public class PaylisherDeferredDeepLinkManager {
         // the backend has actually answered, so a failed request is retried on the
         // next launch instead of silently losing the attribution.
         let shouldCheck = firstLaunchDetector.shouldAttemptDeferredCheck()
+        var isReengagement = false
 
         if !shouldCheck {
+            // The install question is settled — but a click can still be waiting. An installed
+            // user who tapped a campaign link and came back through the App Store arrives here
+            // with no url at all, so this second look is the only way the deep link is ever
+            // delivered. Gated, delayed and skipped for deep-linked launches; see
+            // `enableReengagementCheck`.
+            guard config.enableReengagementCheck,
+                  firstLaunchDetector.canAttemptReengagementCheck(
+                      minIntervalSeconds: config.reengagementCheckMinIntervalSeconds
+                  )
+            else {
+                if config.debugLogging {
+                    hedgeLog("[PaylisherDeferredDeepLink] Attribution check already settled, skipping")
+                }
+                lock.lock()
+                isChecking = false
+                hasChecked = true
+                lock.unlock()
+
+                DispatchQueue.main.async {
+                    onNoMatch()
+                }
+                return
+            }
+
+            isReengagement = true
             if config.debugLogging {
-                hedgeLog("[PaylisherDeferredDeepLink] Attribution check already settled, skipping")
+                hedgeLog("[PaylisherDeferredDeepLink] Install already attributed — running re-engagement check")
             }
-            lock.lock()
-            isChecking = false
-            hasChecked = true
-            lock.unlock()
-
-            DispatchQueue.main.async {
-                onNoMatch()
-            }
-            return
-        }
-
-        if config.debugLogging {
+        } else if config.debugLogging {
             hedgeLog("[PaylisherDeferredDeepLink] First launch detected")
         }
 
         // Generate device fingerprint and check backend (async)
+        let reengagement = isReengagement
         Task {
+            // Let an incoming url win the race. A deep-linked launch delivers its URL just after
+            // `didFinishLaunchingWithOptions`, and that url is already producing the open we
+            // would otherwise go and claim a second time.
+            if reengagement {
+                let delay = max(0, config.reengagementCheckDelaySeconds)
+                if delay > 0 {
+                    try? await Task.sleep(nanoseconds: UInt64(delay * 1_000_000_000))
+                }
+
+                if PaylisherDeepLinkManager.shared.didHandleDeepLinkSinceLaunch {
+                    if config.debugLogging {
+                        hedgeLog("[PaylisherDeferredDeepLink] Launch was already deep-linked, skipping re-engagement check")
+                    }
+                    lock.lock()
+                    isChecking = false
+                    hasChecked = true
+                    lock.unlock()
+
+                    DispatchQueue.main.async {
+                        onNoMatch()
+                    }
+                    return
+                }
+
+                // Committed: from here a request goes out, so the interval is spent.
+                firstLaunchDetector.markReengagementCheckAttempted()
+            }
+
             do {
                 // Generate deferred deep link fingerprint V1 (matches backend algorithm)
                 // IMPORTANT: This uses ONLY publicly available device info (no IDFV/IDFA)
@@ -258,6 +302,7 @@ public class PaylisherDeferredDeepLinkManager {
                 try await checkBackend(
                     fingerprint: fingerprint,
                     idfa: idfa,
+                    reengagement: reengagement,
                     onSuccess: onSuccess,
                     onNoMatch: onNoMatch,
                     onError: onError
@@ -285,20 +330,29 @@ public class PaylisherDeferredDeepLinkManager {
     private func checkBackend(
         fingerprint: String,
         idfa: String? = nil,
+        reengagement: Bool = false,
         onSuccess: @escaping (PaylisherDeepLink) -> Void,
         onNoMatch: @escaping () -> Void,
         onError: @escaping (Error) -> Void
     ) async throws {
         if config.debugLogging {
-            hedgeLog("[PaylisherDeferredDeepLink] Checking backend...")
+            hedgeLog("[PaylisherDeferredDeepLink] Checking backend... (\(reengagement ? "re-engagement" : "install"))")
         }
 
         do {
-            let response = try await deferredDeepLinkAPI.check(fingerprint: fingerprint, idfa: idfa)
+            let response = try await deferredDeepLinkAPI.check(
+                fingerprint: fingerprint,
+                idfa: idfa,
+                reengagement: reengagement
+            )
 
-            // The backend answered — match or no-match, the question is settled and
-            // must not be asked again. Only here, never in the failure paths below.
-            firstLaunchDetector.markDeferredCheckCompleted()
+            // The backend answered — match or no-match, the INSTALL question is settled and
+            // must not be asked again. Only here, never in the failure paths below. A
+            // re-engagement check must not touch that flag: it is a recurring question, and
+            // its own rate limit was already consumed when the interval gate let it through.
+            if !reengagement {
+                firstLaunchDetector.markDeferredCheckCompleted()
+            }
 
             lock.lock()
             isChecking = false
@@ -308,6 +362,7 @@ public class PaylisherDeferredDeepLinkManager {
             if response.isMatch() {
                 await handleMatch(
                     response: response,
+                    reengagement: reengagement,
                     onSuccess: onSuccess,
                     onError: onError
                 )
@@ -315,7 +370,12 @@ public class PaylisherDeferredDeepLinkManager {
                 if config.debugLogging {
                     hedgeLog("[PaylisherDeferredDeepLink] No match found")
                 }
-                captureNoMatchEvent()
+                if !reengagement {
+                    // Only the install check reports a no-match. A re-engagement no-match is the
+                    // overwhelmingly common case (most cold starts follow no click at all) and
+                    // emitting it would bury the event stream in noise.
+                    captureNoMatchEvent()
+                }
 
                 DispatchQueue.main.async {
                     onNoMatch()
@@ -328,7 +388,7 @@ public class PaylisherDeferredDeepLinkManager {
             lock.unlock()
 
             hedgeLog("[PaylisherDeferredDeepLink] API error: \(error.localizedDescription)")
-            captureErrorEvent(error: error)
+            captureErrorEvent(error: error, reengagement: reengagement)
 
             throw error
         }
@@ -341,6 +401,7 @@ public class PaylisherDeferredDeepLinkManager {
      */
     private func handleMatch(
         response: PaylisherDeferredDeepLinkResponse,
+        reengagement: Bool = false,
         onSuccess: @escaping (PaylisherDeepLink) -> Void,
         onError: @escaping (Error) -> Void
     ) async {
@@ -349,6 +410,17 @@ public class PaylisherDeferredDeepLinkManager {
             hedgeLog("  URL: \(response.url ?? "nil")")
             hedgeLog("  Campaign: \(response.campaignKey ?? "nil")")
             hedgeLog("  JID: \(response.jid ?? "nil")")
+        }
+
+        // The url can still have landed while the request was in flight. If it did, the user is
+        // already being routed to this same campaign by the real deep link, so delivering the match
+        // as well would navigate twice and report the open twice. The click row stays consumed on
+        // purpose: it belonged to that very tap, and the incoming deep link is already honouring it.
+        if reengagement, PaylisherDeepLinkManager.shared.didHandleDeepLinkSinceLaunch {
+            if config.debugLogging {
+                hedgeLog("[PaylisherDeferredDeepLink] Deep link arrived meanwhile, dropping re-engagement match")
+            }
+            return
         }
 
         guard let deepLinkURL = response.url else {
@@ -419,7 +491,7 @@ public class PaylisherDeferredDeepLinkManager {
         }
 
         // Capture attribution event
-        captureAttributionEvent(response: response, deepLink: deepLink)
+        captureAttributionEvent(response: response, deepLink: deepLink, reengagement: reengagement)
 
         // Invoke success callback on main thread
         DispatchQueue.main.async {
@@ -459,15 +531,16 @@ public class PaylisherDeferredDeepLinkManager {
      */
     private func captureAttributionEvent(
         response: PaylisherDeferredDeepLinkResponse,
-        deepLink: PaylisherDeepLink
+        deepLink: PaylisherDeepLink,
+        reengagement: Bool = false
     ) {
         var properties: [String: Any] = [
             "url": response.url ?? "",
             "campaign_key": response.campaignKey ?? "",
             "jid": response.jid ?? "",
-            "source": "deferred_deeplink",
+            "source": reengagement ? "deferred_deeplink_reengagement" : "deferred_deeplink",
             "destination": deepLink.destination,
-            "is_first_launch": true
+            "is_first_launch": !reengagement
         ]
 
         // Add attribution window
@@ -500,9 +573,14 @@ public class PaylisherDeferredDeepLinkManager {
         // deeplink_key is managed as a session-level super property by the app
         // via register()/unregister(). No person profile write needed.
 
-        // Capture event
+        // Two different facts, two different events. "Deferred Deep Link Match" MEANS an install
+        // was attributed — install reporting counts it — so a device that already had the app
+        // must never emit it. The re-engagement event carries the same payload under a name that
+        // says what actually happened. The open itself is not reported here either way: the
+        // auto-handled deep link produces the regular "Deep Link Opened", exactly as it would
+        // have if the app had been opened by the link directly.
         PaylisherSDK.shared.capture(
-            "Deferred Deep Link Match",
+            reengagement ? "Deferred Deep Link Reengagement" : "Deferred Deep Link Match",
             properties: properties
         )
 
@@ -531,9 +609,9 @@ public class PaylisherDeferredDeepLinkManager {
     /**
      * Captures event when error occurs.
      */
-    private func captureErrorEvent(error: Error) {
+    private func captureErrorEvent(error: Error, reengagement: Bool = false) {
         var properties: [String: Any] = [
-            "is_first_launch": true,
+            "is_first_launch": !reengagement,
             "status": "error",
             "error_message": error.localizedDescription
         ]

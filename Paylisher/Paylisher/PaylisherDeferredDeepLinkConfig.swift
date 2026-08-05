@@ -111,6 +111,37 @@ public class PaylisherDeferredDeepLinkConfig {
     /// API request timeout (default: 10 seconds)
     public var apiTimeout: TimeInterval = 10.0
 
+    /// Also look for a campaign click on cold starts AFTER the install has been attributed.
+    ///
+    /// Why this exists: the first-launch-only check assumes the only way a campaign link can
+    /// send someone to the App Store is when they do not have the app. That is false. A user
+    /// who already has the app reaches the store whenever the bridge cannot open the app scheme
+    /// (in-app browsers, iOS Chrome, a missing universal link) or simply taps "Download", and
+    /// the store's "Open" button then launches the app with NO url. Everything the campaign was
+    /// for — the destination screen and the attribution — is dropped on the floor.
+    ///
+    /// With this on, a cold start that did NOT arrive through a deep link asks the backend
+    /// whether this device has an unclaimed click. Matching is unchanged and still bounded by
+    /// the server's attribution window (30 min by default), so only a genuinely recent click
+    /// can be found, and a match is reported as a re-engagement — never as an install.
+    public var enableReengagementCheck: Bool = true
+
+    /// Minimum gap between two re-engagement checks, in seconds (default: 5 minutes).
+    ///
+    /// Bounds how often a device can ask, so a user who cold-starts the app all day costs at
+    /// most a handful of requests per hour. Lower it only if your campaigns depend on a very
+    /// tight click→open loop.
+    public var reengagementCheckMinIntervalSeconds: TimeInterval = 300
+
+    /// How long to wait after launch before running the re-engagement check (default: 2.5s).
+    ///
+    /// A deep-linked launch delivers its url slightly AFTER `didFinishLaunchingWithOptions`
+    /// (`scene(_:openURLContexts:)`, `continue userActivity`). Checking immediately would race
+    /// that url and could claim the very click the incoming deep link is already handling —
+    /// reporting the same open twice. Waiting a moment lets the url arrive first; if one did,
+    /// the check is skipped entirely.
+    public var reengagementCheckDelaySeconds: TimeInterval = 2.5
+
     // MARK: - Constants
 
     public struct Constants {
@@ -271,6 +302,25 @@ public class PaylisherDeferredDeepLinkConfig {
     @discardableResult
     public func withAPITimeout(_ timeout: TimeInterval) -> PaylisherDeferredDeepLinkConfig {
         self.apiTimeout = timeout
+        return self
+    }
+
+    /**
+     * Builder-style method to configure the re-engagement check.
+     *
+     * @param enabled Whether cold starts may look for a recent campaign click after install
+     * @param minIntervalSeconds Minimum gap between two such checks
+     * @return This config instance for chaining
+     */
+    @discardableResult
+    public func withReengagementCheck(
+        _ enabled: Bool = true,
+        minIntervalSeconds: TimeInterval? = nil
+    ) -> PaylisherDeferredDeepLinkConfig {
+        self.enableReengagementCheck = enabled
+        if let minIntervalSeconds {
+            self.reengagementCheckMinIntervalSeconds = minIntervalSeconds
+        }
         return self
     }
 
