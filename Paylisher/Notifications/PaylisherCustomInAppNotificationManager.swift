@@ -175,17 +175,56 @@ public class PaylisherCustomInAppNotificationManager {
         return ttlExpiry
     }
 
-    private func shouldPresentInApp(_ payload: CustomInAppPayload) -> Bool {
+    /// Sunum sırasında olan mesajlar. Kalıcı "gösterildi" kaydı ancak mesaj
+    /// EKRANA GELDİKTEN sonra yazıldığı için, aynı push'un iki kanaldan
+    /// (iki delegate seçicisi, APNs tekrarı…) neredeyse aynı anda gelip iki kez
+    /// çizilmesini bu kısa ömürlü kilit engelliyor.
+    private var inFlightInAppKeys = Set<String>()
+    private let inFlightLock = NSLock()
+
+    /// Sunuma başlanabilir mi. Kalıcı kayda DOKUNMAZ.
+    ///
+    /// Eskiden bu fonksiyon "gösterildi" kaydını daha sunum denenmeden yazıyordu:
+    /// sonraki adımlardan biri düşerse (uygulama arka planda, layout'ta eksik
+    /// alan, çözümleme hatası, ekranda başka modal) mesaj görünmüyor ama kayıt
+    /// duruyordu ve aynı mesaj 24 saat boyunca bir daha DENENMİYORDU. Kayıt artık
+    /// yalnız `markInAppShown` ile, gerçekten çizildikten sonra yazılıyor.
+    private func beginPresentingInApp(_ payload: CustomInAppPayload) -> Bool {
         let key = dedupeKey(for: payload)
         let now = Date().timeIntervalSince1970
-        var cache = loadShownInAppCache()
+
+        let cache = loadShownInAppCache()
         if let expiresAt = cache[key], expiresAt > now {
             print("[Paylisher] skip duplicate in-app key=\(key)")
             return false
         }
+
+        inFlightLock.lock()
+        defer { inFlightLock.unlock() }
+        if inFlightInAppKeys.contains(key) {
+            print("[Paylisher] skip in-flight in-app key=\(key)")
+            return false
+        }
+        inFlightInAppKeys.insert(key)
+        return true
+    }
+
+    /// Sunum denemesi bitti (başarılı ya da başarısız): kilidi bırak.
+    private func endPresentingInApp(_ payload: CustomInAppPayload) {
+        let key = dedupeKey(for: payload)
+        inFlightLock.lock()
+        inFlightInAppKeys.remove(key)
+        inFlightLock.unlock()
+    }
+
+    /// Mesaj GERÇEKTEN ekrana geldi: kalıcı "gösterildi" kaydını şimdi yaz.
+    private func markInAppShown(_ payload: CustomInAppPayload) {
+        let key = dedupeKey(for: payload)
+        let now = Date().timeIntervalSince1970
+        var cache = loadShownInAppCache()
         cache[key] = dedupeExpiryTimestamp(for: payload, now: now)
         UserDefaults.standard.set(cache, forKey: inAppShownCacheKey)
-        return true
+        endPresentingInApp(payload)
     }
 
     private func readEventType(for layoutType: String) -> String {
@@ -491,8 +530,8 @@ public class PaylisherCustomInAppNotificationManager {
     /// Direct show method — accepts a pre-built CustomInAppPayload without JSON parsing.
     /// Mirrors Android's InAppMessageHelper.showCustomInAppMessage* API for programmatic use.
     public func showCustomInApp(_ payload: CustomInAppPayload, windowScene: UIWindowScene?) {
-        guard shouldPresentInApp(payload) else {
-            print("FCM | InAppRouter | shouldPresentInApp=false → skip | pushId=\(normalizedPushId(payload))")
+        guard beginPresentingInApp(payload) else {
+            print("FCM | InAppRouter | duplicate/in-flight → skip | pushId=\(normalizedPushId(payload))")
             return
         }
 
@@ -502,6 +541,9 @@ public class PaylisherCustomInAppNotificationManager {
 
         guard let layouts = payload.layouts, !layouts.isEmpty else {
             print("FCM | InAppRouter | payload has no layouts | pushId=\(pushId) | layoutType=\(layoutType)")
+            // Mesaj gösterilemedi: kilidi bırak ki aynı push tekrar gelirse
+            // yeniden denensin. "Gösterildi" kaydı YAZILMIYOR.
+            endPresentingInApp(payload)
             return
         }
 
@@ -549,6 +591,7 @@ public class PaylisherCustomInAppNotificationManager {
                   let extra  = firstLayout.extra,
                   let blocks = firstLayout.blocks else {
                 print("FCM | InAppRouter | payload missing required layout fields | pushId=\(pushId) | layoutType=\(layoutType)")
+                endPresentingInApp(payload)
                 return
             }
             let styleVC = StyleViewController(
@@ -570,13 +613,23 @@ public class PaylisherCustomInAppNotificationManager {
             let scene = windowScene ?? (UIApplication.shared.connectedScenes
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
             guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
-                  let rootVC = keyWindow.rootViewController else { return }
+                  let rootVC = keyWindow.rootViewController else {
+                // Uygulama önplanda değil ya da gösterilecek pencere yok. En sık
+                // düşme noktası burası — ve "gösterildi" kaydı burada YAZILMIYOR,
+                // yani mesaj bir sonraki gelişinde yeniden denenebilir.
+                print("FCM | InAppRouter | no foreground window → not shown | pushId=\(pushId)")
+                self.endPresentingInApp(payload)
+                return
+            }
 
             // Kök VC'den present etmek, kullanıcı uygulama içinde gezinirken (bir sheet /
             // fullScreenCover / başka bir modal açıkken) SESSİZCE hiçbir şey yapmıyordu:
             // modal görünmüyor, inappMessageRead de atılmıyordu. En üstteki VC'den present et.
             let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
             presenter.present(vcToPresent, animated: false) {
+                // BURASI mesajın gerçekten ekrana geldiği tek nokta: kalıcı
+                // "gösterildi" kaydı ancak burada yazılır.
+                self.markInAppShown(payload)
                 PaylisherNotificationEventTracker.capture(
                     "inappMessageRead",
                     pushId: pushId,
