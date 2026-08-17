@@ -81,6 +81,26 @@ import UIKit
     /// deliver on its own.
     public var skAdNetworkConfig: PaylisherSKAdNetworkConfig?
 
+    /// Apple Ads (Apple Search Ads) install attribution via the AdServices framework.
+    ///
+    /// Default: true. On the first launches after install the SDK asks AdServices for an
+    /// attribution token (iOS 14.3+) and posts it to the Paylisher campaign service, which
+    /// resolves it with Apple. Nothing is shown to the user, no identifier is read and no ATT
+    /// prompt is involved — this is Apple's own privacy-preserving mechanism, and it is what
+    /// makes Apple Ads installs appear as attributed installs in the dashboard. Set to false to
+    /// never call AdServices.
+    @objc public var appleAdsAttributionEnabled: Bool = true
+
+    /// Campaign service origin the attribution token is posted to (e.g. "https://link.example.com").
+    ///
+    /// Default: nil — derived from `deferredDeepLinkConfig.deferredDeepLinkAPIHost` when set,
+    /// otherwise the SaaS default. Only on-prem deployments need this.
+    @objc public var appleAdsAttributionHost: String?
+
+    /// How many days after install the SDK keeps re-sending the token when the backend has not
+    /// given a final answer yet. Default 30.
+    @objc public var appleAdsAttributionMaxAgeDays: Int = 30
+
     /// or EU Host: 'https://eu.i.paylisher.com'
     public static let defaultHost: String = "https://us.i.paylisher.com"
 

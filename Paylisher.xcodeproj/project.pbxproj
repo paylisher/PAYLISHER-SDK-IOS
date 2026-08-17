@@ -53,6 +53,7 @@
 		5CA0DEC0000000000000A0E2 /* PaylisherSKAdNetworkManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0DEC0000000000000A0E1 /* PaylisherSKAdNetworkManager.swift */; };
 		5CA0DEC0000000000000D0F2 /* PaylisherSKAdNetworkSchema.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0DEC0000000000000D0F1 /* PaylisherSKAdNetworkSchema.swift */; };
 		5CA0DEC0000000000000E0F2 /* PaylisherSKAdNetworkRemoteConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0DEC0000000000000E0F1 /* PaylisherSKAdNetworkRemoteConfig.swift */; };
+		5CA0DEC0000000000000E0F4 /* PaylisherAppleAdsAttribution.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5CA0DEC0000000000000E0F3 /* PaylisherAppleAdsAttribution.swift */; };
 		5CD6D6D4AFCAEF0E6920E990 /* DefaultErrorHandler.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F0F445AB9A0FB9DE8CB58A3 /* DefaultErrorHandler.swift */; };
 		5EAEA70C2B172D15FD2AA1D1 /* PaylisherTopViewControllerResolver.swift in Sources */ = {isa = PBXBuildFile; fileRef = 19BA378314541ADD416FDB06 /* PaylisherTopViewControllerResolver.swift */; };
 		64B48B219036E9C2F7F4CFB9 /* PaylisherDeferredDeepLinkConfig.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2D060956FCE1F4733ED9D00B /* PaylisherDeferredDeepLinkConfig.swift */; };
@@ -509,6 +510,7 @@
 		5CA0DEC0000000000000A0E1 /* PaylisherSKAdNetworkManager.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherSKAdNetworkManager.swift; sourceTree = "<group>"; };
 		5CA0DEC0000000000000D0F1 /* PaylisherSKAdNetworkSchema.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherSKAdNetworkSchema.swift; sourceTree = "<group>"; };
 		5CA0DEC0000000000000E0F1 /* PaylisherSKAdNetworkRemoteConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherSKAdNetworkRemoteConfig.swift; sourceTree = "<group>"; };
+		5CA0DEC0000000000000E0F3 /* PaylisherAppleAdsAttribution.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherAppleAdsAttribution.swift; sourceTree = "<group>"; };
 		75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherEngageInAppConfig.swift; sourceTree = "<group>"; };
 		7F0F445AB9A0FB9DE8CB58A3 /* DefaultErrorHandler.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = DefaultErrorHandler.swift; sourceTree = "<group>"; };
 		892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */ = {isa = PBXFileReference; includeInIndex = 1; lastKnownFileType = sourcecode.swift; path = PaylisherRepeatedIdentifyBehavior.swift; sourceTree = "<group>"; };
@@ -1091,6 +1093,7 @@
 				5CA0DEC0000000000000A0E1 /* PaylisherSKAdNetworkManager.swift */,
 				5CA0DEC0000000000000D0F1 /* PaylisherSKAdNetworkSchema.swift */,
 				5CA0DEC0000000000000E0F1 /* PaylisherSKAdNetworkRemoteConfig.swift */,
+				5CA0DEC0000000000000E0F3 /* PaylisherAppleAdsAttribution.swift */,
 				E80F917FF5BD9E598CC382D3 /* PaylisherJourneyContext.swift */,
 				892A14BE8E5C31D1139F3B8E /* PaylisherRepeatedIdentifyBehavior.swift */,
 				9F7BCFC5140718221B687A43 /* PaylisherScreenMapper.swift */,
@@ -1682,6 +1685,7 @@
 				5CA0DEC0000000000000A0E2 /* PaylisherSKAdNetworkManager.swift in Sources */,
 				5CA0DEC0000000000000D0F2 /* PaylisherSKAdNetworkSchema.swift in Sources */,
 				5CA0DEC0000000000000E0F2 /* PaylisherSKAdNetworkRemoteConfig.swift in Sources */,
+				5CA0DEC0000000000000E0F4 /* PaylisherAppleAdsAttribution.swift in Sources */,
 				2242832E811E712B625C5A8B /* PaylisherJourneyContext.swift in Sources */,
 				AC7114F3FF51D3794985BE46 /* PaylisherRepeatedIdentifyBehavior.swift in Sources */,
 				ADF69114E75AC36797EF7939 /* PaylisherScreenMapper.swift in Sources */,

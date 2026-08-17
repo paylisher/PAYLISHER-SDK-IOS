@@ -242,6 +242,26 @@ let maxRetryDelay = 30.0
                 }
             }
 
+            // Apple Ads (AdServices) install attribution. On by default: it reads no
+            // identifier, shows nothing, and needs no host-side setup beyond the campaign
+            // service. Runs on a utility queue and posts at most once per launch; it stops
+            // for good once the backend gives a terminal answer for this install.
+            if config.appleAdsAttributionEnabled {
+                let appleAdsHost = PaylisherSKAdNetworkRemoteConfig.resolveHost(
+                    explicit: config.appleAdsAttributionHost,
+                    deferredHost: config.deferredDeepLinkConfig?.deferredDeepLinkAPIHost
+                )
+                PaylisherAppleAdsAttribution.shared.configure(
+                    apiKey: config.apiKey,
+                    host: appleAdsHost,
+                    storage: theStorage,
+                    maxAgeDays: config.appleAdsAttributionMaxAgeDays,
+                    isOptedOut: { [weak self] in self?.isOptOutState() ?? true }
+                )
+                PaylisherAppleAdsAttribution.shared.runIfNeeded()
+                hedgeLog("[PaylisherSDK] Apple Ads attribution configured (host: \(appleAdsHost))")
+            }
+
             // Configure Heartbeat Manager for silent push / uninstall detection
             PaylisherHeartbeatManager.shared.configure(
                 config: config,
@@ -1375,6 +1395,7 @@ let maxRetryDelay = 30.0
             // below; it is a singleton and would otherwise keep pointing at a storage this
             // SDK instance no longer owns.
             PaylisherSKAdNetworkManager.shared.reset()
+            PaylisherAppleAdsAttribution.shared.reset()
             config.storageManager?.reset()
             config.storageManager = nil
             config = PaylisherConfig(apiKey: "")

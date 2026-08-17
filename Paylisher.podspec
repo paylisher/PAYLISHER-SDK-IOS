@@ -35,6 +35,13 @@ Paylisher is a comprehensive mobile SDK providing event tracking, session replay
     core.resource_bundles = {
       'Paylisher_Privacy' => ['Paylisher/Resources/PrivacyInfo.xcprivacy']
     }
+
+    # Apple Ads (Apple Search Ads) install attribution. AdServices.framework exists from
+    # iOS 14.3; the pod floor is 13.0, and every call site is behind
+    # `#if canImport(AdServices)` + `if #available(iOS 14.3, *)`. Declared WEAK so a 13.x
+    # device never hits a dyld "Library not loaded" at launch. AdServices reads no identifier
+    # and needs no ATT / privacy-manifest declaration.
+    core.weak_frameworks = 'AdServices'
   end
 
   # ---------------------------------------------------------------------------

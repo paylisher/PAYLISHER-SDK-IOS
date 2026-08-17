@@ -1,5 +1,7 @@
 ## Next
 
+- Apple Ads (Apple Search Ads) install attribution via the AdServices framework: on the first launches after install the SDK obtains an attribution token (iOS 14.3+) and posts it to the campaign service, which resolves it with Apple. On by default (`PaylisherConfig.appleAdsAttributionEnabled`), no identifier read, no ATT prompt, no user-visible behaviour. Captures an `Apple Ads Attribution` event with campaign / ad group / keyword ids once the backend confirms an attributed install.
+
 ## 3.13.3 - 2024-10-25
 
 - fix race condition in PaylisherFileBackedQueue.deleteFiles ([#218](https://github.com/Paylisher/paylisher-ios/pull/218))

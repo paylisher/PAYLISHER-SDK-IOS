@@ -51,6 +51,12 @@ class PaylisherStorage {
         /// silently reporting nothing. Like `skAdNetworkState`, deliberately absent from
         /// `reset()`: the schema describes the APP, not the logged-in person.
         case skAdNetworkSchema = "paylisher.skAdNetworkSchema"
+        /// Apple Ads attribution progress for THIS install (last backend answer, attempts).
+        ///
+        /// Like the SKAdNetwork keys, deliberately absent from `reset()`: it describes the
+        /// install, not the person. Clearing it on logout would make the SDK re-send the
+        /// token and the backend re-answer from its store — harmless, but pointless traffic.
+        case appleAdsAttributionState = "paylisher.appleAdsAttributionState"
     }
 
     private let config: PaylisherConfig
