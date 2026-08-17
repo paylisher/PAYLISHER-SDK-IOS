@@ -585,17 +585,24 @@ public class PaylisherCustomInAppNotificationManager {
                 }
             }()
             print("FCM | InAppRouter | Showing \(resolvedTag) | pushId=\(pushId)")
+            // `extra` BİLEREK zorunlu değil: sunucu sözleşmesinde de opsiyonel ve
+            // yalnız ek davranışları taşıyor (banner otomatik kapanma süresi,
+            // karartmaya dokunma, geçiş animasyonu). Mesajı çizmek için gerekmiyor.
+            // Eskiden burada zorunlu tutulduğu için, o ayarlara dokunulmamış bir
+            // kampanya iOS'ta HİÇ görünmüyordu — Android'de böyle bir şart yok.
             guard let firstLayout = layouts.first,
                   let style  = firstLayout.style,
                   let close  = firstLayout.close,
-                  let extra  = firstLayout.extra,
                   let blocks = firstLayout.blocks else {
                 print("FCM | InAppRouter | payload missing required layout fields | pushId=\(pushId) | layoutType=\(layoutType)")
                 endPresentingInApp(payload)
                 return
             }
+            if firstLayout.extra == nil {
+                print("FCM | InAppRouter | no `extra` block, using defaults | pushId=\(pushId)")
+            }
             let styleVC = StyleViewController(
-                style: style, close: close, extra: extra,
+                style: style, close: close, extra: firstLayout.extra,
                 blocks: blocks, defaultLang: lang, layoutType: layoutType, pushId: pushId
             )
             styleVC.modalPresentationStyle = .overFullScreen

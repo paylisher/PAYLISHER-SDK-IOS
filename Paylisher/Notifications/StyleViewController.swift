@@ -154,7 +154,12 @@ class StyleViewController: UIViewController {
     
     private let close: CustomInAppPayload.Layout.Close
     
-    private let extra: CustomInAppPayload.Layout.Extra
+    /// Ek ayarlar bloğu OPSİYONEL. Sunucu sözleşmesinde de opsiyonel; eskiden
+    /// burada zorunlu tutulduğu için, ayarlarına dokunulmamış bir kampanya
+    /// iOS'ta hiç gösterilmiyordu. Yokluğunda tüm ek davranışlar (banner
+    /// otomatik kapanma, karartmaya dokunma, geçiş animasyonu) devre dışı
+    /// kalır; mesajın kendisi normal çizilir.
+    private let extra: CustomInAppPayload.Layout.Extra?
     
     private let blocks: CustomInAppPayload.Layout.Blocks
 
@@ -329,7 +334,7 @@ class StyleViewController: UIViewController {
 
     init(style: CustomInAppPayload.Layout.Style,
          close: CustomInAppPayload.Layout.Close,
-         extra: CustomInAppPayload.Layout.Extra,
+         extra: CustomInAppPayload.Layout.Extra?,
          blocks: CustomInAppPayload.Layout.Blocks,
          defaultLang: String,
          layoutType: String = "modal",
@@ -409,7 +414,7 @@ class StyleViewController: UIViewController {
         }()
         print("FCM | InApp | In-App \(sentTag) sent! locale=\(locale) pushId=\(pushId ?? "?")")
 
-        if layoutType == "banner", let duration = extra.banner?.duration, duration > 0 {
+        if layoutType == "banner", let duration = extra?.banner?.duration, duration > 0 {
             DispatchQueue.main.asyncAfter(deadline: .now() + .seconds(duration)) { [weak self] in
                 self?.dismissInApp(via: "timeout")
             }
@@ -879,14 +884,14 @@ class StyleViewController: UIViewController {
     
     private func applyOverlay() {
         
-        if extra.overlay?.action == "close" {
+        if extra?.overlay?.action == "close" {
             
             let tapGesture = UITapGestureRecognizer(target: self, action: #selector(handleOverlayClose))
             overlayView.isUserInteractionEnabled = true
             overlayView.addGestureRecognizer(tapGesture)
         }
         
-        if let overlayColorHex = extra.overlay?.color,
+        if let overlayColorHex = extra?.overlay?.color,
            let color = UIColor(hex: overlayColorHex) {
             overlayView.backgroundColor = color.withAlphaComponent(0.5)
         }
@@ -895,7 +900,7 @@ class StyleViewController: UIViewController {
      }
     
     private func applyTransition() {
-        guard let transitionType = extra.transition else {
+        guard let transitionType = extra?.transition else {
             return
         }
         
@@ -1604,7 +1609,7 @@ class StyleViewController: UIViewController {
             properties: ["via": via]
         )
 
-        guard let transitionType = extra.transition else {
+        guard let transitionType = extra?.transition else {
             dismiss(animated: true)
             return
         }
