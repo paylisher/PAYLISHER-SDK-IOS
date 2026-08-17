@@ -70,6 +70,21 @@ import UIKit
     /// When set, SDK can fetch in-app campaigns directly from the Engage service without FCM delivery.
     public var engageInAppConfig: PaylisherEngageInAppConfig?
 
+    /// Gelen Paylisher IN-APP push'larını SDK'nın kendisi yakalasın mı.
+    ///
+    /// Açıkken SDK, host uygulamanın `UIApplicationDelegate` sınıfına çalışma
+    /// zamanında kancalanır ve sessiz push ile gelen in-app'i kendisi çizer —
+    /// host'un `didReceiveRemoteNotification` yazmasına gerek kalmaz. Önceki
+    /// implementasyon her hâlükârda çağrılır, yani Firebase'in ve host'un kendi
+    /// işleyişi bozulmaz.
+    ///
+    /// Host ZATEN `customInAppFunction`'ı kendisi çağırıyorsa çift gösterimi
+    /// önlemek için bunu kapatın.
+    ///
+    /// NOT: uygulamanın **Background Modes → Remote notifications** yetkisi
+    /// kapalıysa iOS bu callback'i hiç çağırmaz; o yetki SDK'dan açılamaz.
+    @objc public var autoHandleRemoteNotifications: Bool = true
+
     /// SKAdNetwork (Apple privacy-preserving install attribution) configuration.
     ///
     /// Default: nil — SKAdNetwork is OFF and no StoreKit call is ever made. Assign a

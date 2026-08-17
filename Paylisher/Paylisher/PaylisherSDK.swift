@@ -153,6 +153,16 @@ let maxRetryDelay = 30.0
             registerNotifications()
             captureScreenViews()
 
+            #if os(iOS) || os(tvOS)
+                // Sessiz push ile gelen in-app'i host uygulamaya iş düşmeden
+                // yakala. Android'de karşılığı zaten SDK'nın kendi
+                // FirebaseMessagingService'i; iOS'ta bugüne kadar host'un
+                // didReceiveRemoteNotification yazması gerekiyordu.
+                if config.autoHandleRemoteNotifications {
+                    PaylisherRemoteNotificationProxy.installIfNeeded()
+                }
+            #endif
+
             PaylisherSessionManager.shared.startSession()
 
             #if os(iOS)
