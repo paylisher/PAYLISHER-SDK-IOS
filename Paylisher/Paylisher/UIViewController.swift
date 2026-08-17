@@ -258,6 +258,14 @@
             // message queued on an excluded screen (e.g. Splash) shows once a normal
             // screen appears. No-ops when Engage in-app is not configured or queue empty.
             if PaylisherSDK.shared.config.engageInAppConfig != nil {
+                // Bu kanca YALNIZCA `config.captureScreenViews == true` iken kurulur
+                // (swizzleScreenView orada çağrılıyor). Android'de karşılığı
+                // koşulsuz kurulur. Kayıt bırakıyoruz ki teşhiste bu satırın
+                // YOKLUĞU, ekran-değişimi fetch'inin ve bekleyen kuyruğun
+                // boşaltılmasının hiç çalışmadığını kanıtlasın.
+                PaylisherInAppDiagnostics.shared.record("hook.screen_appeared", [
+                    "screen": String(describing: type(of: self)),
+                ])
                 PaylisherEngageInAppService.shared.onScreenAppeared()
             }
             // it looks like we're calling ourselves, but we're actually

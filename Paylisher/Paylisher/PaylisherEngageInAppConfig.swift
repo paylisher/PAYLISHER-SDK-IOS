@@ -20,6 +20,13 @@ public class PaylisherEngageInAppConfig: NSObject {
     @objc public var maxMessages: Int = 1
     @objc public var debugLogging: Bool = false
 
+    /// Cihazdaki in-app teşhis halkasını Engage'e (`…/push/inapp/diag-beacon`)
+    /// gönderir. Üretim cihazına Xcode bağlanamayan kurulumlarda (banka)
+    /// "in-app neden görünmedi" sorusunun cihaz tarafı cevabı ancak böyle
+    /// alınabilir. Kapalıyken de üst üste 3 fetch hatasından sonra TEK SEFERLİK
+    /// otomatik gönderim yapılır — bozuk bir kurulum kendini bildirsin diye.
+    @objc public var diagnosticsBeacon: Bool = false
+
     /// Class name fragments (case-insensitive substring match) for view controllers
     /// where in-app banners should NOT be rendered (e.g. splash, login).
     /// The SDK queues messages and renders them when a non-excluded screen becomes active.
@@ -40,7 +47,8 @@ public class PaylisherEngageInAppConfig: NSObject {
         autoFetchOnForeground: Bool = true,
         maxMessages: Int = 1,
         debugLogging: Bool = false,
-        excludedActivities: [String] = ["Splash"]
+        excludedActivities: [String] = ["Splash"],
+        diagnosticsBeacon: Bool = false
     ) {
         self.init()
         self.fetchEndpoint = fetchEndpoint
@@ -52,5 +60,6 @@ public class PaylisherEngageInAppConfig: NSObject {
         self.maxMessages = maxMessages
         self.debugLogging = debugLogging
         self.excludedActivities = excludedActivities
+        self.diagnosticsBeacon = diagnosticsBeacon
     }
 }

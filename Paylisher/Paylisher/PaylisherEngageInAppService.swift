@@ -45,6 +45,10 @@ final class PaylisherEngageInAppService: NSObject {
     private var pendingScreenChangeFetch = false
     private let screenChangeFetchMinIntervalSeconds: TimeInterval = 15 // Android: 15_000L
 
+    // Yapılandırma anlık görüntüsü halkaya bir kez yazılır.
+    private let configSnapshotLock = NSLock()
+    private var configSnapshotRecorded = false
+
     override private init() {
         super.init()
         #if os(iOS) || os(tvOS)
@@ -69,14 +73,21 @@ final class PaylisherEngageInAppService: NSObject {
 
     func refresh(using sdk: PaylisherSDK, target: String? = nil) {
         guard let config = sdk.config.engageInAppConfig else {
+            // Bugün tamamen sessiz: engageInAppConfig atanmamışsa in-app ÖZELLİĞİ
+            // hiç yoktur ve hiçbir yerde iz kalmaz. Entegrasyon hatasının en sık
+            // hâli tam olarak budur.
+            PaylisherInAppDiagnostics.shared.record("skip.no_engage_config")
             return
         }
+
+        recordConfigSnapshotOnce(config: config, sdk: sdk)
 
         let distinctId = sdk.getDistinctId().trimmingCharacters(in: .whitespacesAndNewlines)
         guard !distinctId.isEmpty else {
             if config.debugLogging {
                 hedgeLog("[PaylisherSDK] Engage in-app fetch skipped: distinctId is empty")
             }
+            PaylisherInAppDiagnostics.shared.record("skip.empty_distinct_id")
             return
         }
 
@@ -85,10 +96,21 @@ final class PaylisherEngageInAppService: NSObject {
             if config.debugLogging {
                 hedgeLog("[PaylisherSDK] Engage in-app fetch skipped: invalid fetchEndpoint \(endpoint)")
             }
+            PaylisherInAppDiagnostics.shared.record("skip.invalid_url", ["endpoint": endpoint])
             return
         }
 
         let effectiveSdkKey = resolveSdkKey(config: config, sdk: sdk)
+
+        // İsteğin GERÇEKTEN çıktığının kanıtı. Sunucu tarafında hiç kayıt yoksa
+        // ama burada fetch.start varsa, mesaj ağda ölmüştür (yanlış host, ATS,
+        // TLS) — sunucu ile istemci arasındaki ayrımın tek dayanağı bu satır.
+        PaylisherInAppDiagnostics.shared.record("fetch.start", [
+            "endpoint": endpoint,
+            "sdkKeySuffix": PaylisherEngageInAppService.maskKey(effectiveSdkKey),
+            "distinctId": distinctId,
+            "target": target ?? "",
+        ])
 
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
@@ -112,6 +134,9 @@ final class PaylisherEngageInAppService: NSObject {
             if config.debugLogging {
                 hedgeLog("[PaylisherSDK] Engage in-app fetch body encode failed: \(error)")
             }
+            PaylisherInAppDiagnostics.shared.record("skip.body_encode_failed", [
+                "error": String(describing: error),
+            ])
             return
         }
 
@@ -120,26 +145,123 @@ final class PaylisherEngageInAppService: NSObject {
                 if config.debugLogging {
                     hedgeLog("[PaylisherSDK] Engage in-app fetch failed: \(error.localizedDescription)")
                 }
+                // ATS / TLS reddi burada görünür ve SADECE NSError domain+code
+                // ile ayırt edilebilir: -1022 ATS (cleartext ya da zayıf TLS),
+                // -1202 güvenilmeyen sertifika (özel CA), -1200 genel TLS,
+                // -1004 bağlanılamadı. localizedDescription bu ayrımı kaybeder.
+                let nsError = error as NSError
+                PaylisherInAppDiagnostics.shared.recordFetchFailure("fetch.transport_error", [
+                    "domain": nsError.domain,
+                    "code": "\(nsError.code)",
+                    "hint": PaylisherEngageInAppService.transportErrorHint(nsError),
+                    "endpoint": endpoint,
+                    "message": error.localizedDescription,
+                ])
                 return
             }
 
             guard let httpResponse = response as? HTTPURLResponse else {
+                PaylisherInAppDiagnostics.shared.recordFetchFailure("fetch.non_http_response")
                 return
             }
+
+            // Sunucu tarafı iziyle eşleşme anahtarı (main.ts taşıma kaydı bunu
+            // yanıt başlığında döndürüyor).
+            let diagId = httpResponse.value(forHTTPHeaderField: "X-Engage-Diag-Id") ?? ""
 
             guard (200 ... 299).contains(httpResponse.statusCode) else {
                 if config.debugLogging {
                     hedgeLog("[PaylisherSDK] Engage in-app fetch failed with status \(httpResponse.statusCode)")
                 }
+                // Gövde bugün hiç okunmuyordu: sunucunun "Invalid sdkKey" /
+                // "Rate limit exceeded" açıklaması çöpe gidiyordu.
+                let bodyHead = data.flatMap { String(data: $0.prefix(512), encoding: .utf8) } ?? ""
+                PaylisherInAppDiagnostics.shared.recordFetchFailure("fetch.http_error", [
+                    "status": "\(httpResponse.statusCode)",
+                    "endpoint": endpoint,
+                    "diagId": diagId,
+                    "body": bodyHead,
+                ])
                 return
             }
 
             guard let data, !data.isEmpty else {
+                PaylisherInAppDiagnostics.shared.recordFetchFailure("fetch.empty_body", [
+                    "diagId": diagId,
+                ])
                 return
             }
 
+            PaylisherInAppDiagnostics.shared.recordFetchSuccess("fetch.ok", [
+                "status": "\(httpResponse.statusCode)",
+                "bytes": "\(data.count)",
+                "diagId": diagId,
+            ])
+
             self.handleResponseData(data, debugLogging: config.debugLogging)
         }.resume()
+    }
+
+    /// NSURLError kodlarının teşhis karşılığı. Bankada en olası iki vaka
+    /// (on-prem `http://` ve özel CA imzalı `https://`) burada ayrışır.
+    private static func transportErrorHint(_ error: NSError) -> String {
+        guard error.domain == NSURLErrorDomain else { return "" }
+        switch error.code {
+        case NSURLErrorAppTransportSecurityRequiresSecureConnection:
+            return "ATS: uygulama düz http:// adrese izin vermiyor. Info.plist'te NSAppTransportSecurity istisnası gerekir ya da endpoint https:// olmalı."
+        case NSURLErrorServerCertificateUntrusted,
+             NSURLErrorServerCertificateHasUnknownRoot,
+             NSURLErrorServerCertificateNotYetValid,
+             NSURLErrorServerCertificateHasBadDate:
+            return "Sunucu sertifikası güvenilmiyor: on-prem özel CA cihazda kurulu/güvenilir değil. Android bu durumda kendi trust store'una göre davranır — iOS/Android farkının klasik kaynağı."
+        case NSURLErrorSecureConnectionFailed:
+            return "TLS el sıkışması başarısız: sunucu TLS sürümü/şifre takımı iOS'un ATS tabanının altında olabilir."
+        case NSURLErrorCannotFindHost, NSURLErrorCannotConnectToHost:
+            return "Host çözülemedi/bağlanılamadı: fetchEndpoint yanlış host'a bakıyor ya da cihaz o ağda değil."
+        case NSURLErrorTimedOut:
+            return "Zaman aşımı."
+        default:
+            return ""
+        }
+    }
+
+    private static func maskKey(_ key: String) -> String {
+        guard !key.isEmpty else { return "" }
+        return "…\(key.suffix(6))"
+    }
+
+    /// Beacon ucu — fetch URL'i ile AYNI tabandan türetilir ki hangi yol
+    /// gerçekten çalışıyorsa onu miras alsın.
+    func diagnosticsBeaconURLString() -> String {
+        guard let config = PaylisherSDK.shared.config.engageInAppConfig else { return "" }
+        let endpoint = resolveFetchURLString(config: config, sdk: PaylisherSDK.shared)
+        guard let lastSlash = endpoint.lastIndex(of: "/") else { return endpoint }
+        return endpoint[..<endpoint.index(after: lastSlash)] + "diag-beacon"
+    }
+
+    /// Yapılandırmanın tek seferlik anlık görüntüsü. `captureScreenViews`
+    /// kapalıysa ekran-değişimi fetch'i ve bekleyen kuyruğun boşaltılması HİÇ
+    /// çalışmaz (Android'de bu kancalar koşulsuz kurulur) — bu satır olmadan
+    /// o fark dışarıdan görülemez.
+    private func recordConfigSnapshotOnce(config: PaylisherEngageInAppConfig, sdk: PaylisherSDK) {
+        configSnapshotLock.lock()
+        let alreadyRecorded = configSnapshotRecorded
+        configSnapshotRecorded = true
+        configSnapshotLock.unlock()
+        guard !alreadyRecorded else { return }
+
+        PaylisherInAppDiagnostics.shared.record("config.snapshot", [
+            "sdkVersion": paylisherVersion,
+            "host": sdk.config.host.absoluteString,
+            "fetchEndpoint": resolveFetchURLString(config: config, sdk: sdk),
+            "fetchEndpointExplicit": config.fetchEndpoint?.isEmpty == false ? "true" : "false",
+            "captureScreenViews": sdk.config.captureScreenViews ? "true" : "false",
+            "autoFetchOnForeground": config.autoFetchOnForeground ? "true" : "false",
+            "excludedActivities": config.excludedActivities.joined(separator: ","),
+            "maxMessages": "\(config.maxMessages)",
+            "debugLogging": config.debugLogging ? "true" : "false",
+            "certificatePinsConfigured": sdk.config.certificatePins.isEmpty ? "false" : "true",
+        ])
     }
 
     // MARK: - Ack
@@ -250,20 +372,37 @@ final class PaylisherEngageInAppService: NSObject {
     // MARK: - Response handling / de-dup / display gate
 
     private func handleResponseData(_ data: Data, debugLogging: Bool) {
-        guard
-            let jsonObject = try? JSONSerialization.jsonObject(with: data) as? [String: Any],
-            let messages = jsonObject["messages"] as? [[String: Any]],
-            !messages.isEmpty
-        else {
+        // Üç ayrı vaka bugün TEK bir sessiz `return`'e düşüyor: gövde JSON
+        // değil, "messages" anahtarı yok, ya da liste BOŞ. Sonuncusu normaldir
+        // (sunucu eleme yaptı — sebebi sunucu tarafındaki /__inapp izinde),
+        // ilk ikisi ise sözleşme hatasıdır. Ayırt edilebilmeleri şart.
+        let root = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any]
+        let messages = root?["messages"] as? [[String: Any]]
+
+        guard let messages, !messages.isEmpty else {
+            PaylisherInAppDiagnostics.shared.record("parse.no_messages", [
+                "isJsonObject": root != nil ? "true" : "false",
+                "hasMessagesKey": messages != nil ? "true" : "false",
+                "count": "\(messages?.count ?? 0)",
+                "bodyHead": String(data: data.prefix(256), encoding: .utf8) ?? "",
+            ])
             return
         }
 
         #if os(iOS) || os(tvOS)
+        var queuedCount = 0
         queueLock.lock()
         for message in messages {
             // Android applies shouldDisplayMessage + shouldProcessNotification in the
             // fetch callback, before queueing.
             if !shouldDisplayMessage(message) {
+                let condition = conditionDict(from: message)
+                PaylisherInAppDiagnostics.shared.record("gate.display_window", [
+                    "pushId": extractPushId(from: message) ?? "",
+                    "displayTime": "\(longValue(condition?["displayTime"]) ?? 0)",
+                    "expireDate": "\(longValue(condition?["expireDate"]) ?? 0)",
+                    "nowMs": "\(Int64(Date().timeIntervalSince1970 * 1000))",
+                ])
                 continue
             }
             let key = buildInAppNotificationKey(message)
@@ -271,11 +410,18 @@ final class PaylisherEngageInAppService: NSObject {
                 if debugLogging {
                     hedgeLog("[PaylisherSDK] Skipping duplicate Engage in-app message: \(key)")
                 }
+                PaylisherInAppDiagnostics.shared.record("gate.duplicate_dedupe", ["key": key])
                 continue
             }
             pendingMessages.append(message)
+            queuedCount += 1
         }
         queueLock.unlock()
+
+        PaylisherInAppDiagnostics.shared.record("queue.enqueued", [
+            "received": "\(messages.count)",
+            "queued": "\(queuedCount)",
+        ])
 
         renderPendingMessages(debugLogging: debugLogging)
         #endif
@@ -452,15 +598,30 @@ final class PaylisherEngageInAppService: NSObject {
             guard let self else { return }
             #if os(iOS) || os(tvOS)
             guard let config = PaylisherSDK.shared.config.engageInAppConfig else {
+                PaylisherInAppDiagnostics.shared.record("render.no_config")
                 return
             }
 
             guard let scene = self.activeWindowScene() else {
+                // BAŞ ŞÜPHELİ. Kuyruk boşaltmanın ÖN KOŞULU `foregroundActive`
+                // bir UIWindowScene. UIScene manifesti olmayan (klasik
+                // AppDelegate yaşam döngüsü) bir uygulamada `connectedScenes`
+                // boş kalabilir; o hâlde in-app HİÇBİR ZAMAN render edilmez ve
+                // bugün bu durumdan geriye tek bir iz kalmaz.
+                PaylisherInAppDiagnostics.shared.record("render.no_foreground_scene", [
+                    "connectedScenes": "\(UIApplication.shared.connectedScenes.count)",
+                    "pending": "\(self.pendingCount())",
+                ])
                 return
             }
 
             let target = self.currentScreenTarget()
             if self.isExcludedScreen(currentTarget: target, config: config) {
+                PaylisherInAppDiagnostics.shared.record("render.excluded_screen", [
+                    "screen": target ?? "",
+                    "excludedActivities": config.excludedActivities.joined(separator: ","),
+                    "pending": "\(self.pendingCount())",
+                ])
                 return
             }
 
@@ -490,9 +651,21 @@ final class PaylisherEngageInAppService: NSObject {
                 } else {
                     // Mirrors Android InAppTaskWorker.setInitialDelay: present after the
                     // delay using whatever scene is foreground at fire time.
+                    PaylisherInAppDiagnostics.shared.record("render.delayed", [
+                        "pushId": self.extractPushId(from: message) ?? "",
+                        "delaySeconds": "\(Int(delay))",
+                    ])
                     DispatchQueue.main.asyncAfter(deadline: .now() + delay) { [weak self] in
                         guard let self else { return }
-                        guard let laterScene = self.activeWindowScene() else { return }
+                        guard let laterScene = self.activeWindowScene() else {
+                            // Mesaj DELIVERED olarak ack'lendi ama gecikme
+                            // dolduğunda uygulama önplanda değildi: sunucu
+                            // "teslim edildi" sanır, kullanıcı hiçbir şey görmez.
+                            PaylisherInAppDiagnostics.shared.record("render.delayed_no_scene", [
+                                "pushId": self.extractPushId(from: message) ?? "",
+                            ])
+                            return
+                        }
                         self.presentMessage(message, windowScene: laterScene, debugLogging: debugLogging)
                     }
                 }
@@ -545,10 +718,24 @@ final class PaylisherEngageInAppService: NSObject {
         debugLogging: Bool
     ) {
         guard let payload = message["payload"] as? [String: Any] else {
+            PaylisherInAppDiagnostics.shared.record("present.no_payload_dict", [
+                "keys": message.keys.sorted().joined(separator: ","),
+            ])
             return
         }
 
         let layoutType = (payload["layoutType"] as? String) ?? "native"
+
+        // layoutType hem sunucuda hem burada "native"e düşüyor. Sunucu tanımadığı
+        // bir tipi native'e çeviriyor, native bloğu boşsa native yöneticisi de
+        // sessizce dönüyor — iki ayrı varsayılan üst üste binince mesaj kayboluyor.
+        PaylisherInAppDiagnostics.shared.record("present.layout_type", [
+            "pushId": extractPushId(from: message) ?? "",
+            "layoutType": layoutType,
+            "layoutTypeExplicit": payload["layoutType"] is String ? "true" : "false",
+            "hasNative": payload["native"] != nil ? "true" : "false",
+            "layoutCount": "\((payload["layouts"] as? [Any])?.count ?? 0)",
+        ])
 
         if layoutType == "native" {
             var userInfo = payload
@@ -566,6 +753,11 @@ final class PaylisherEngageInAppService: NSObject {
                 userInfo: userInfo,
                 windowScene: windowScene
             )
+            PaylisherInAppDiagnostics.shared.record("present.handoff_native", [
+                "pushId": extractPushId(from: message) ?? "",
+                "nativeEmpty": (payload["native"] as? [String: Any])?.isEmpty ?? true
+                    ? "true" : "false",
+            ])
             return
         }
 
@@ -576,13 +768,33 @@ final class PaylisherEngageInAppService: NSObject {
                 decodedPayload,
                 windowScene: windowScene
             )
+            PaylisherInAppDiagnostics.shared.record("present.handoff_custom", [
+                "pushId": extractPushId(from: message) ?? "",
+                "layoutType": layoutType,
+            ])
         } catch {
             if debugLogging {
                 hedgeLog("[PaylisherSDK] Engage in-app payload decode failed: \(error)")
             }
+            // SDK'daki EN DEĞERLİ tek teşhis verisi ve bugün çöpe gidiyor:
+            // DecodingError tam kodlama yolunu söyler
+            // (ör. layouts[0].blocks.order[2].type). API-pull yolunda sunucu
+            // sayıları/boolean'ları string'e ÇEVİRMEDİĞİ için (FCM yolunda
+            // çeviriyor) bu hata iOS'a özgüdür.
+            PaylisherInAppDiagnostics.shared.record("present.decode_failed", [
+                "pushId": extractPushId(from: message) ?? "",
+                "layoutType": layoutType,
+                "error": String(describing: error),
+            ])
         }
     }
     #endif
+
+    private func pendingCount() -> Int {
+        queueLock.lock()
+        defer { queueLock.unlock() }
+        return pendingMessages.count
+    }
 
     private func jsonString(from value: Any) -> String? {
         guard JSONSerialization.isValidJSONObject(value) else {

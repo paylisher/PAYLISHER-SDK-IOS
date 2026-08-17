@@ -492,10 +492,24 @@ let maxRetryDelay = 30.0
 
     public func refreshEngageInAppMessages(target: String?) {
         if !isEnabled() {
+            // SDK setup edilmemiş ya da kapatılmış: in-app zinciri hiç başlamaz.
+            PaylisherInAppDiagnostics.shared.record("skip.sdk_not_enabled")
             return
         }
 
         PaylisherEngageInAppService.shared.refresh(using: self, target: target)
+    }
+
+    /// Cihazdaki in-app teşhis halkasının JSON dökümü. Host uygulama bir destek
+    /// ekranında gösterip paylaştırabilir — banka üretim cihazına Xcode
+    /// bağlanamadığı için in-app'in cihazda nerede öldüğünü gösteren tek yol.
+    @objc public func inAppDiagnosticsDump() -> String {
+        return PaylisherInAppDiagnostics.shared.dumpJSON()
+    }
+
+    /// Teşhis halkasını Engage'e gönderir (elle tetikleme).
+    @objc public func sendInAppDiagnosticsBeacon() {
+        PaylisherInAppDiagnostics.shared.sendBeacon(force: true)
     }
 
     @objc public func startSession() {
@@ -1547,9 +1561,14 @@ let maxRetryDelay = 30.0
         captureAppOpened()
 
         if config.engageInAppConfig?.autoFetchOnForeground == true {
+            PaylisherInAppDiagnostics.shared.record("hook.did_become_active")
             DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) { [weak self] in
                 self?.refreshEngageInAppMessages(target: nil)
             }
+        } else if config.engageInAppConfig != nil {
+            // autoFetchOnForeground kapalıysa foreground fetch HİÇ olmaz ve
+            // uygulama in-app'i yalnız elle refresh çağrısıyla alabilir.
+            PaylisherInAppDiagnostics.shared.record("skip.auto_fetch_disabled")
         }
     }
 
