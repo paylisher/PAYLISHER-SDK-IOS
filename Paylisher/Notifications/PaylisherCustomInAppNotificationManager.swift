@@ -655,6 +655,21 @@ public class PaylisherCustomInAppNotificationManager {
             if firstLayout.extra == nil {
                 print("FCM | InAppRouter | no `extra` block, using defaults | pushId=\(pushId)")
             }
+
+            // Çizilebilir tek bir blok bile yoksa sunma. Tanınmayan bloklar
+            // artık mesajı düşürmüyor, tek tek atlanıyor — ama HEPSİ atlanırsa
+            // geriye boş bir kutu kalır. Boş kutu göstermek hiç göstermemekten
+            // kötü: kullanıcı anlamsız bir pencere görür, biz de "gösterildi"
+            // sanırız.
+            let renderableBlocks = (blocks.order ?? []).filter { block in
+                if case .unknown = block { return false }
+                return true
+            }
+            if renderableBlocks.isEmpty {
+                print("FCM | InAppRouter | no renderable block → not shown | pushId=\(pushId)")
+                endPresentingInApp(payload, messageId: messageId)
+                return
+            }
             let styleVC = StyleViewController(
                 style: style, close: close, extra: firstLayout.extra,
                 blocks: blocks, defaultLang: lang, layoutType: layoutType, pushId: pushId
