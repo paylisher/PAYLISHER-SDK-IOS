@@ -35,6 +35,11 @@ final class PaylisherPendingInAppQueue {
         let payloadJSON: String
         /// Kampanyanın bitişi (epoch saniye). 0 = bitiş yok.
         let expiresAt: TimeInterval
+        /// Gönderime özgü mesaj kimliği. Gösterim kaydı buna bağlandığı için
+        /// kuyrukta da taşınmalı; kaybolursa tekrarlayan kampanyada dünkü
+        /// kayıt bugünküyü susturur. Opsiyonel: bu alandan önce yazılmış
+        /// kayıtlar da çözülmeye devam eder.
+        var messageId: String?
         var attempts: Int
     }
 
@@ -56,7 +61,7 @@ final class PaylisherPendingInAppQueue {
 
     // MARK: - Kuyruğa alma
 
-    func enqueueCustom(_ payload: CustomInAppPayload) {
+    func enqueueCustom(_ payload: CustomInAppPayload, messageId: String?) {
         guard let data = try? JSONEncoder().encode(payload),
               let json = String(data: data, encoding: .utf8)
         else {
@@ -68,7 +73,7 @@ final class PaylisherPendingInAppQueue {
             return TimeInterval(ms) / 1000.0
         }()
 
-        append(Entry(kind: "custom", payloadJSON: json, expiresAt: expiresAt, attempts: 0))
+        append(Entry(kind: "custom", payloadJSON: json, expiresAt: expiresAt, messageId: messageId, attempts: 0))
         PaylisherInAppDiagnostics.shared.record("pending.queued", [
             "kind": "custom",
             "pushId": payload.pushId ?? "?",
@@ -89,7 +94,13 @@ final class PaylisherPendingInAppQueue {
             return
         }
 
-        append(Entry(kind: "native", payloadJSON: json, expiresAt: 0, attempts: 0))
+        append(Entry(
+            kind: "native",
+            payloadJSON: json,
+            expiresAt: 0,
+            messageId: PaylisherCustomInAppNotificationManager.messageId(from: userInfo),
+            attempts: 0
+        ))
         PaylisherInAppDiagnostics.shared.record("pending.queued", [
             "kind": "native",
             "pushId": (plain["pushId"] as? String) ?? "?",
@@ -144,7 +155,8 @@ final class PaylisherPendingInAppQueue {
             }
             PaylisherCustomInAppNotificationManager.shared.showCustomInApp(
                 payload,
-                windowScene: scene
+                windowScene: scene,
+                messageId: entry.messageId
             )
         case "native":
             guard let userInfo = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {

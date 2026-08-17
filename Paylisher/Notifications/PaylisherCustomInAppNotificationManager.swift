@@ -148,12 +148,37 @@ public class PaylisherCustomInAppNotificationManager {
         return "fallback:\(typePart):\(displayTimePart):\(payload.defaultLang ?? "en")"
     }
 
-    private func dedupeKey(for payload: CustomInAppPayload) -> String {
+    /// "Bu mesajı gösterdim" kaydının anahtarı.
+    ///
+    /// ÖNCELİK her gönderime özgü mesaj kimliğinde (`gcm.message_id`). Sebebi:
+    /// kampanya numarası + planlanan zaman ikilisi TEKRARLAYAN kampanyalarda her
+    /// gönderim için AYNI kalıyor — planlanan zaman kampanyanın ilk kurulduğu
+    /// andır, her güne göre yenilenmez. Bu yüzden günlük bir kampanyada dünkü
+    /// gösterim kaydı bugünkü mesajı susturabiliyordu. Mesaj kimliği her
+    /// gönderimde farklı olduğu için günlük tekrar doğru çalışır, aynı mesajın
+    /// mükerrer teslimi ise yine engellenir.
+    ///
+    /// Kimlik yoksa (api-pull yolu push taşımaz) eski davranışa düşülür.
+    private func dedupeKey(for payload: CustomInAppPayload, messageId: String?) -> String {
+        if let messageId, !messageId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
+            return "msg:\(messageId)"
+        }
         if let pushId = normalizedPushId(payload) {
             let displayTimePart = payload.condition?.displayTime ?? 0
             return "pushId:\(pushId):display:\(displayTimePart)"
         }
         return fallbackInAppFingerprint(payload)
+    }
+
+    /// Push gövdesinden gönderime özgü mesaj kimliğini çıkarır.
+    static func messageId(from userInfo: [AnyHashable: Any]) -> String? {
+        for key in ["gcm.message_id", "google.message_id"] {
+            if let value = userInfo[key] as? String {
+                let trimmed = value.trimmingCharacters(in: .whitespacesAndNewlines)
+                if !trimmed.isEmpty { return trimmed }
+            }
+        }
+        return nil
     }
 
     private func loadShownInAppCache() -> [String: TimeInterval] {
@@ -189,8 +214,8 @@ public class PaylisherCustomInAppNotificationManager {
     /// alan, çözümleme hatası, ekranda başka modal) mesaj görünmüyor ama kayıt
     /// duruyordu ve aynı mesaj 24 saat boyunca bir daha DENENMİYORDU. Kayıt artık
     /// yalnız `markInAppShown` ile, gerçekten çizildikten sonra yazılıyor.
-    private func beginPresentingInApp(_ payload: CustomInAppPayload) -> Bool {
-        let key = dedupeKey(for: payload)
+    private func beginPresentingInApp(_ payload: CustomInAppPayload, messageId: String?) -> Bool {
+        let key = dedupeKey(for: payload, messageId: messageId)
         let now = Date().timeIntervalSince1970
 
         let cache = loadShownInAppCache()
@@ -210,21 +235,21 @@ public class PaylisherCustomInAppNotificationManager {
     }
 
     /// Sunum denemesi bitti (başarılı ya da başarısız): kilidi bırak.
-    private func endPresentingInApp(_ payload: CustomInAppPayload) {
-        let key = dedupeKey(for: payload)
+    private func endPresentingInApp(_ payload: CustomInAppPayload, messageId: String?) {
+        let key = dedupeKey(for: payload, messageId: messageId)
         inFlightLock.lock()
         inFlightInAppKeys.remove(key)
         inFlightLock.unlock()
     }
 
     /// Mesaj GERÇEKTEN ekrana geldi: kalıcı "gösterildi" kaydını şimdi yaz.
-    private func markInAppShown(_ payload: CustomInAppPayload) {
-        let key = dedupeKey(for: payload)
+    private func markInAppShown(_ payload: CustomInAppPayload, messageId: String?) {
+        let key = dedupeKey(for: payload, messageId: messageId)
         let now = Date().timeIntervalSince1970
         var cache = loadShownInAppCache()
         cache[key] = dedupeExpiryTimestamp(for: payload, now: now)
         UserDefaults.standard.set(cache, forKey: inAppShownCacheKey)
-        endPresentingInApp(payload)
+        endPresentingInApp(payload, messageId: messageId)
     }
 
     private func readEventType(for layoutType: String) -> String {
@@ -316,7 +341,11 @@ public class PaylisherCustomInAppNotificationManager {
         }
 
         // Delegate all routing & presentation to showCustomInApp
-        showCustomInApp(payload, windowScene: windowScene)
+        showCustomInApp(
+            payload,
+            windowScene: windowScene,
+            messageId: Self.messageId(from: userInfo)
+        )
 
         let lang = payload.defaultLang ?? "en"
         let layoutType = payload.layoutType ?? "modal"
@@ -529,8 +558,12 @@ public class PaylisherCustomInAppNotificationManager {
     
     /// Direct show method — accepts a pre-built CustomInAppPayload without JSON parsing.
     /// Mirrors Android's InAppMessageHelper.showCustomInAppMessage* API for programmatic use.
-    public func showCustomInApp(_ payload: CustomInAppPayload, windowScene: UIWindowScene?) {
-        guard beginPresentingInApp(payload) else {
+    public func showCustomInApp(
+        _ payload: CustomInAppPayload,
+        windowScene: UIWindowScene?,
+        messageId: String? = nil
+    ) {
+        guard beginPresentingInApp(payload, messageId: messageId) else {
             print("FCM | InAppRouter | duplicate/in-flight → skip | pushId=\(normalizedPushId(payload))")
             return
         }
@@ -543,7 +576,7 @@ public class PaylisherCustomInAppNotificationManager {
             print("FCM | InAppRouter | payload has no layouts | pushId=\(pushId) | layoutType=\(layoutType)")
             // Mesaj gösterilemedi: kilidi bırak ki aynı push tekrar gelirse
             // yeniden denensin. "Gösterildi" kaydı YAZILMIYOR.
-            endPresentingInApp(payload)
+            endPresentingInApp(payload, messageId: messageId)
             return
         }
 
@@ -595,7 +628,7 @@ public class PaylisherCustomInAppNotificationManager {
                   let close  = firstLayout.close,
                   let blocks = firstLayout.blocks else {
                 print("FCM | InAppRouter | payload missing required layout fields | pushId=\(pushId) | layoutType=\(layoutType)")
-                endPresentingInApp(payload)
+                endPresentingInApp(payload, messageId: messageId)
                 return
             }
             if firstLayout.extra == nil {
@@ -626,8 +659,8 @@ public class PaylisherCustomInAppNotificationManager {
                 // Mesajı DÜŞÜRMÜYORUZ: kuyruğa alıp uygulama bir sonraki kez öne
                 // geldiğinde gösteriyoruz. "Gösterildi" kaydı da yazılmıyor.
                 print("FCM | InAppRouter | no foreground window → queued | pushId=\(pushId)")
-                self.endPresentingInApp(payload)
-                PaylisherPendingInAppQueue.shared.enqueueCustom(payload)
+                self.endPresentingInApp(payload, messageId: messageId)
+                PaylisherPendingInAppQueue.shared.enqueueCustom(payload, messageId: messageId)
                 return
             }
 
@@ -638,7 +671,7 @@ public class PaylisherCustomInAppNotificationManager {
             presenter.present(vcToPresent, animated: false) {
                 // BURASI mesajın gerçekten ekrana geldiği tek nokta: kalıcı
                 // "gösterildi" kaydı ancak burada yazılır.
-                self.markInAppShown(payload)
+                self.markInAppShown(payload, messageId: messageId)
                 PaylisherNotificationEventTracker.capture(
                     "inappMessageRead",
                     pushId: pushId,
