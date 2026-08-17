@@ -30,7 +30,60 @@ import WebKit
  * - Timezone
  * - Language code
  */
+/**
+ * The raw, coarse device traits behind the V1 fingerprint, plus screen width and
+ * OS major. Sent ALONGSIDE the hash (never instead of it) so the backend can
+ * compare the install to a click field by field instead of requiring an exact
+ * hash match. Everything here is already visible to the campaign landing page
+ * through the browser, so this transmits nothing new about the device — and it
+ * still contains no identifier of any kind.
+ */
+internal struct PaylisherDeviceSignals {
+    let model: String
+    let screenWidth: String?
+    let osMajor: String
+    let timezone: String
+    let language: String
+
+    /// Compact JSON for the `X-Device-Signals` header. Hand-rolled: five known
+    /// keys, so no Codable round trip on the launch path.
+    func toJson() -> String {
+        func q(_ s: String?) -> String {
+            guard let s else { return "null" }
+            let escaped = s
+                .replacingOccurrences(of: "\\", with: "\\\\")
+                .replacingOccurrences(of: "\"", with: "\\\"")
+            return "\"\(escaped)\""
+        }
+        return "{\"model\":\(q(model)),\"screenWidth\":\(q(screenWidth))," +
+            "\"osMajor\":\(q(osMajor)),\"tz\":\(q(timezone)),\"lang\":\(q(language))}"
+    }
+}
+
 internal class PaylisherDeviceFingerprint {
+
+    /**
+     * The V1 fingerprint's raw inputs plus screen width and OS major, for
+     * field-level matching on the backend. Reads the SAME sources as
+     * generateDeferredFingerprintV1() so the two can never disagree.
+     *
+     * Screen width and OS major are deliberately NOT in the hash (see the notes
+     * in generateDeferredFingerprintV1) but ARE useful as scoring fields: a
+     * mismatch there lowers confidence instead of vetoing the match outright.
+     */
+    func collectSignals() -> PaylisherDeviceSignals {
+        let bounds = UIScreen.main.bounds
+        let scale = UIScreen.main.scale
+        let widthPx = Int(bounds.width * scale)
+        let heightPx = Int(bounds.height * scale)
+        return PaylisherDeviceSignals(
+            model: UIDevice.current.model,
+            screenWidth: String(min(widthPx, heightPx)),
+            osMajor: UIDevice.current.systemVersion.split(separator: ".").first.map(String.init) ?? "",
+            timezone: TimeZone.current.identifier,
+            language: Locale.current.languageCode ?? "en"
+        )
+    }
 
     /**
      * Generates a deferred deep link fingerprint (V1) that matches backend click-time fingerprint.

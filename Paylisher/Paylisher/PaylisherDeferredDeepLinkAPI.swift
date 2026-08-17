@@ -69,7 +69,8 @@ internal class PaylisherDeferredDeepLinkAPI {
     func check(
         fingerprint: String,
         idfa: String? = nil,
-        reengagement: Bool = false
+        reengagement: Bool = false,
+        signals: PaylisherDeviceSignals? = nil
     ) async throws -> PaylisherDeferredDeepLinkResponse {
         // An advertising identifier may only travel to the dedicated tracking host declared in
         // the PaylisherATT privacy manifest. With no such host configured we drop the identifier
@@ -103,6 +104,11 @@ internal class PaylisherDeferredDeepLinkAPI {
         request.addValue("ios", forHTTPHeaderField: "X-Device-Platform")
         if let effectiveIDFA {
             request.addValue(effectiveIDFA, forHTTPHeaderField: "X-IDFA")
+        }
+        // Raw fingerprint inputs for field-level scoring. Header, not query: keeps
+        // the match URL byte-identical for older backends and out of access logs.
+        if let signals {
+            request.addValue(signals.toJson(), forHTTPHeaderField: "X-Device-Signals")
         }
         request.timeoutInterval = timeout
 
