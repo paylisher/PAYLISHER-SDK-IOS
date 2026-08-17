@@ -148,26 +148,47 @@ public class PaylisherCustomInAppNotificationManager {
         return "fallback:\(typePart):\(displayTimePart):\(payload.defaultLang ?? "en")"
     }
 
-    /// "Bu mesajı gösterdim" kaydının anahtarı.
+    /// "Bu mesajı gösterdim" kaydının anahtarı: KAMPANYA + TAKVİM GÜNÜ.
     ///
-    /// ÖNCELİK her gönderime özgü mesaj kimliğinde (`gcm.message_id`). Sebebi:
-    /// kampanya numarası + planlanan zaman ikilisi TEKRARLAYAN kampanyalarda her
-    /// gönderim için AYNI kalıyor — planlanan zaman kampanyanın ilk kurulduğu
-    /// andır, her güne göre yenilenmez. Bu yüzden günlük bir kampanyada dünkü
-    /// gösterim kaydı bugünkü mesajı susturabiliyordu. Mesaj kimliği her
-    /// gönderimde farklı olduğu için günlük tekrar doğru çalışır, aynı mesajın
-    /// mükerrer teslimi ise yine engellenir.
+    /// Üç şeyi aynı anda doğru yapması gerekiyor ve anahtar seçimi bunu belirliyor:
     ///
-    /// Kimlik yoksa (api-pull yolu push taşımaz) eski davranışa düşülür.
+    ///  1. Tekrarlayan kampanya her gün yeniden gösterilmeli. Eski anahtar
+    ///     (kampanya + planlanan zaman) buna izin vermiyordu: planlanan zaman
+    ///     kampanyanın ilk kurulduğu andır, her güne göre yenilenmez — dünkü
+    ///     kayıt bugünkü mesajı susturuyordu.
+    ///  2. Aynı kampanya gün içinde birden çok kez gönderilebiliyor (arka planda
+    ///     olan cihazları yakalamak için). Kullanıcı bunu bir kez görmeli.
+    ///     Gönderime özgü mesaj kimliğini anahtar yapmak bunu bozardı: her
+    ///     gönderim ayrı sayılır ve mesaj tekrar tekrar çıkardı.
+    ///  3. Aynı mesajın mükerrer teslimi (APNs tekrarı, iki delegate seçicisi)
+    ///     tek gösterime düşmeli.
+    ///
+    /// Kampanya numarası + takvim günü üçünü de karşılıyor: gün değişince yeniden
+    /// gösterilir, gün içindeki tüm gönderimler ve tekrarlar tek anahtara düşer.
     private func dedupeKey(for payload: CustomInAppPayload, messageId: String?) -> String {
+        if let pushId = normalizedPushId(payload) {
+            return "pushId:\(pushId):day:\(Self.localDayStamp())"
+        }
+        // Kampanya numarası yoksa gönderim kimliğine düş; o da yoksa içerik izi.
         if let messageId, !messageId.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty {
             return "msg:\(messageId)"
         }
-        if let pushId = normalizedPushId(payload) {
-            let displayTimePart = payload.condition?.displayTime ?? 0
-            return "pushId:\(pushId):display:\(displayTimePart)"
-        }
         return fallbackInAppFingerprint(payload)
+    }
+
+    /// Cihazın YEREL takvim günü (yyyy-MM-dd). Kullanıcının "bugün" algısı
+    /// yerel gündür; UTC kullanmak kampanyayı gece yarısı civarında yanlış güne
+    /// yazardı.
+    private static func localDayStamp(now: Date = Date()) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone.current
+        let parts = calendar.dateComponents([.year, .month, .day], from: now)
+        return String(
+            format: "%04d-%02d-%02d",
+            parts.year ?? 0,
+            parts.month ?? 0,
+            parts.day ?? 0
+        )
     }
 
     /// Push gövdesinden gönderime özgü mesaj kimliğini çıkarır.
