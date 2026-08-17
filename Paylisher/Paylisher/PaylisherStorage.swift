@@ -35,6 +35,10 @@ class PaylisherStorage {
         case isIdentified = "paylisher.isIdentified"
         case personProcessingEnabled = "paylisher.enabledPersonProcessing"
         case deviceToken = "paylisher.deviceToken"
+        /// Son kaydedilen FCM token'ı — KİŞİ ÖZELLİĞİ olarak yeniden
+        /// uygulanabilmesi için. `deviceToken`'dan ayrı tutuluyor: o heartbeat
+        /// içindir, bu ise hedef kitleye girmeyi sağlayan `token` özelliğidir.
+        case pushTokenPersonProperty = "paylisher.pushTokenPersonProperty"
         case lastHeartbeatTimestamp = "paylisher.lastHeartbeatTimestamp"
         /// SKAdNetwork conversion state (fine/coarse value, lock flag, registration time).
         ///

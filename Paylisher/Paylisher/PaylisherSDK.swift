@@ -328,16 +328,57 @@ let maxRetryDelay = 30.0
         }
 
         PaylisherHeartbeatManager.shared.setFCMToken(fcmToken)
+        storage?.setString(forKey: .pushTokenPersonProperty, contents: fcmToken)
 
-        // Capture token registration event for lifecycle tracking. Also $sets
-        // the device language as a person property so the backend can pick the
-        // correct language for cohort/audience push (mirrors Android).
+        // Capture token registration event for lifecycle tracking, and $set the
+        // token as a PERSON property.
+        //
+        // The person property is what actually matters for delivery: the backend
+        // builds every audience from `person.properties['token']` and skips
+        // anyone without it. Android has always $set it
+        // (FcmMessageHandler.kt: userProperties = mapOf("token" …)); iOS only
+        // $set `locale`, so an app that followed the documented integration -
+        // call registerFCMToken and nothing else - never became targetable, and
+        // NO push or in-app could reach it. The gap was invisible: no error
+        // anywhere, the device simply was not in the audience. Apps that worked
+        // did so because they wrote the property by hand.
+        //
+        // `platform` and `pushProvider` mirror Android's shape; the backend
+        // routes anything that is not "hms" to FCM, so "fcm" is correct here.
         capture("$fcm_token_registered", properties: [
             "platform": "ios",
             "token_length": fcmToken.count,
         ], userProperties: [
+            "token": fcmToken,
+            "platform": "ios",
+            "pushProvider": "fcm",
             "locale": Locale.preferredLanguages.first ?? Locale.current.languageCode ?? "",
         ])
+    }
+
+    /// Re-applies the push token as a person property.
+    ///
+    /// `identify` moves the person: a token $set against the anonymous id before
+    /// login does not necessarily survive onto the identified person. Hosts that
+    /// got this right did it by hand, re-sending the token on every identify.
+    /// The SDK now does it, so the ORDER of registerFCMToken and identify stops
+    /// mattering.
+    private func mergePushTokenIntoUserProperties(
+        _ userProperties: [String: Any]?
+    ) -> [String: Any]? {
+        guard let token = storage?.getString(forKey: .pushTokenPersonProperty),
+              !token.isEmpty
+        else {
+            return userProperties
+        }
+
+        var merged = userProperties ?? [:]
+        // Caller-supplied values win: a host deliberately setting its own token
+        // must not be overwritten.
+        if merged["token"] == nil { merged["token"] = token }
+        if merged["platform"] == nil { merged["platform"] = "ios" }
+        if merged["pushProvider"] == nil { merged["pushProvider"] = "fcm" }
+        return merged
     }
 
     /// Handle a silent push notification for heartbeat / uninstall detection.
@@ -908,6 +949,12 @@ let maxRetryDelay = 30.0
         guard let queue, let storageManager = config.storageManager else {
             return
         }
+
+        // Kayıtlı push token'ını her identify'da kişiye yeniden uygula. Aksi
+        // hâlde token'ın identify'dan ÖNCE mi SONRA mı kaydedildiği sonucu
+        // değiştiriyor ve önce kaydedilmişse kişi hedef kitleye hiç girmiyor.
+        let resolvedUserProperties = mergePushTokenIntoUserProperties(userProperties)
+
         let previousDistinctId = getDistinctId()
         let wasIdentified = storageManager.isIdentified()
 
@@ -928,7 +975,7 @@ let maxRetryDelay = 30.0
             let properties = buildProperties(distinctId: distinctId, properties: [
                 "distinct_id": distinctId,
                 "$anon_distinct_id": currentDistinctId,
-            ], userProperties: sanitizeDicionary(userProperties), userPropertiesSetOnce: sanitizeDicionary(userPropertiesSetOnce))
+            ], userProperties: sanitizeDicionary(resolvedUserProperties), userPropertiesSetOnce: sanitizeDicionary(userPropertiesSetOnce))
             let sanitizedProperties = sanitizeProperties(properties)
 
             queue.add(PaylisherEvent(
@@ -943,7 +990,7 @@ let maxRetryDelay = 30.0
                 "$identify",
                 distinctId: distinctId,
                 properties: nil,
-                userProperties: sanitizeDicionary(userProperties),
+                userProperties: sanitizeDicionary(resolvedUserProperties),
                 userPropertiesSetOnce: sanitizeDicionary(userPropertiesSetOnce),
                 groups: nil
             )
