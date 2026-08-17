@@ -379,7 +379,22 @@ public struct CustomInAppPayload: Codable {
 
                 init(from decoder: Decoder) throws {
                     let container = try decoder.container(keyedBy: CodingKeys.self)
-                    let blockType = try container.decode(String.self, forKey: .type)
+
+                    // `type` OKUNAMAZSA MESAJIN TAMAMI DÜŞMEMELİ.
+                    //
+                    // Burada eskiden fırlatan bir decode vardı ve bu, TÜM
+                    // CustomInAppPayload çözümünü iptal ediyordu: tek bir bloğun
+                    // `type` alanı eksikse kullanıcı hiçbir şey görmüyordu.
+                    // Sunucu tarafındaki iOS dönüşümü de tipi olmayan bloğu
+                    // olduğu gibi geçiriyor (Fcm.Messaging.Service
+                    // transformBlocksToIOSFormat: `if (!block.type) return block`),
+                    // yani böyle bir blok cihaza gerçekten ulaşabiliyor.
+                    //
+                    // Android aynı durumda bloğu atlayıp geri kalanını çiziyor
+                    // (InAppLayoutBlockDeserializer: bilinmeyen tip → SpacerBlock).
+                    // Yani aynı kampanya Android'de görünüp iOS'ta hiç
+                    // görünmüyordu. Artık iOS de bloğu atlıyor, mesaj çiziliyor.
+                    let blockType = (try? container.decode(String.self, forKey: .type)) ?? ""
 
                     switch blockType {
                     case "text":
@@ -392,6 +407,9 @@ public struct CustomInAppPayload: Codable {
                         self = .buttonGroup(try ButtonGroupBlock(from: decoder))
                     case "button":
                         self = .button(try ButtonGroupBlock.ButtonBlock(from: decoder))
+                    case "":
+                        print("⚠️ [Paylisher] Block has no `type` - skipping block, message still shown")
+                        self = .unknown("")
                     default:
                         print("⚠️ [Paylisher] Unknown block type: \(blockType) - skipping")
                         self = .unknown(blockType)
