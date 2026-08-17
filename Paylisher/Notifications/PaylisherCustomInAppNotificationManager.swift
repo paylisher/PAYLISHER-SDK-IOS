@@ -614,11 +614,13 @@ public class PaylisherCustomInAppNotificationManager {
                 .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
             guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
                   let rootVC = keyWindow.rootViewController else {
-                // Uygulama önplanda değil ya da gösterilecek pencere yok. En sık
-                // düşme noktası burası — ve "gösterildi" kaydı burada YAZILMIYOR,
-                // yani mesaj bir sonraki gelişinde yeniden denenebilir.
-                print("FCM | InAppRouter | no foreground window → not shown | pushId=\(pushId)")
+                // Uygulama önplanda değil ya da gösterilecek pencere yok — sessiz
+                // push arka planda da teslim edildiği için bu çok sık oluyor.
+                // Mesajı DÜŞÜRMÜYORUZ: kuyruğa alıp uygulama bir sonraki kez öne
+                // geldiğinde gösteriyoruz. "Gösterildi" kaydı da yazılmıyor.
+                print("FCM | InAppRouter | no foreground window → queued | pushId=\(pushId)")
                 self.endPresentingInApp(payload)
+                PaylisherPendingInAppQueue.shared.enqueueCustom(payload)
                 return
             }
 

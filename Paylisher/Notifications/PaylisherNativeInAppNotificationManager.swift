@@ -111,21 +111,29 @@ public class PaylisherNativeInAppNotificationManager {
        }*/
 //        #if IOS
         DispatchQueue.main.async {
-//            if let windowScene = UIApplication.shared.connectedScenes
-//                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene,
-            if windowScene != nil,
-               let keyWindow = windowScene?.windows.first(where: { $0.isKeyWindow }),
-               let rootVC = keyWindow.rootViewController {
-                   // Kök VC zaten bir modal sunuyorsa present sessizce düşüyordu;
-                   // en üstteki VC'den sun.
-                   let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
-                   presenter.present(inAppVC, animated: true) {
-                       PaylisherNotificationEventTracker.capture(
-                           "inappMessageRead",
-                           pushId: pushId,
-                           properties: ["type": "Native"]
-                       )
-                   }
+            // Verilen sahne yoksa o an önplanda olanı dene: mesaj arka planda
+            // gelmiş olabilir ve çağıran taraf sahneyi nil geçmiş olabilir.
+            let scene = windowScene ?? (UIApplication.shared.connectedScenes
+                .first(where: { $0.activationState == .foregroundActive }) as? UIWindowScene)
+
+            guard let keyWindow = scene?.windows.first(where: { $0.isKeyWindow }),
+                  let rootVC = keyWindow.rootViewController else {
+                // Önplanda pencere yok. Eskiden mesaj burada SESSİZCE düşüyordu.
+                // Artık kuyruğa alınıyor ve uygulama öne geldiğinde gösteriliyor.
+                print("FCM | InApp | Native no foreground window → queued | pushId=\(pushId ?? "?")")
+                PaylisherPendingInAppQueue.shared.enqueueNative(userInfo: userInfo)
+                return
+            }
+
+            // Kök VC zaten bir modal sunuyorsa present sessizce düşüyordu;
+            // en üstteki VC'den sun.
+            let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
+            presenter.present(inAppVC, animated: true) {
+                PaylisherNotificationEventTracker.capture(
+                    "inappMessageRead",
+                    pushId: pushId,
+                    properties: ["type": "Native"]
+                )
             }
         }
 //        #endif

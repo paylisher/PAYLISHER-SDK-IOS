@@ -153,6 +153,19 @@ let maxRetryDelay = 30.0
             registerNotifications()
             captureScreenViews()
 
+            #if os(iOS) || os(tvOS)
+                // Kuyruğu ŞİMDİ ayağa kaldır: gözlemcisini kurar ve arka planda
+                // gelip çizilemeyen mesajları uygulama öne geldiğinde gösterir.
+                // Buraya dokunulmazsa, uygulama normal açılışla başlatıldığında
+                // kuyruk hiç oluşturulmaz ve diskteki mesaj sonsuza kadar bekler.
+                _ = PaylisherPendingInAppQueue.shared
+                // setup() geç çağrıldıysa didBecomeActive kaçırılmış olabilir;
+                // arayüz ayağa kalktıktan sonra bir kez de elle boşalt.
+                DispatchQueue.main.asyncAfter(deadline: .now() + 3.0) {
+                    PaylisherPendingInAppQueue.shared.drain()
+                }
+            #endif
+
             PaylisherSessionManager.shared.startSession()
 
             #if os(iOS)
