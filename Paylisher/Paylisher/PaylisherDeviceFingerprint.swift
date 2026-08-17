@@ -86,6 +86,26 @@ internal class PaylisherDeviceFingerprint {
     }
 
     /**
+     * Alternative hashes describing THIS device, sent as X-Fingerprint-Candidates
+     * next to the primary V1 hash. Today: the WITH-WIDTH form
+     * `model|screenWidth|timezone|languageCode`, which the campaign landing page
+     * also emits as click-side candidates. The primary hash (model|tz|lang) is
+     * unchanged, so older backends behave exactly as before; a backend that
+     * understands candidates can match on the far narrower with-width key.
+     */
+    func generateFingerprintCandidates() -> [String] {
+        let bounds = UIScreen.main.bounds
+        let scale = UIScreen.main.scale
+        let widthPx = Int(bounds.width * scale)
+        let heightPx = Int(bounds.height * scale)
+        let screenWidth = String(min(widthPx, heightPx))
+        let model = UIDevice.current.model
+        let tz = TimeZone.current.identifier
+        let lang = Locale.current.languageCode ?? "en"
+        return [sha256("\(model)|\(screenWidth)|\(tz)|\(lang)")]
+    }
+
+    /**
      * Generates a deferred deep link fingerprint (V1) that matches backend click-time fingerprint.
      *
      * IMPORTANT: This fingerprint MUST match exactly what backend generates at click-time.

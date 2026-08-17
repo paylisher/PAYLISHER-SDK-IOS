@@ -70,7 +70,8 @@ internal class PaylisherDeferredDeepLinkAPI {
         fingerprint: String,
         idfa: String? = nil,
         reengagement: Bool = false,
-        signals: PaylisherDeviceSignals? = nil
+        signals: PaylisherDeviceSignals? = nil,
+        fingerprintCandidates: [String] = []
     ) async throws -> PaylisherDeferredDeepLinkResponse {
         // An advertising identifier may only travel to the dedicated tracking host declared in
         // the PaylisherATT privacy manifest. With no such host configured we drop the identifier
@@ -109,6 +110,11 @@ internal class PaylisherDeferredDeepLinkAPI {
         // the match URL byte-identical for older backends and out of access logs.
         if let signals {
             request.addValue(signals.toJson(), forHTTPHeaderField: "X-Device-Signals")
+        }
+        // Alternative hashes for the same device (with-width form). The primary hash in the
+        // URL is unchanged; the backend matches on primary OR any candidate.
+        if !fingerprintCandidates.isEmpty {
+            request.addValue(fingerprintCandidates.joined(separator: ","), forHTTPHeaderField: "X-Fingerprint-Candidates")
         }
         request.timeoutInterval = timeout
 

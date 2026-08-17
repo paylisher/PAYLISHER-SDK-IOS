@@ -301,6 +301,9 @@ public class PaylisherDeferredDeepLinkManager {
                 // Raw traits behind the hash, for field-level scoring on the backend.
                 // Same sources as generateDeferredFingerprintV1(); no identifiers.
                 let signals = deviceFingerprint.collectSignals()
+                // With-width alternative hash(es): lets the backend match on a narrower key
+                // when the landing page emitted the same form as a click-side candidate.
+                let candidates = deviceFingerprint.generateFingerprintCandidates()
 
                 // Check backend for match
                 try await checkBackend(
@@ -308,6 +311,7 @@ public class PaylisherDeferredDeepLinkManager {
                     idfa: idfa,
                     reengagement: reengagement,
                     signals: signals,
+                    fingerprintCandidates: candidates,
                     onSuccess: onSuccess,
                     onNoMatch: onNoMatch,
                     onError: onError
@@ -337,6 +341,7 @@ public class PaylisherDeferredDeepLinkManager {
         idfa: String? = nil,
         reengagement: Bool = false,
         signals: PaylisherDeviceSignals? = nil,
+        fingerprintCandidates: [String] = [],
         onSuccess: @escaping (PaylisherDeepLink) -> Void,
         onNoMatch: @escaping () -> Void,
         onError: @escaping (Error) -> Void
@@ -350,7 +355,8 @@ public class PaylisherDeferredDeepLinkManager {
                 fingerprint: fingerprint,
                 idfa: idfa,
                 reengagement: reengagement,
-                signals: signals
+                signals: signals,
+                fingerprintCandidates: fingerprintCandidates
             )
 
             // The backend answered — match or no-match, the INSTALL question is settled and
