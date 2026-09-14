@@ -1104,8 +1104,6 @@
 				75BF43D3F988365A1B225867 /* PaylisherEngageInAppConfig.swift */,
 				49700524ED382CC00CB3B952 /* PaylisherEngageInAppService.swift */,
 				D1A9F00200BEEF0000CAFE02 /* PaylisherInAppDiagnostics.swift */,
-				D2B1F00200BEEF0000CAFE12 /* PaylisherRemoteNotificationProxy.swift */,
-				D3C2F00200BEEF0000CAFE22 /* PaylisherPendingInAppQueue.swift */,
 				0D2C7E9B58CE0FFB65AE5567 /* PaylisherInstallMarker.swift */,
 				07806C59D87364C2042B578C /* PaylisherCertificatePinning.swift */,
 			);
@@ -1142,6 +1140,8 @@
 				FAB9936D2D75C00C00A232A2 /* NotificationManager.swift */,
 				C83A3918D92E90C10C816E5A /* CarouselInAppViewController.swift */,
 				19BA378314541ADD416FDB06 /* PaylisherTopViewControllerResolver.swift */,
+				D2B1F00200BEEF0000CAFE12 /* PaylisherRemoteNotificationProxy.swift */,
+				D3C2F00200BEEF0000CAFE22 /* PaylisherPendingInAppQueue.swift */,
 			);
 			path = Notifications;
 			sourceTree = "<group>";
