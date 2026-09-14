@@ -100,8 +100,8 @@ let package = Package(
         ),
         .binaryTarget(
             name: "PaylisherFramework",
-            url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.9.0/PaylisherFramework.xcframework.zip",
-            checksum: "286d8d899e11d2528832c235a446ee6012f733df303cc7019161a50275758feb"
+            url: "https://github.com/paylisher/PAYLISHER-SDK-IOS/releases/download/1.9.1/PaylisherFramework.xcframework.zip",
+            checksum: "1dc7b8e314149281e08a544b7b770fe480608f1bc3243f051341ae0b4213b880"
         ),
         // Self-contained NSE helper — Foundation + UserNotifications only.
         .target(
