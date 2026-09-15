@@ -217,12 +217,7 @@ public class CoreDataManager {
 
         var nextID: Int64 = 1
         context.performAndWait {
-            let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
-            fetchRequest.fetchLimit = 1
-            if let lastEntity = try? context.fetch(fetchRequest).first {
-                nextID = lastEntity.id + 1
-            }
+            nextID = Self.nextID(in: context)
         }
         return nextID
     }
@@ -231,10 +226,11 @@ public class CoreDataManager {
     public func insertNotification(type: String, receivedDate: Date, expirationDate: Date, payload: String, status: String, gcmMessageID: String) {
         guard let context = contextIfConfigured else { return }
 
-        let nextID = generateNewID()
+        // id is computed INSIDE the same block that inserts, so two concurrent inserts can
+        // never read the same "last id".
         context.performAndWait {
             let notification = NotificationEntity(context: context)
-            notification.id = nextID
+            notification.id = Self.nextID(in: context)
             notification.type = type
             notification.receivedDate = receivedDate
             notification.expirationDate = expirationDate
@@ -246,6 +242,17 @@ public class CoreDataManager {
         saveContext()
     }
 
+
+   /// Highest stored id + 1. Must be called on `context`'s queue (inside performAndWait).
+   private static func nextID(in context: NSManagedObjectContext) -> Int64 {
+       let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
+       fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
+       fetchRequest.fetchLimit = 1
+       if let lastEntity = try? context.fetch(fetchRequest).first {
+           return lastEntity.id + 1
+       }
+       return 1
+   }
 
    public func fetchAllNotifications() -> [NotificationEntity] {
         guard let context = contextIfConfigured else { return [] }
