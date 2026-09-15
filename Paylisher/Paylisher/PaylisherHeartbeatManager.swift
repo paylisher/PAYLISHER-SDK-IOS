@@ -62,7 +62,7 @@ import Foundation
     
     private let tokenLock = NSLock()
     private let timestampLock = NSLock()
-    private let completionLock = NSLock()
+    private let appStateLock = NSLock()
     
     /// In-memory FCM token cache. Also persisted to PaylisherStorage.
     private var _fcmToken: String?
@@ -70,8 +70,24 @@ import Foundation
     /// Timestamp of last successful heartbeat to prevent flooding.
     private var _lastHeartbeatTimestamp: TimeInterval = 0
     
-    /// Guard against concurrent completion handler calls.
-    private var _completionHandlerCalled = false
+    /// Last app state observed ON the main thread. Read from background threads instead of
+    /// hopping to main synchronously (see resolveAppState).
+    private var _cachedAppState = "unknown"
+    private var appStateObserversInstalled = false
+
+    /// One-shot gate per processHeartbeat call. A single shared flag was reset by every new
+    /// heartbeat, so two overlapping pushes could swallow each other's completion handler.
+    private final class CompletionGate {
+        private let lock = NSLock()
+        private var called = false
+        func claim() -> Bool {
+            lock.lock()
+            defer { lock.unlock() }
+            if called { return false }
+            called = true
+            return true
+        }
+    }
     
     // MARK: - Dependencies (set during SDK setup)
     
@@ -94,6 +110,8 @@ import Foundation
         self.api = api
         self.storage = storage
         
+        installAppStateObservers()
+
         // Restore persisted FCM token into memory
         if let persistedToken = storage.getString(forKey: .deviceToken) {
             tokenLock.withLock {
@@ -111,6 +129,41 @@ import Foundation
         }
     }
     
+    // MARK: - App state tracking (main thread only)
+
+    private func installAppStateObservers() {
+        #if os(iOS) || os(tvOS)
+        appStateLock.lock()
+        let alreadyInstalled = appStateObserversInstalled
+        appStateObserversInstalled = true
+        appStateLock.unlock()
+        if alreadyInstalled { return }
+
+        let center = NotificationCenter.default
+        let pairs: [(Notification.Name, String)] = [
+            (UIApplication.didBecomeActiveNotification, "foreground"),
+            (UIApplication.willResignActiveNotification, "inactive"),
+            (UIApplication.didEnterBackgroundNotification, "background"),
+        ]
+        for (name, state) in pairs {
+            center.addObserver(forName: name, object: nil, queue: .main) { [weak self] _ in
+                guard let self = self else { return }
+                self.appStateLock.withLock { self._cachedAppState = state }
+            }
+        }
+        if Thread.isMainThread {
+            let state = appStateString(UIApplication.shared.applicationState)
+            appStateLock.withLock { _cachedAppState = state }
+        } else {
+            DispatchQueue.main.async { [weak self] in
+                guard let self = self else { return }
+                let state = self.appStateString(UIApplication.shared.applicationState)
+                self.appStateLock.withLock { self._cachedAppState = state }
+            }
+        }
+        #endif
+    }
+
     // MARK: - Public API: FCM Token
     
     /// Register FCM token for heartbeat tracking.
@@ -207,16 +260,13 @@ import Foundation
             return
         }
         
-        // Reset completion handler guard
-        completionLock.withLock {
-            _completionHandlerCalled = false
-        }
+        let gate = CompletionGate()
         
         // CRITICAL: Timeout guard
         // Apple terminates background execution at ~30s.
         // We MUST call completionHandler before that.
         let timeoutWorkItem = DispatchWorkItem { [weak self] in
-            self?.safeCallCompletion(completionHandler, result: .failed, reason: "Timeout reached (\(self?.maxBackgroundExecutionTime ?? 25)s)")
+            self?.safeCallCompletion(completionHandler, gate: gate, result: .failed, reason: "Timeout reached (\(self?.maxBackgroundExecutionTime ?? 25)s)")
         }
         DispatchQueue.global(qos: .utility).asyncAfter(
             deadline: .now() + maxBackgroundExecutionTime,
@@ -244,7 +294,7 @@ import Foundation
                         contents: String(self._lastHeartbeatTimestamp)
                     )
                 }
-                self.safeCallCompletion(completionHandler, result: .newData, reason: "Heartbeat ack sent successfully")
+                self.safeCallCompletion(completionHandler, gate: gate, result: .newData, reason: "Heartbeat ack sent successfully")
             } else {
                 // Retry once within budget
                 hedgeLog("[Heartbeat] First attempt failed. Retrying in \(self.retryDelay)s...")
@@ -262,9 +312,9 @@ import Foundation
                                     contents: String(self._lastHeartbeatTimestamp)
                                 )
                             }
-                            self.safeCallCompletion(completionHandler, result: .newData, reason: "Heartbeat ack sent (retry)")
+                            self.safeCallCompletion(completionHandler, gate: gate, result: .newData, reason: "Heartbeat ack sent (retry)")
                         } else {
-                            self.safeCallCompletion(completionHandler, result: .failed, reason: "Heartbeat ack failed after retry")
+                            self.safeCallCompletion(completionHandler, gate: gate, result: .failed, reason: "Heartbeat ack failed after retry")
                         }
                     }
                 }
@@ -344,18 +394,11 @@ import Foundation
     /// and will reject the app if it's never called.
     private func safeCallCompletion(
         _ handler: @escaping (UIBackgroundFetchResult) -> Void,
+        gate: CompletionGate,
         result: UIBackgroundFetchResult,
         reason: String
     ) {
-        var shouldCall = false
-        completionLock.withLock {
-            if !_completionHandlerCalled {
-                _completionHandlerCalled = true
-                shouldCall = true
-            }
-        }
-        
-        if shouldCall {
+        if gate.claim() {
             hedgeLog("[Heartbeat] Completion: \(reason) (result: \(result.rawValue))")
             handler(result)
         } else {
@@ -368,16 +411,16 @@ import Foundation
     /// Resolve the current application state for heartbeat payload context.
     private func resolveAppState() -> String {
         #if os(iOS) || os(tvOS)
-            // Must be called on main thread for UIApplication.shared
-            if Thread.isMainThread {
-                return appStateString(UIApplication.shared.applicationState)
-            } else {
-                var state: String = "unknown"
-                DispatchQueue.main.sync {
-                    state = appStateString(UIApplication.shared.applicationState)
-                }
-                return state
-            }
+        // UIApplication.shared must be read on the main thread. A synchronous hop to main
+        // (DispatchQueue.main.sync) deadlocked when the host called the SDK from a serial
+        // queue the main thread was itself waiting on. Off-main we use the value the main
+        // thread last observed via the lifecycle notifications instead.
+        if Thread.isMainThread {
+            let state = appStateString(UIApplication.shared.applicationState)
+            appStateLock.withLock { _cachedAppState = state }
+            return state
+        }
+        return appStateLock.withLock { _cachedAppState }
         #else
             return "unsupported_platform"
         #endif
