@@ -220,11 +220,9 @@ class PaylisherApi {
         groups: [String: String],
         completion: @escaping ([String: Any]?, _ error: Error?) -> Void
     ) {
-        var urlComps = URLComponents()
-        urlComps.path = "/decide"
-        urlComps.queryItems = [URLQueryItem(name: "v", value: "3")]
-
-        guard let url = urlComps.url(relativeTo: config.host) else {
+        // Relative, like batch/snapshot/heartbeat: an absolute "/decide" path dropped any path
+        // prefix carried by an on-prem host (https://host/paylisher/) and 404'd every launch.
+        guard let url = URL(string: "decide?v=3", relativeTo: config.host) else {
             hedgeLog("Malformed decide URL error.")
             return completion(nil, nil)
         }
