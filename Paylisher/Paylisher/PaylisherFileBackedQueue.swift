@@ -9,6 +9,27 @@ import Foundation
 
 class PaylisherFileBackedQueue {
     let queue: URL
+
+    /// Process-wide sequence appended to every file name so two events queued within the
+    /// same timestamp resolution can no longer overwrite each other's file.
+    private static let sequenceLock = NSLock()
+    private static var sequence: UInt64 = 0
+
+    private static func nextSequence() -> UInt64 {
+        sequenceLock.lock()
+        defer { sequenceLock.unlock() }
+        sequence &+= 1
+        return sequence
+    }
+
+    /// File names are "<timestamp>" (legacy) or "<timestamp>-<sequence>"; both sort by
+    /// timestamp first, then sequence.
+    private static func sortKey(for name: String) -> (Double, UInt64)? {
+        let parts = name.split(separator: "-", maxSplits: 1)
+        guard let first = parts.first, let timestamp = Double(first) else { return nil }
+        let sequence = parts.count > 1 ? (UInt64(parts[1]) ?? 0) : 0
+        return (timestamp, sequence)
+    }
     @ReadWriteLock
     private var items = [String]()
 
@@ -39,14 +60,14 @@ class PaylisherFileBackedQueue {
             // conversion trap. Ignore what we cannot order instead of crashing.
             let contents = try FileManager.default.contentsOfDirectory(atPath: queue.path)
             items = contents
-                .compactMap { name -> (String, Double)? in
-                    guard let timestamp = Double(name) else {
+                .compactMap { name -> (String, (Double, UInt64))? in
+                    guard let key = Self.sortKey(for: name) else {
                         hedgeLog("Ignoring unrecognised file in queue: \(name)")
                         return nil
                     }
-                    return (name, timestamp)
+                    return (name, key)
                 }
-                .sorted { $0.1 < $1.1 }
+                .sorted { $0.1.0 == $1.1.0 ? $0.1.1 < $1.1.1 : $0.1.0 < $1.1.0 }
                 .map { $0.0 }
         } catch {
             hedgeLog("Failed to load files for queue \(error)")
@@ -79,7 +100,7 @@ class PaylisherFileBackedQueue {
 
     func add(_ contents: Data) {
         do {
-            let filename = "\(Date().timeIntervalSince1970)"
+            let filename = "\(Date().timeIntervalSince1970)-\(Self.nextSequence())"
             try contents.write(to: queue.appendingPathComponent(filename))
             // `items.append(_:)` through the wrapper is a get followed by a set, i.e.
             // two separate lock acquisitions: a concurrent append could read the same
