@@ -60,6 +60,12 @@ import UIKit
     /// Backend endpoint path for heartbeat acknowledgment.
     /// Default: "/heartbeat"
     @objc public var heartbeatEndpoint: String = "/heartbeat"
+
+    /// Install the SDK's global `NSUncaughtExceptionHandler` during `setup()`.
+    /// Default: false. The host's crash reporter (Crashlytics, Sentry, ...) keeps its own
+    /// handler; when true, the SDK chains to the previously installed handler instead of
+    /// replacing it, so the crash reporter still receives every NSException.
+    @objc public var installUncaughtExceptionHandler: Bool = false
     
     /// Deferred Deep Link Configuration
     /// Enable this to track install attribution via deferred deep links
