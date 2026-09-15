@@ -16,6 +16,11 @@ import Paylisher
 public class NotificationManager {
      
     public static let shared = NotificationManager()
+
+    /// True when this code runs inside an app extension (a Notification Service Extension).
+    /// Local notifications must not be scheduled there (the system delivers the remote push
+    /// itself, so scheduling one more showed it twice) and `UIApplication.shared` is unavailable.
+    static let isRunningInAppExtension: Bool = Bundle.main.bundlePath.hasSuffix(".appex")
      
     
     private func pushNotification(_ userInfo: [AnyHashable : Any], _ content: UNMutableNotificationContent, _ request: UNNotificationRequest, _ completion: @escaping (UNNotificationContent) -> Void) {
@@ -450,12 +455,18 @@ public class NotificationManager {
     }
 
     private func scheduleNotification(with content: UNMutableNotificationContent, at date: Date) {
+        if NotificationManager.isRunningInAppExtension {
+            // The NSE hands the (already mutated) content back through its contentHandler;
+            // the system shows that one. Scheduling a local copy here duplicated the push.
+            print("Bildirim planlanmadı: app extension içinde, sistem teslimatı kullanılacak.")
+            return
+        }
         let timeInterval = date.timeIntervalSinceNow
         if timeInterval <= 0 {
             
             let userInfo = content.userInfo
             
-            let request = UNNotificationRequest(identifier: userInfo["gcm.message_id"] as? String ?? "",
+            let request = UNNotificationRequest(identifier: (userInfo["gcm.message_id"] as? String).flatMap { $0.isEmpty ? nil : $0 } ?? UUID().uuidString,
                                                   content: content,
                                                   trigger: nil)
             UNUserNotificationCenter.current().add(request) { error in
@@ -528,19 +539,6 @@ public class NotificationManager {
             )
             print("Bildirim Core Data'ya kaydedildi!")
             
-            let notifications = CoreDataManager.shared.fetchAllNotifications()
-            print("Core Data Notifications (\(notifications.count) records):")
-            
-            for notification in notifications {
-                print("""
-            ID: \(notification.id)
-            Type: \(notification.type ?? type)
-            Received Date: \(notification.receivedDate ?? Date())
-            Status: \(notification.status ?? "UNREAD")
-            Payload: \(notification.payload ?? "Empty")
-            MessageID: \(notification.gcmMessageID)
-            """)
-            }
             
         }
         
@@ -556,13 +554,19 @@ public class NotificationManager {
             if let localURL = localURL {
                 do {
                     let tempDirectory = FileManager.default.temporaryDirectory
+                    // Keep the real image type: a PNG/GIF/WebP saved as ".jpg" with a JPEG type hint made
+                    // UNNotificationAttachment throw and the push silently lost its image.
+                    let fileExtension = NotificationManager.attachmentExtension(for: imageUrl, response: response)
                     let tempFileURL = tempDirectory
                         .appendingPathComponent(UUID().uuidString)
-                        .appendingPathExtension("jpg")
+                        .appendingPathExtension(fileExtension)
                     
                     try FileManager.default.moveItem(at: localURL, to: tempFileURL)
                     
-                    let attachmentOptions = [UNNotificationAttachmentOptionsTypeHintKey: kUTTypeJPEG] as [AnyHashable: Any]
+                    var attachmentOptions: [AnyHashable: Any] = [:]
+                    if let typeHint = NotificationManager.attachmentTypeHint(for: fileExtension) {
+                        attachmentOptions[UNNotificationAttachmentOptionsTypeHintKey] = typeHint
+                    }
                     let attachment = try UNNotificationAttachment(identifier: UUID().uuidString, url: tempFileURL, options: attachmentOptions)
                     
                     content.attachments = [attachment]
@@ -576,6 +580,33 @@ public class NotificationManager {
         }.resume()
     }
     
+  /// File extension for a downloaded push image: the response MIME type wins, then the URL's
+  /// own extension, then "jpg" as the historical default.
+  static func attachmentExtension(for url: URL, response: URLResponse?) -> String {
+      if let mime = response?.mimeType?.lowercased() {
+          switch mime {
+          case "image/png": return "png"
+          case "image/gif": return "gif"
+          case "image/jpeg", "image/jpg": return "jpg"
+          case "image/webp": return "webp"
+          case "image/heic": return "heic"
+          default: break
+          }
+      }
+      let urlExtension = url.pathExtension.lowercased()
+      return urlExtension.isEmpty ? "jpg" : urlExtension
+  }
+
+  /// UTI hint for the attachment; nil lets the system infer it from the extension.
+  static func attachmentTypeHint(for fileExtension: String) -> CFString? {
+      switch fileExtension {
+      case "png": return kUTTypePNG
+      case "gif": return kUTTypeGIF
+      case "jpg", "jpeg": return kUTTypeJPEG
+      default: return nil
+      }
+  }
+
   public func parseJSONString(_ jsonString: String?, language: String?) -> String {
         guard let jsonString = jsonString,
               let jsonData = jsonString.data(using: .utf8) else {
@@ -805,6 +836,11 @@ enum PaylisherNotificationEventTracker {
     /// long enough to send when the app was already active.)
     static func flushAfterNotificationEvent() {
         #if os(iOS) || os(tvOS)
+        if NotificationManager.isRunningInAppExtension {
+            // UIApplication.shared is unavailable in an extension; plain flush instead.
+            PaylisherSDK.shared.flush()
+            return
+        }
         DispatchQueue.main.async {
             let application = UIApplication.shared
             var taskID: UIBackgroundTaskIdentifier = .invalid

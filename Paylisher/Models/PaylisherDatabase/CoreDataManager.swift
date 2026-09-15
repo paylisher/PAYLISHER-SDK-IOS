@@ -13,6 +13,11 @@ public class CoreDataManager {
    public static let shared = CoreDataManager()
 
     var persistentContainer: NSPersistentContainer?
+    /// Private-queue context used for EVERY read and write. The main-queue `viewContext`
+    /// used to be touched from whatever thread the caller was on (background FCM handling,
+    /// the NSE), which violates Core Data's concurrency contract. All access now goes through
+    /// `performAndWait` on this context: safe from any thread and never waits on the main thread.
+    private var backgroundContext: NSManagedObjectContext?
     private var appGroupIdentifier: String?
     
     public func configure(appGroupIdentifier: String) {
@@ -97,6 +102,13 @@ public class CoreDataManager {
         }
 
         persistentContainer = loaded ? container : nil
+        if loaded {
+            let context = container.newBackgroundContext()
+            context.automaticallyMergesChangesFromParent = true
+            backgroundContext = context
+        } else {
+            backgroundContext = nil
+        }
     }
     
     private static func createManagedObjectModel() -> NSManagedObjectModel {
@@ -180,15 +192,22 @@ public class CoreDataManager {
     /// dokunuşlardan biri native in-app'in tam gösterim öncesinde olduğu için,
     /// yapılandırmayı atlayan bir entegrasyonda in-app hiç görünemiyordu.
     private var contextIfConfigured: NSManagedObjectContext? {
-        return persistentContainer?.viewContext
+        return backgroundContext
     }
 
+   /// Every operation below runs inside `performAndWait` on the private-queue context, so it
+   /// is safe to call from any thread. Objects returned by `fetchAllNotifications()` belong to
+   /// that context; read their properties right away (or copy what you need) rather than
+   /// holding on to them across threads.
    public func saveContext() {
-       guard let context = contextIfConfigured, context.hasChanges else { return }
-       do {
-           try context.save()
-       } catch {
-           print("Veri kaydedilirken hata oluştu: \(error)")
+       guard let context = contextIfConfigured else { return }
+       context.performAndWait {
+           guard context.hasChanges else { return }
+           do {
+               try context.save()
+           } catch {
+               print("Veri kaydedilirken hata oluştu: \(error)")
+           }
        }
     }
 
@@ -196,70 +215,67 @@ public class CoreDataManager {
    public func generateNewID() -> Int64 {
         guard let context = contextIfConfigured else { return 1 }
 
-        //let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest()
-        let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-
-        fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
-        fetchRequest.fetchLimit = 1
-
-        do {
-            let lastEntity = try context.fetch(fetchRequest).first
-            return (lastEntity?.id ?? 0) + 1
-        } catch {
-            return 1
+        var nextID: Int64 = 1
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
+            fetchRequest.sortDescriptors = [NSSortDescriptor(key: "id", ascending: false)]
+            fetchRequest.fetchLimit = 1
+            if let lastEntity = try? context.fetch(fetchRequest).first {
+                nextID = lastEntity.id + 1
+            }
         }
+        return nextID
     }
 
 
     public func insertNotification(type: String, receivedDate: Date, expirationDate: Date, payload: String, status: String, gcmMessageID: String) {
         guard let context = contextIfConfigured else { return }
 
-        let notification = NotificationEntity(context: context)
-        notification.id = generateNewID()
-        notification.type = type
-        notification.receivedDate = receivedDate
-        notification.expirationDate = expirationDate
-        notification.payload = payload
-        notification.status = status
-        notification.gcmMessageID = gcmMessageID
+        let nextID = generateNewID()
+        context.performAndWait {
+            let notification = NotificationEntity(context: context)
+            notification.id = nextID
+            notification.type = type
+            notification.receivedDate = receivedDate
+            notification.expirationDate = expirationDate
+            notification.payload = payload
+            notification.status = status
+            notification.gcmMessageID = gcmMessageID
+        }
 
         saveContext()
     }
 
-    
+
    public func fetchAllNotifications() -> [NotificationEntity] {
         guard let context = contextIfConfigured else { return [] }
 
-        let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-
-       // Filter for notifications with status "UNREAD"
-      // fetchRequest.predicate = NSPredicate(format: "status == %@", "UNREAD")
-
-       do {
-           return try context.fetch(fetchRequest)
-       } catch {
-           return []
-       }
+        var results: [NotificationEntity] = []
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
+            results = (try? context.fetch(fetchRequest)) ?? []
+        }
+        return results
     }
 
 
    public func updateNotificationStatus(byMessageID gcmMessageID: String, newStatus: String) {
         guard let context = contextIfConfigured else { return }
 
-        let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-       fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
+            fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
 
-
-
-        do {
-            let notifications = try context.fetch(fetchRequest)
-            if let notification = notifications.first {
-                notification.status = newStatus
-                saveContext()
+            do {
+                let notifications = try context.fetch(fetchRequest)
+                if let notification = notifications.first {
+                    notification.status = newStatus
+                }
+            } catch {
+                print("Güncelleme hatası: \(error)")
             }
-        } catch {
-            print("Güncelleme hatası: \(error)")
         }
+        saveContext()
     }
 
    public func notificationExists(withMessageID gcmMessageID: String) -> Bool {
@@ -269,36 +285,34 @@ public class CoreDataManager {
         // gösterimi ASLA engellemez.
         guard let context = contextIfConfigured else { return false }
 
-        let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
-        fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
+        var exists = false
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<NotificationEntity> = NotificationEntity.fetchRequest() as! NSFetchRequest<NotificationEntity>
+            fetchRequest.predicate = NSPredicate(format: "gcmMessageID == %@", gcmMessageID)
 
-
-        do {
-            let count = try context.count(for: fetchRequest)
-            return count > 0
-        } catch {
-            print("Hata: Core Data'da kayıt kontrol edilirken bir hata oluştu: \(error)")
-            return false
+            do {
+                exists = try context.count(for: fetchRequest) > 0
+            } catch {
+                print("Hata: Core Data'da kayıt kontrol edilirken bir hata oluştu: \(error)")
+            }
         }
+        return exists
     }
-
-
 
 
    public func deleteAllNotifications() {
         guard let context = contextIfConfigured else { return }
 
-        let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NotificationEntity.fetchRequest()
+        context.performAndWait {
+            let fetchRequest: NSFetchRequest<NSFetchRequestResult> = NotificationEntity.fetchRequest()
+            let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
 
-
-
-        let deleteRequest = NSBatchDeleteRequest(fetchRequest: fetchRequest)
-
-        do {
-            try context.execute(deleteRequest)
-            saveContext()
-        } catch {
-            print("Silme hatası: \(error)")
+            do {
+                try context.execute(deleteRequest)
+            } catch {
+                print("Silme hatası: \(error)")
+            }
         }
+        saveContext()
     }
-} 
+}

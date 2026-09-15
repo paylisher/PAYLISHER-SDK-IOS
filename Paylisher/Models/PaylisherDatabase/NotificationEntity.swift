@@ -23,7 +23,9 @@ public class NotificationEntity: NSManagedObject {
     
     @NSManaged public var status: String?
     
-    @NSManaged public var gcmMessageID: String
+    // Optional in the model (see CoreDataManager.createManagedObjectModel); rows written by an
+    // older schema carry NULL here, and bridging NULL into a non-optional String crashed.
+    @NSManaged public var gcmMessageID: String?
     
   
 }

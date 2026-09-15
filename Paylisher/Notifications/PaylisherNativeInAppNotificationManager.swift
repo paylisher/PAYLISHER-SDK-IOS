@@ -17,7 +17,7 @@ public class PaylisherNativeInAppNotificationManager {
     
     public static let shared = PaylisherNativeInAppNotificationManager()
 
-    public func nativeInAppNotification(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?) {
+    public func nativeInAppNotification(userInfo: [AnyHashable: Any], windowScene: UIWindowScene?, queueAttempts: Int = 0) {
 
         // Native path is opt-in: only fires when the FCM payload carries a
         // non-empty `native` field. Log the skip cases explicitly so it's
@@ -121,7 +121,7 @@ public class PaylisherNativeInAppNotificationManager {
                 // Önplanda pencere yok. Eskiden mesaj burada SESSİZCE düşüyordu.
                 // Artık kuyruğa alınıyor ve uygulama öne geldiğinde gösteriliyor.
                 print("FCM | InApp | Native no foreground window → queued | pushId=\(pushId ?? "?")")
-                PaylisherPendingInAppQueue.shared.enqueueNative(userInfo: userInfo)
+                PaylisherPendingInAppQueue.shared.enqueueNative(userInfo: userInfo, attempts: queueAttempts)
                 return
             }
 
@@ -139,20 +139,6 @@ public class PaylisherNativeInAppNotificationManager {
 //        #endif
       
         
-        let notifications = CoreDataManager.shared.fetchAllNotifications()
-        print("Core Data'daki Bildirimler (\(notifications.count) kayıt var):")
-
-        for notification in notifications {
-            print("""
-            ID: \(notification.id)
-            Tür: \(notification.type ?? type)
-            Alınma Tarihi: \(notification.receivedDate ?? Date())
-            Durum: \(notification.status ?? "UNREAD")
-            İçerik: \(notification.payload ?? "Boş")
-            MessageID: \(notification.gcmMessageID)
-            
-            """)
-        }
     }
     
     
