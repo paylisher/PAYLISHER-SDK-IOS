@@ -582,7 +582,8 @@ public class PaylisherCustomInAppNotificationManager {
     public func showCustomInApp(
         _ payload: CustomInAppPayload,
         windowScene: UIWindowScene?,
-        messageId: String? = nil
+        messageId: String? = nil,
+        queueAttempts: Int = 0
     ) {
         guard beginPresentingInApp(payload, messageId: messageId) else {
             print("FCM | InAppRouter | duplicate/in-flight → skip | pushId=\(normalizedPushId(payload))")
@@ -696,7 +697,7 @@ public class PaylisherCustomInAppNotificationManager {
                 // geldiğinde gösteriyoruz. "Gösterildi" kaydı da yazılmıyor.
                 print("FCM | InAppRouter | no foreground window → queued | pushId=\(pushId)")
                 self.endPresentingInApp(payload, messageId: messageId)
-                PaylisherPendingInAppQueue.shared.enqueueCustom(payload, messageId: messageId)
+                PaylisherPendingInAppQueue.shared.enqueueCustom(payload, messageId: messageId, attempts: queueAttempts)
                 return
             }
 
@@ -704,6 +705,25 @@ public class PaylisherCustomInAppNotificationManager {
             // fullScreenCover / başka bir modal açıkken) SESSİZCE hiçbir şey yapmıyordu:
             // modal görünmüyor, inappMessageRead de atılmıyordu. En üstteki VC'den present et.
             let presenter = PaylisherTopViewControllerResolver.topViewController(from: rootVC) ?? rootVC
+
+            // UIKit silently refuses `present` while the presenter is already presenting (another
+            // in-app, a host alert) and never calls the completion, which used to leave the
+            // in-flight key locked for the rest of the process. Treat it like "no window": queue.
+            if let busy = presenter.presentedViewController, !busy.isBeingDismissed {
+                print("FCM | InAppRouter | presenter busy → queued | pushId=\(pushId)")
+                self.endPresentingInApp(payload, messageId: messageId)
+                PaylisherPendingInAppQueue.shared.enqueueCustom(payload, messageId: messageId, attempts: queueAttempts)
+                return
+            }
+
+            // Backstop: if the completion still has not fired after a few seconds the presentation
+            // did not happen; release the key so the same campaign can be tried again.
+            DispatchQueue.main.asyncAfter(deadline: .now() + 5) { [weak vcToPresent] in
+                guard let vc = vcToPresent, vc.presentingViewController == nil, vc.viewIfLoaded?.window == nil else { return }
+                print("FCM | InAppRouter | present never completed → releasing in-flight lock | pushId=\(pushId)")
+                self.endPresentingInApp(payload, messageId: messageId)
+            }
+
             presenter.present(vcToPresent, animated: false) {
                 // BURASI mesajın gerçekten ekrana geldiği tek nokta: kalıcı
                 // "gösterildi" kaydı ancak burada yazılır.

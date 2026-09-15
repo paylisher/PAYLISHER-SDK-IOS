@@ -61,7 +61,7 @@ final class PaylisherPendingInAppQueue {
 
     // MARK: - Kuyruğa alma
 
-    func enqueueCustom(_ payload: CustomInAppPayload, messageId: String?) {
+    func enqueueCustom(_ payload: CustomInAppPayload, messageId: String?, attempts: Int = 0) {
         guard let data = try? JSONEncoder().encode(payload),
               let json = String(data: data, encoding: .utf8)
         else {
@@ -73,10 +73,10 @@ final class PaylisherPendingInAppQueue {
             return TimeInterval(ms) / 1000.0
         }()
 
-        append(Entry(kind: "custom", payloadJSON: json, expiresAt: expiresAt, messageId: messageId, attempts: 0))
+        append(Entry(kind: "custom", payloadJSON: json, expiresAt: expiresAt, messageId: messageId, attempts: attempts))
     }
 
-    func enqueueNative(userInfo: [AnyHashable: Any]) {
+    func enqueueNative(userInfo: [AnyHashable: Any], attempts: Int = 0) {
         // userInfo push gövdesinden geliyor, yani JSON kökenli; yine de
         // serileştirilebilirliğini doğrulamadan diske yazmıyoruz.
         var plain: [String: Any] = [:]
@@ -95,7 +95,7 @@ final class PaylisherPendingInAppQueue {
             payloadJSON: json,
             expiresAt: 0,
             messageId: PaylisherCustomInAppNotificationManager.messageId(from: userInfo),
-            attempts: 0
+            attempts: attempts
         ))
     }
 
@@ -134,10 +134,13 @@ final class PaylisherPendingInAppQueue {
             guard let payload = try? JSONDecoder().decode(CustomInAppPayload.self, from: data) else {
                 return
             }
+            // `attempts` travels with the entry: a re-enqueue must not restart the counter,
+            // otherwise maxAttempts could never trigger.
             PaylisherCustomInAppNotificationManager.shared.showCustomInApp(
                 payload,
                 windowScene: scene,
-                messageId: entry.messageId
+                messageId: entry.messageId,
+                queueAttempts: entry.attempts
             )
         case "native":
             guard let userInfo = (try? JSONSerialization.jsonObject(with: data)) as? [String: Any] else {
@@ -145,7 +148,8 @@ final class PaylisherPendingInAppQueue {
             }
             PaylisherNativeInAppNotificationManager.shared.nativeInAppNotification(
                 userInfo: userInfo,
-                windowScene: scene
+                windowScene: scene,
+                queueAttempts: entry.attempts
             )
         default:
             return
