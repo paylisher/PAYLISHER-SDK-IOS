@@ -47,6 +47,7 @@ let maxRetryDelay = 30.0
         private var reachability: Reachability?
     #endif
     private var flagCallReported = Set<String>()
+    private let flagCallReportedLock = NSLock()
     private var featureFlags: PaylisherFeatureFlags?
     private var context: PaylisherContext?
     private static var apiKeys = Set<String>()
@@ -217,7 +218,11 @@ let maxRetryDelay = 30.0
             // Configure Firebase
             // FirebaseApp.configure();
             // Set the global uncaught exception handler
-            ErrorHandlerRegistrar.setupGlobalErrorHandler()
+            // Opt-in: replacing the host's NSUncaughtExceptionHandler silently broke its crash
+            // reporter. Off by default; when on, the SDK chains to the previous handler.
+            if config.installUncaughtExceptionHandler {
+                ErrorHandlerRegistrar.setupGlobalErrorHandler()
+            }
         }
     }
 
@@ -687,13 +692,13 @@ let maxRetryDelay = 30.0
         // They are not persisted, so an organic relaunch / new session does NOT carry them.
         // campaign_source carries the traffic source (utm_source/?source) forward onto EVERY event in
         // the journey's session so downstream user-path nodes can stay split by source.
-        if let dlKey = deeplinkAttributionKey,
-           let attrSession = deeplinkAttributionSessionId,
+        if let attribution = currentDeeplinkAttribution(),
+           let attrSession = attribution.sessionId,
            let currentSession = PaylisherSessionManager.shared.getSessionId(),
            attrSession == currentSession {
-            props["campaign_key"] = dlKey
-            props["deeplink_key"] = dlKey
-            if let dlSource = deeplinkAttributionSource {
+            props["campaign_key"] = attribution.key
+            props["deeplink_key"] = attribution.key
+            if let dlSource = attribution.source {
                 props["campaign_source"] = dlSource
             }
         }
@@ -727,7 +732,7 @@ let maxRetryDelay = 30.0
         // storage also removes all feature flags
         storage?.reset()
         config.storageManager?.reset()
-        flagCallReported.removeAll()
+        flagCallReportedLock.withLock { flagCallReported.removeAll() }
         PaylisherSessionManager.shared.endSession {
             self.resetViews()
         }
@@ -767,9 +772,20 @@ let maxRetryDelay = 30.0
 
     // MARK: - Deeplink attribution (session-scoped, in-memory — NOT persisted)
 
-    private var deeplinkAttributionKey: String?
-    private var deeplinkAttributionSessionId: String?
-    private var deeplinkAttributionSource: String?
+    /// Session-scoped deep link attribution, kept as ONE value under ONE lock so an
+    /// event can never be stamped with a half-updated key/session/source triple.
+    private struct DeeplinkAttribution {
+        let key: String
+        let sessionId: String?
+        let source: String?
+    }
+
+    private var deeplinkAttribution: DeeplinkAttribution?
+    private let deeplinkAttributionLock = NSLock()
+
+    private func currentDeeplinkAttribution() -> DeeplinkAttribution? {
+        deeplinkAttributionLock.withLock { deeplinkAttribution }
+    }
 
     /// Sets campaign_key/deeplink_key (+ optional campaign_source) for the CURRENT session only
     /// (in-memory; not persisted to storage). `buildProperties` injects them into events only while
@@ -777,15 +793,15 @@ let maxRetryDelay = 30.0
     /// rotation. `source` is the traffic source (utm_source/?source) carried forward so downstream
     /// user-path nodes stay split by source. Pass nil campaignKey to clear all.
     internal func setDeeplinkAttribution(_ campaignKey: String?, source: String? = nil) {
-        if let key = campaignKey, !key.isEmpty {
-            deeplinkAttributionKey = key
-            deeplinkAttributionSessionId = PaylisherSessionManager.shared.getSessionId()
-            deeplinkAttributionSource = source
-        } else {
-            deeplinkAttributionKey = nil
-            deeplinkAttributionSessionId = nil
-            deeplinkAttributionSource = nil
-        }
+        let newValue: DeeplinkAttribution? = {
+            guard let key = campaignKey, !key.isEmpty else { return nil }
+            return DeeplinkAttribution(
+                key: key,
+                sessionId: PaylisherSessionManager.shared.getSessionId(),
+                source: source
+            )
+        }()
+        deeplinkAttributionLock.withLock { deeplinkAttribution = newValue }
     }
 
     // register is a reserved word in ObjC
@@ -919,7 +935,7 @@ let maxRetryDelay = 30.0
         storage?.remove(key: .sessionReplay)
 
         featureFlags?.clear()
-        flagCallReported.removeAll()
+        flagCallReportedLock.withLock { flagCallReported.removeAll() }
 
         storageManager.setPersonProcessing(true)
 
@@ -1276,16 +1292,22 @@ let maxRetryDelay = 30.0
     }
 
     private func reportFeatureFlagCalled(flagKey: String, flagValue: Any?) {
-        if !flagCallReported.contains(flagKey) {
-            let properties: [String: Any] = [
+        // The Set is read and mutated from whatever thread calls getFeatureFlag; guard it.
+        var shouldReport = false
+        flagCallReportedLock.withLock {
+            if !flagCallReported.contains(flagKey) {
+                flagCallReported.insert(flagKey)
+                shouldReport = true
+            }
+        }
+        guard shouldReport else { return }
+
+        let properties: [String: Any] = [
                 "$feature_flag": flagKey,
                 "$feature_flag_response": flagValue ?? "",
-            ]
+        ]
 
-            flagCallReported.insert(flagKey)
-
-            capture("$feature_flag_called", properties: properties)
-        }
+        capture("$feature_flag_called", properties: properties)
     }
 
    /* private func isEnabled() -> Bool {
@@ -1376,7 +1398,7 @@ let maxRetryDelay = 30.0
                 self.reachability?.stopNotifier()
                 reachability = nil
             #endif
-            flagCallReported.removeAll()
+            flagCallReportedLock.withLock { flagCallReported.removeAll() }
             context = nil
             PaylisherSessionManager.shared.endSession {
                 self.resetViews()
