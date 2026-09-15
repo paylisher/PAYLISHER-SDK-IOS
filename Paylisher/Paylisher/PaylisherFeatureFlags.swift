@@ -82,11 +82,20 @@ class PaylisherFeatureFlags {
         groups: [String: String],
         callback: @escaping () -> Void
     ) {
+        // The re-entrancy guard has to return from THIS function. Inside `withLock { ... }` the
+        // `return` only left the closure, so every overlapping call still hit /decide.
+        var alreadyLoading = false
         loadingLock.withLock {
             if self.loadingFeatureFlags {
-                return
+                alreadyLoading = true
+            } else {
+                self.loadingFeatureFlags = true
             }
-            self.loadingFeatureFlags = true
+        }
+        if alreadyLoading {
+            hedgeLog("Feature flags are already being loaded, skipping duplicate request.")
+            // The in-flight request will publish the result; do not leave this caller hanging.
+            return callback()
         }
 
         api.decide(distinctId: distinctId,
