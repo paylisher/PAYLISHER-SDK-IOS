@@ -14,8 +14,9 @@ import Foundation
  we are opting to only support iOS via File storage.
  */
 func applicationSupportDirectoryURL() -> URL {
-    let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first!
-    return url.appendingPathComponent(Bundle.main.bundleIdentifier!)
+    let url = FileManager.default.urls(for: .applicationSupportDirectory, in: .userDomainMask).first
+        ?? URL(fileURLWithPath: NSTemporaryDirectory())
+    return url.appendingPathComponent(Bundle.main.bundleIdentifier ?? "paylisher")
 }
 
 class PaylisherStorage {
@@ -44,6 +45,11 @@ class PaylisherStorage {
 
     private let config: PaylisherConfig
 
+    /// Serialises file reads/writes. Without it a `register` on one thread and a `capture`
+    /// on another could read a half-written JSON file and silently drop the registered
+    /// properties from that event.
+    private let ioLock = NSLock()
+
     // The location for storing data that we always want to keep
     let appFolderUrl: URL
 
@@ -64,6 +70,8 @@ class PaylisherStorage {
     private func getData(forKey: StorageKey) -> Data? {
         let url = url(forKey: forKey)
 
+        ioLock.lock()
+        defer { ioLock.unlock() }
         do {
             if FileManager.default.fileExists(atPath: url.path) {
                 return try Data(contentsOf: url)
@@ -77,6 +85,8 @@ class PaylisherStorage {
     private func setData(forKey: StorageKey, contents: Data?) {
         var url = url(forKey: forKey)
 
+        ioLock.lock()
+        defer { ioLock.unlock() }
         do {
             if contents == nil {
                 deleteSafely(url)
@@ -150,7 +160,7 @@ class PaylisherStorage {
             let url = FileManager.default
                 .containerURL(forSecurityApplicationGroupIdentifier: appGroupIdentifier)?
                 .appendingPathComponent("Library/Application Support/")
-                .appendingPathComponent(Bundle.main.bundleIdentifier!)
+                .appendingPathComponent(Bundle.main.bundleIdentifier ?? "paylisher")
 
             if let url {
                 createDirectoryAtURLIfNeeded(url: url)
@@ -184,6 +194,8 @@ class PaylisherStorage {
     public func remove(key: StorageKey) {
         let url = url(forKey: key)
 
+        ioLock.lock()
+        defer { ioLock.unlock() }
         deleteSafely(url)
     }
 
