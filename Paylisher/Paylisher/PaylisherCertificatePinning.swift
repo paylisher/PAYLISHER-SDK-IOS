@@ -81,10 +81,23 @@ final class PaylisherCertificatePinner: NSObject, URLSessionDelegate {
             return
         }
 
-        // Step 2, compare the server public key with the configured pins.
-        guard let publicKey = PaylisherCertificatePinner.serverPublicKey(serverTrust),
-              let spki = PaylisherCertificatePinner.subjectPublicKeyInfo(publicKey)
-        else {
+        // Step 2, compare the server public key with the configured pins. The ASN.1 header table
+        // covers the common key types; anything else (P-521, RSA-8192, ...) used to be REFUSED
+        // outright, which cut every SDK request the day the server rotated to such a key. For
+        // those the SubjectPublicKeyInfo is read straight out of the leaf certificate DER instead.
+        let spkiData: Data? = {
+            if let publicKey = PaylisherCertificatePinner.serverPublicKey(serverTrust),
+               let spki = PaylisherCertificatePinner.subjectPublicKeyInfo(publicKey) {
+                return spki
+            }
+            if let der = PaylisherCertificatePinner.leafCertificateData(serverTrust),
+               let spki = PaylisherCertificatePinner.subjectPublicKeyInfo(fromCertificate: der) {
+                hedgeLog("Certificate pinning: key type has no known ASN.1 header, using the certificate's SubjectPublicKeyInfo directly.")
+                return spki
+            }
+            return nil
+        }()
+        guard let spki = spkiData else {
             hedgeLog("Certificate pinning refused \(challenge.protectionSpace.host), the server public key could not be read.")
             completionHandler(.cancelAuthenticationChallenge, nil)
             return
@@ -135,6 +148,70 @@ final class PaylisherCertificatePinner: NSObject, URLSessionDelegate {
             return nil
         }
         return header + raw
+    }
+
+    /// Leaf certificate DER of the evaluated chain.
+    private static func leafCertificateData(_ trust: SecTrust) -> Data? {
+        let leaf: SecCertificate?
+        if #available(iOS 15.0, macOS 12.0, tvOS 15.0, watchOS 8.0, *) {
+            leaf = (SecTrustCopyCertificateChain(trust) as? [SecCertificate])?.first
+        } else {
+            leaf = SecTrustGetCertificateAtIndex(trust, 0)
+        }
+        guard let certificate = leaf else { return nil }
+        return SecCertificateCopyData(certificate) as Data
+    }
+
+    /// Minimal DER walk: Certificate → TBSCertificate → [version] serial sigAlg issuer validity
+    /// subject → SubjectPublicKeyInfo. Returns the complete SPKI TLV (tag + length + value), which
+    /// is exactly what openssl / OkHttp hash for a "sha256/" pin.
+    static func subjectPublicKeyInfo(fromCertificate der: Data) -> Data? {
+        let bytes = [UInt8](der)
+        var outer = DERReader(bytes: bytes, position: 0)
+        guard let certificate = outer.readTLV(), certificate.tag == 0x30 else { return nil }
+        var certificateReader = DERReader(bytes: bytes, position: certificate.content.lowerBound)
+        guard let tbs = certificateReader.readTLV(), tbs.tag == 0x30 else { return nil }
+        var tbsReader = DERReader(bytes: bytes, position: tbs.content.lowerBound)
+        guard var field = tbsReader.readTLV() else { return nil }
+        if field.tag == 0xA0 {
+            // Explicit [0] version present; the next field is the serial number.
+            guard let serial = tbsReader.readTLV() else { return nil }
+            field = serial
+        }
+        // signature algorithm, issuer, validity, subject
+        for _ in 0 ..< 4 {
+            guard tbsReader.readTLV() != nil else { return nil }
+        }
+        let spkiStart = tbsReader.position
+        guard let spki = tbsReader.readTLV(), spki.tag == 0x30 else { return nil }
+        return Data(bytes[spkiStart ..< spki.content.upperBound])
+    }
+
+    private struct DERReader {
+        let bytes: [UInt8]
+        var position: Int
+
+        mutating func readTLV() -> (tag: UInt8, content: Range<Int>)? {
+            guard position < bytes.count else { return nil }
+            let tag = bytes[position]
+            position += 1
+            guard position < bytes.count else { return nil }
+            var length = Int(bytes[position])
+            position += 1
+            if length & 0x80 != 0 {
+                let lengthBytes = length & 0x7F
+                guard lengthBytes > 0, lengthBytes <= 4, position + lengthBytes <= bytes.count else { return nil }
+                length = 0
+                for _ in 0 ..< lengthBytes {
+                    length = (length << 8) | Int(bytes[position])
+                    position += 1
+                }
+            }
+            guard position + length <= bytes.count else { return nil }
+            let content = position ..< (position + length)
+            position += length
+            return (tag, content)
+        }
     }
 
     private static func asn1Header(for key: SecKey) -> Data? {
