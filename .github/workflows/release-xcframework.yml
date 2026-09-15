@@ -6,6 +6,13 @@ on:
       version:
         description: "Yayınlanacak Sürüm Numarası (Ör: 1.8.5)"
         required: true
+      push_main:
+        description: "Release commit'i main'e de push'la (bakim/support dalindan yayin icin false)"
+        type: choice
+        default: 'true'
+        options:
+          - 'true'
+          - 'false'
 
 permissions:
   contents: write # GitHub Releases oluşturabilmek ve Package.swift'i pushlayabilmek için gerekli yetki
@@ -120,7 +127,12 @@ jobs:
           
           git commit -m "chore(release): ${{ github.event.inputs.version }} [skip ci]"
           git tag "${{ github.event.inputs.version }}"
-          git push origin HEAD:main --tags
+          if [ "${{ github.event.inputs.push_main }}" != "false" ]; then
+            git push origin HEAD:main --tags
+          else
+            echo "push_main=false: main'e push atlaniyor, yalniz tag gidiyor"
+            git push origin --tags
+          fi
           # Release commit'i (bump + checksum) kaynak dala da yazılsın ki dal main'den sapmasın
           git push origin HEAD:${{ github.ref_name }}
 
