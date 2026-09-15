@@ -110,7 +110,9 @@ let maxRetryDelay = 30.0
                 PaylisherSDK.apiKeys.insert(config.apiKey)
             }
 
-            enabled = true
+            // `enabled` is flipped only after the queues exist (see below): a capture() racing in
+            // from another thread during setup used to see enabled == true, find queue == nil and
+            // drop the event silently.
             self.config = config
             let theStorage = PaylisherStorage(config)
             storage = theStorage
@@ -151,8 +153,11 @@ let maxRetryDelay = 30.0
             replayQueue?.start(disableReachabilityForTesting: config.disableReachabilityForTesting,
                                disableQueueTimerForTesting: config.disableQueueTimerForTesting)
 
+            enabled = true
+
             registerNotifications()
             captureScreenViews()
+
 
             #if os(iOS) || os(tvOS)
                 // Kuyruğu ŞİMDİ ayağa kaldır: gözlemcisini kurar ve arka planda
@@ -168,6 +173,12 @@ let maxRetryDelay = 30.0
             #endif
 
             PaylisherSessionManager.shared.startSession()
+
+            // Hosts that call setup() asynchronously (a wrapper queue, a later screen) have already
+            // missed UIApplication.didFinishLaunchingNotification, so "Application Installed /
+            // Updated" was never captured for them. Run the check here as well; it is idempotent and
+            // runs after startSession() so the event carries the session id.
+            captureAppInstallLifecycle()
 
             #if os(iOS)
                 if config.sessionReplay {
