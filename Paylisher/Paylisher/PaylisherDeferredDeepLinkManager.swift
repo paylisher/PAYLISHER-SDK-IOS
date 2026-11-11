@@ -573,6 +573,9 @@ public class PaylisherDeferredDeepLinkManager {
         if let confidence = response.confidence {
             properties["attribution_confidence"] = confidence
         }
+        if let label = response.matchConfidence {
+            properties["attribution_confidence_label"] = label
+        }
 
         // Add metadata
         if let metadata = response.metadata {

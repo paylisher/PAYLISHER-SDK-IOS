@@ -231,12 +231,31 @@ struct PaylisherDeferredDeepLinkResponse: Codable {
     /// Attribution waterfall layer that produced the match: signed_token/click_id/idfa/gaid/probabilistic/fingerprint.
     let attributionMethod: String?
 
-    /// Match confidence 0..1 (deterministic layers ≥0.9; fingerprint ~0.3). Optional.
+    /// Numeric match confidence 0..1, only when a backend sends a number under `confidence`.
+    /// Current backends send the label in `matchConfidence` instead and leave this nil.
     let confidence: Double?
+
+    /// Backend confidence label: "deterministic", "probable" or "ambiguous". Informational only,
+    /// it never changes how the match is handled.
+    let matchConfidence: String?
 
     /// "install" or "reengagement" — what the backend recorded this match as. Absent on
     /// older backends, which only ever answer install checks.
     let matchType: String?
+
+    enum CodingKeys: String, CodingKey {
+        case status
+        case url
+        case campaignKey
+        case jid
+        case clickTimestamp
+        case attributionWindow
+        case metadata
+        case attributionMethod
+        case confidence
+        case matchConfidence
+        case matchType
+    }
 
     /**
      * Checks if this response indicates a successful match.
@@ -251,6 +270,46 @@ struct PaylisherDeferredDeepLinkResponse: Codable {
     func getMetadataString(key: String) -> String? {
         guard let metadata = metadata else { return nil }
         return metadata[key]?.stringValue
+    }
+}
+
+extension PaylisherDeferredDeepLinkResponse {
+    /**
+     * Tolerant decoding. Only `status` is required. Every other field is informational for the
+     * SDK, so a value of an unexpected type costs that one field and never the whole match.
+     *
+     * The synthesized strict decoder turned a backend wire change into lost installs: from
+     * September to November 2026 the backend sent `confidence` as a text label, the `Double?`
+     * decode threw, and every iOS deferred match surfaced as "Deferred Deep Link Error" while the
+     * backend had already claimed the click. Declared in an extension so the memberwise
+     * initializer stays available.
+     */
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        status = try container.decode(String.self, forKey: .status)
+        url = try? container.decodeIfPresent(String.self, forKey: .url)
+        campaignKey = try? container.decodeIfPresent(String.self, forKey: .campaignKey)
+        jid = try? container.decodeIfPresent(String.self, forKey: .jid)
+        clickTimestamp = try? container.decodeIfPresent(String.self, forKey: .clickTimestamp)
+        attributionWindow = try? container.decodeIfPresent(Int64.self, forKey: .attributionWindow)
+        metadata = try? container.decodeIfPresent([String: AnyCodable].self, forKey: .metadata)
+        attributionMethod = try? container.decodeIfPresent(String.self, forKey: .attributionMethod)
+        matchType = try? container.decodeIfPresent(String.self, forKey: .matchType)
+
+        // A number under `confidence` stays the score. Text there is a label from the backends of
+        // September to November 2026, kept as the label when `matchConfidence` is absent.
+        var label = try? container.decodeIfPresent(String.self, forKey: .matchConfidence)
+        var score: Double? = nil
+        if let number = try? container.decodeIfPresent(Double.self, forKey: .confidence) {
+            score = number
+        } else if let text = try? container.decodeIfPresent(String.self, forKey: .confidence) {
+            score = Double(text)
+            if score == nil && label == nil {
+                label = text
+            }
+        }
+        confidence = score
+        matchConfidence = label
     }
 }
 
